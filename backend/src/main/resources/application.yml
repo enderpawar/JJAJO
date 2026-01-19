@@ -1,0 +1,20 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: jjajo-backend
+  
+  ai:
+    vertex:
+      ai:
+        gemini:
+          # API 키는 요청 헤더에서 동적으로 주입됨 (BYOK)
+          project-id: dummy
+          location: us-central1
+          model: gemini-2.0-flash-thinking-exp-01-21
+          
+logging:
+  level:
+    com.jjajo: DEBUG
+    org.springframework.ai: DEBUG
