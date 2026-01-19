@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import Header from '@/components/layout/Header'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
-import AiTodosSidebar from '@/components/calendar/AiTodosSidebar'
+import AiChatPanel from '@/components/chat/AiChatPanel'
 import DayDetailPanel from '@/components/calendar/DayDetailPanel'
 import { useCalendarStore } from '@/stores/calendarStore'
 
@@ -88,8 +88,8 @@ export default function MainPage() {
       
       <main className="flex-1 max-w-screen-2xl w-full mx-auto p-6">
         <div className="flex gap-6 h-[calc(100vh-120px)]">
-          {/* 좌측: AI 일정 사이드바 */}
-          <AiTodosSidebar />
+          {/* 좌측: AI 채팅 패널 */}
+          <AiChatPanel />
           
           {/* 중앙: 캘린더 그리드 */}
           <CalendarGrid />
