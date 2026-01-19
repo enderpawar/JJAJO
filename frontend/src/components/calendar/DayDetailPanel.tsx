@@ -44,7 +44,7 @@ export default function DayDetailPanel() {
   }
   
   return (
-    <div className="w-96 bg-white rounded-xl shadow-lg p-6 flex flex-col">
+    <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col h-[600px]">
       {/* 헤더 */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">

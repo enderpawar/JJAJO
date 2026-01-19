@@ -1,11 +1,18 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Header from '@/components/layout/Header'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
+import CalendarStats from '@/components/calendar/CalendarStats'
 import AiChatPanel from '@/components/chat/AiChatPanel'
 import DayDetailPanel from '@/components/calendar/DayDetailPanel'
+import { SuggestionPanel } from '@/components/suggestions/SuggestionPanel'
+import { GoalList } from '@/components/goals/GoalList'
+import { GoalModal } from '@/components/goals/GoalModal'
+import { Target } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 
 export default function MainPage() {
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false)
+  
   // 테스트용 더미 데이터
   useEffect(() => {
     const { todos, addTodo } = useCalendarStore.getState()
@@ -83,21 +90,60 @@ export default function MainPage() {
   }, [])
   
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-orange-50 via-white to-amber-50">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       
-      <main className="flex-1 max-w-screen-2xl w-full mx-auto p-6">
-        <div className="flex gap-6 h-[calc(100vh-120px)]">
-          {/* 좌측: AI 채팅 패널 */}
-          <AiChatPanel />
-          
-          {/* 중앙: 캘린더 그리드 */}
-          <CalendarGrid />
-          
-          {/* 우측: 일일 일정 상세 */}
-          <DayDetailPanel />
+      <main className="flex-1 w-full mx-auto p-6 max-w-[1800px]">
+        {/* 상단: 통계 카드 */}
+        <div className="mb-6">
+          <CalendarStats />
+        </div>
+
+        {/* 목표 섹션 */}
+        <div className="mb-6">
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Target className="w-6 h-6 text-primary-500" />
+                <h2 className="text-xl font-bold text-gray-900">내 목표</h2>
+              </div>
+              <button
+                onClick={() => setIsGoalModalOpen(true)}
+                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium"
+              >
+                + 새 목표
+              </button>
+            </div>
+            <GoalList />
+          </div>
+        </div>
+
+        {/* 메인 3단 레이아웃 */}
+        <div className="grid grid-cols-12 gap-6">
+          {/* 좌측: AI 채팅 (4열) */}
+          <div className="col-span-4">
+            <AiChatPanel />
+          </div>
+
+          {/* 중앙: 캘린더 (5열) */}
+          <div className="col-span-5">
+            <CalendarGrid />
+          </div>
+
+          {/* 우측: 일일 일정 (3열) */}
+          <div className="col-span-3">
+            <DayDetailPanel />
+          </div>
+        </div>
+
+        {/* AI 제안 섹션 (하단 전체 폭) */}
+        <div className="mt-6">
+          <SuggestionPanel />
         </div>
       </main>
+
+      {/* 목표 생성 모달 */}
+      <GoalModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} />
     </div>
   )
 }

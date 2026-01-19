@@ -4,24 +4,36 @@
 
 @layer base {
   body {
-    @apply bg-gradient-to-br from-orange-50 via-white to-amber-50 min-h-screen font-sans;
+    @apply bg-white min-h-screen font-sans;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-primary-500 hover:bg-primary-600 text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-primary-500 hover:bg-primary-600 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   .btn-secondary {
-    @apply bg-white hover:bg-gray-50 text-gray-700 font-medium px-6 py-3 rounded-lg border border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-white hover:bg-gray-50 text-gray-900 font-semibold px-6 py-3 rounded-xl border-2 border-gray-200 transition-all duration-200 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-dark {
+    @apply bg-dark-50 hover:bg-dark-100 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   .input-field {
-    @apply w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
+    @apply w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200;
   }
   
   .card {
-    @apply bg-white rounded-xl shadow-lg p-6 border border-gray-100;
+    @apply bg-white rounded-2xl shadow-lg p-6 border border-gray-100;
+  }
+  
+  .card-dark {
+    @apply bg-dark-50 rounded-2xl shadow-md p-6 text-white;
+  }
+  
+  .stat-card {
+    @apply bg-dark-50 rounded-2xl shadow-md p-6 text-white relative overflow-hidden;
   }
 }

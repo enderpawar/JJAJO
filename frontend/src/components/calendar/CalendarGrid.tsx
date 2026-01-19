@@ -29,7 +29,7 @@ export default function CalendarGrid() {
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
   
   return (
-    <div className="flex-1 bg-white rounded-xl shadow-lg p-6">
+    <div className="bg-white rounded-2xl shadow-lg p-6 h-[600px] flex flex-col">
       {/* 월 네비게이션 */}
       <div className="flex items-center justify-between mb-6">
         <button

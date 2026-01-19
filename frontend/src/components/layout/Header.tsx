@@ -14,32 +14,32 @@ export default function Header() {
   }
   
   return (
-    <header className="bg-white border-b border-gray-200">
+    <header className="bg-white border-b border-gray-100 shadow-sm">
       <div className="max-w-screen-2xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* 로고 */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center shadow-md">
+            <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-lg">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-800">짜조</h1>
-              <p className="text-xs text-gray-500">AI 일정 플래너</p>
+              <h1 className="text-2xl font-bold text-gray-900">짜조</h1>
+              <p className="text-xs text-gray-500 font-medium">AI 일정 플래너</p>
             </div>
           </div>
           
           {/* 우측 메뉴 */}
           <div className="flex items-center gap-2">
             <button
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2.5 hover:bg-gray-100 rounded-xl transition-colors"
               title="설정"
             >
-              <Settings className="w-5 h-5 text-gray-600" />
+              <Settings className="w-5 h-5 text-gray-700" />
             </button>
             
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-red-50 rounded-lg transition-colors text-sm text-gray-700 hover:text-red-600"
+              className="flex items-center gap-2 px-4 py-2.5 hover:bg-red-50 rounded-xl transition-colors text-sm font-medium text-gray-700 hover:text-red-600"
               title="로그아웃"
             >
               <Key className="w-4 h-4" />

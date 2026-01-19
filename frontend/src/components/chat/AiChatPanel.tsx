@@ -1,14 +1,20 @@
 import { useState, useRef, useEffect } from 'react'
-import { Sparkles, Send, Loader2, Trash2, MessageSquare, CheckCircle } from 'lucide-react'
+import { Sparkles, Send, Loader2, Trash2, MessageSquare, CheckCircle, Target } from 'lucide-react'
 import { useChatStore } from '@/stores/chatStore'
+import { useGoalStore } from '@/stores/goalStore'
+import { useCalendarStore } from '@/stores/calendarStore'
 import { aiChatService } from '@/services/aiChatService'
+import { goalService } from '@/services/goalService'
 import type { ChatMessage } from '@/types/chat'
 import { cn } from '@/utils/cn'
 
 export default function AiChatPanel() {
   const { currentSession, isLoading, addMessage, clearMessages, setLoading, initSession } = useChatStore()
+  const { addGoal } = useGoalStore()
+  const { addTodo } = useCalendarStore()
   const [inputValue, setInputValue] = useState('')
   const [conversationId, setConversationId] = useState<string>()
+  const [isCreatingGoal, setIsCreatingGoal] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
   // 세션 초기화
@@ -34,32 +40,91 @@ export default function AiChatPanel() {
     }
     
     addMessage(userMessage)
+    const messageContent = inputValue.trim()
     setInputValue('')
     setLoading(true)
     
     try {
-      // AI 응답 대기
-      const response = await aiChatService.sendMessage(userMessage.content, conversationId)
+      // 목표 관련 키워드 감지
+      const isGoalRequest = detectGoalRequest(messageContent)
       
-      // 대화 ID 저장
-      if (response.conversationId) {
-        setConversationId(response.conversationId)
+      if (isGoalRequest) {
+        // 목표 생성 모드
+        setIsCreatingGoal(true)
+        
+        // 진행 상황 메시지
+        const progressMessage: ChatMessage = {
+          id: `msg-${Date.now()}-progress`,
+          role: 'assistant',
+          content: '🎯 목표를 분석하고 계획을 수립하고 있습니다...\n\n• 목표 분석 중\n• 커리큘럼 설계 중\n• 일정 생성 중',
+          timestamp: new Date().toISOString(),
+        }
+        addMessage(progressMessage)
+        
+        // AI 기반 목표 생성
+        const result = await goalService.createGoalWithAI(messageContent)
+        
+        // Goal 추가
+        addGoal(result.goal)
+        
+        // 일정들을 캘린더에 추가
+        result.schedules.forEach((schedule, index) => {
+          addTodo({
+            id: `goal-schedule-${Date.now()}-${index}`,
+            title: schedule.title,
+            description: schedule.description || '',
+            date: schedule.date,
+            startTime: schedule.startTime,
+            endTime: schedule.endTime,
+            status: 'pending',
+            priority: schedule.priority as 'high' | 'medium' | 'low',
+            createdBy: 'ai',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          })
+        })
+        
+        // 완료 메시지
+        const successMessage: ChatMessage = {
+          id: `msg-${Date.now()}-success`,
+          role: 'assistant',
+          content: `✅ 목표 달성 계획이 완성되었습니다!\n\n` +
+                   `📋 **${result.goal.title}**\n\n` +
+                   `⏰ 예상 기간: ${result.goal.deadline}까지\n` +
+                   `📚 총 학습 시간: ${result.totalHours}시간\n` +
+                   `📅 주 ${result.sessionsPerWeek}회 학습\n\n` +
+                   `**커리큘럼**\n${result.curriculum}\n\n` +
+                   `📌 ${result.schedules.length}개의 일정이 캘린더에 자동으로 추가되었습니다!\n` +
+                   `"내 목표" 섹션에서 진행 상황을 확인하세요.`,
+          timestamp: new Date().toISOString(),
+        }
+        addMessage(successMessage)
+        
+        setIsCreatingGoal(false)
+      } else {
+        // 일반 채팅 모드
+        const response = await aiChatService.sendMessage(messageContent, conversationId)
+        
+        // 대화 ID 저장
+        if (response.conversationId) {
+          setConversationId(response.conversationId)
+        }
+        
+        // AI 응답 추가
+        let replyContent = response.reply
+        if (response.schedule) {
+          replyContent += '\n\n✅ 일정이 캘린더에 추가되었습니다!'
+        }
+        
+        const aiMessage: ChatMessage = {
+          id: `msg-${Date.now()}-ai`,
+          role: 'assistant',
+          content: replyContent,
+          timestamp: new Date().toISOString(),
+        }
+        
+        addMessage(aiMessage)
       }
-      
-      // AI 응답 추가
-      let replyContent = response.reply
-      if (response.schedule) {
-        replyContent += '\n\n✅ 일정이 캘린더에 추가되었습니다!'
-      }
-      
-      const aiMessage: ChatMessage = {
-        id: `msg-${Date.now()}-ai`,
-        role: 'assistant',
-        content: replyContent,
-        timestamp: new Date().toISOString(),
-      }
-      
-      addMessage(aiMessage)
     } catch (error) {
       const errorMessage: ChatMessage = {
         id: `msg-${Date.now()}-error`,
@@ -69,9 +134,25 @@ export default function AiChatPanel() {
       }
       
       addMessage(errorMessage)
+      setIsCreatingGoal(false)
     } finally {
       setLoading(false)
     }
+  }
+  
+  /**
+   * 목표 관련 요청인지 감지
+   */
+  const detectGoalRequest = (message: string): boolean => {
+    const goalKeywords = [
+      '목표', '계획', '달성', '공부', '학습', '준비',
+      '토익', '토플', 'TOEIC', 'TOEFL',
+      '자격증', '시험', '합격',
+      '커리큘럼', '일정 짜', '스케줄',
+      '~하고 싶어', '~할래', '~할 거야',
+    ]
+    
+    return goalKeywords.some(keyword => message.includes(keyword))
   }
   
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -84,7 +165,7 @@ export default function AiChatPanel() {
   const messages = currentSession?.messages || []
   
   return (
-    <div className="w-80 bg-white rounded-xl shadow-lg flex flex-col h-full">
+    <div className="bg-white rounded-2xl shadow-lg flex flex-col h-[600px]">
       {/* 헤더 */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center gap-2">
