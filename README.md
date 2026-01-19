@@ -85,5 +85,3 @@ npm run dev
 - 직관적인 캔버스 인터랙션
 
 ---
-
-Made with ❤️ by Jja-jo Team
