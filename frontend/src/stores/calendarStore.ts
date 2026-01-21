@@ -21,6 +21,7 @@ interface CalendarStore {
   addTodo: (todo: Todo) => void
   updateTodo: (id: string, updates: Partial<Todo>) => void
   deleteTodo: (id: string) => void
+  clearAllTodos: () => void
   getTodosByDate: (date: string) => Todo[]
   getAiTodos: () => Todo[]
 }
@@ -53,6 +54,8 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   deleteTodo: (id) => set((state) => ({
     todos: state.todos.filter((todo) => todo.id !== id),
   })),
+  
+  clearAllTodos: () => set({ todos: [] }),
   
   getTodosByDate: (date) => {
     const todos = get().todos

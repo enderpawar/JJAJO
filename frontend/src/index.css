@@ -2,6 +2,117 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 🎉 도파민 피드백 애니메이션 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes bounceIn {
+  0% { transform: scale(0.3) translateY(-100px); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes particle {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-100px) scale(0); opacity: 0; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-bounceIn {
+  animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.animate-particle {
+  animation: particle 1.5s ease-out infinite;
+}
+
+/* 🎯 Vertical Timeline 스타일 */
+
+/* 1. 현재 태스크 강조 (Glassmorphism + Glow) */
+.task-card-active {
+  background: rgba(255, 107, 0, 0.1) !important;
+  border: 2px solid #FF6B00 !important;
+  box-shadow: 0 8px 32px rgba(255, 107, 0, 0.3), 
+              0 0 60px rgba(255, 107, 0, 0.2) !important;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 2. 과거 태스크 압축 */
+.task-card-past {
+  filter: grayscale(100%);
+  opacity: 0.5 !important;
+  overflow: hidden;
+}
+
+/* 3. 빈 시간 슬롯 (Hover Effect) */
+.free-time-slot {
+  border: 2px dashed #E5E7EB;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  transition: all 0.2s;
+}
+
+.free-time-slot:hover {
+  border-color: #FF6B00 !important;
+  background-color: rgba(255, 107, 0, 0.05) !important;
+  color: #FF6B00;
+  cursor: pointer;
+}
+
+/* 4. 압축된 Gap (Accordion - 찢어진 영수증 효과) */
+.compressed-gap {
+  background: linear-gradient(to bottom right, #F9FAFB, #F3F4F6);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 찢어진 종이 느낌의 경계선 */
+  mask-image: linear-gradient(to bottom, transparent, black 10px, black calc(100% - 10px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 10px, black calc(100% - 10px), transparent);
+  transition: all 0.3s ease;
+}
+
+.compressed-gap::before,
+.compressed-gap::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    #D1D5DB 0px,
+    #D1D5DB 10px,
+    transparent 10px,
+    transparent 20px
+  );
+}
+
+.compressed-gap::before {
+  top: 0;
+}
+
+.compressed-gap::after {
+  bottom: 0;
+}
+
+.compressed-gap:hover {
+  background: linear-gradient(to bottom right, #F3F4F6, #E5E7EB);
+  transform: scale(1.01);
+  cursor: pointer;
+}
+
 @layer base {
   body {
     @apply bg-white min-h-screen font-sans;

@@ -7,11 +7,23 @@ import DayDetailPanel from '@/components/calendar/DayDetailPanel'
 import { SuggestionPanel } from '@/components/suggestions/SuggestionPanel'
 import { GoalList } from '@/components/goals/GoalList'
 import { GoalModal } from '@/components/goals/GoalModal'
-import { Target } from 'lucide-react'
+import { CurrentTaskSticky } from '@/components/calendar/CurrentTaskSticky'
+import { DopamineFeedback } from '@/components/feedback/DopamineFeedback'
+import { TopTimeline } from '@/components/calendar/TopTimeline'
+import { VerticalTimeline } from '@/components/calendar/VerticalTimeline'
+import { AIShadowPlanner } from '@/components/calendar/AIShadowPlanner'
+import { DynamicActionButton } from '@/components/calendar/DynamicActionButton'
+import { Target, ChevronDown, ChevronUp, Grid, Focus } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
+import { useGoalStore } from '@/stores/goalStore'
+import { useSuggestionStore } from '@/stores/suggestionStore'
 
 export default function MainPage() {
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false)
+  const [isGoalSectionCollapsed, setIsGoalSectionCollapsed] = useState(false)
+  const [viewMode, setViewMode] = useState<'grid' | 'focus'>('grid') // 🎨 뷰 모드 토글
+  const { goals } = useGoalStore()
+  const { suggestions } = useSuggestionStore()
   
   // 테스트용 더미 데이터
   useEffect(() => {
@@ -91,56 +103,171 @@ export default function MainPage() {
   
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Header />
+      {/* 🧠 External Scaffolding: 현재 작업 고정 표시 (Grid 모드만) */}
+      {viewMode === 'grid' && <CurrentTaskSticky />}
       
-      <main className="flex-1 w-full mx-auto p-6 max-w-[1800px]">
-        {/* 상단: 통계 카드 */}
-        <div className="mb-6">
-          <CalendarStats />
-        </div>
+      {/* 🎉 즉각적 도파민 피드백 */}
+      <DopamineFeedback />
+      
+      {/* 🎨 TopTimeline: 주간 히트맵 (Focus 모드) */}
+      {viewMode === 'focus' && <TopTimeline />}
+      
+      <div className={viewMode === 'grid' ? 'mt-24' : ''}>
+        <Header />
+      </div>
+      
+      {/* 뷰 모드 토글 버튼 */}
+      <div className="fixed top-20 right-8 z-40 flex gap-2">
+        <button
+          onClick={() => setViewMode('grid')}
+          className={`
+            flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200
+            ${viewMode === 'grid' 
+              ? 'bg-primary-500 text-white shadow-lg' 
+              : 'bg-white text-gray-600 hover:bg-gray-100'}
+          `}
+        >
+          <Grid className="w-4 h-4" />
+          그리드 뷰
+        </button>
+        <button
+          onClick={() => setViewMode('focus')}
+          className={`
+            flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200
+            ${viewMode === 'focus' 
+              ? 'bg-purple-500 text-white shadow-lg' 
+              : 'bg-white text-gray-600 hover:bg-gray-100'}
+          `}
+        >
+          <Focus className="w-4 h-4" />
+          포커스 뷰
+        </button>
+      </div>
+      
+      {/* 🎯 Grid View (기존 레이아웃) */}
+      {viewMode === 'grid' && (
+        <main className="flex-1 w-full mx-auto p-6 max-w-[1800px]">
+          {/* 상단: 통계 카드 */}
+          <div className="mb-6">
+            <CalendarStats />
+          </div>
 
-        {/* 목표 섹션 */}
+        {/* 목표 섹션 - 개선된 버전 */}
         <div className="mb-6">
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Target className="w-6 h-6 text-primary-500" />
-                <h2 className="text-xl font-bold text-gray-900">내 목표</h2>
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center">
+                    <Target className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">내 목표</h2>
+                    {goals.length > 0 && (
+                      <p className="text-sm text-gray-500">{goals.length}개 진행 중</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsGoalModalOpen(true)}
+                    className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium text-sm"
+                  >
+                    + 새 목표
+                  </button>
+                  {goals.length > 0 && ( 
+                    <button
+                      onClick={() => setIsGoalSectionCollapsed(!isGoalSectionCollapsed)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      title={isGoalSectionCollapsed ? "펼치기" : "접기"}
+                    >
+                      {isGoalSectionCollapsed ? (
+                        <ChevronDown className="w-5 h-5 text-gray-600" />
+                      ) : (
+                        <ChevronUp className="w-5 h-5 text-gray-600" />
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
-              <button
-                onClick={() => setIsGoalModalOpen(true)}
-                className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium"
-              >
-                + 새 목표
-              </button>
             </div>
-            <GoalList />
+            
+            {!isGoalSectionCollapsed && (
+              <div className={goals.length === 0 ? "p-6 pt-0" : "px-6 pb-6"}>
+                {goals.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                    <div className="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Target className="w-8 h-8 text-primary-300" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-1">
+                      아직 목표가 없습니다
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-4">
+                      AI와 함께 목표를 세우고 자동으로 일정을 관리하세요
+                    </p>
+                    <button
+                      onClick={() => setIsGoalModalOpen(true)}
+                      className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium text-sm inline-flex items-center gap-2"
+                    >
+                      <Target className="w-4 h-4" />
+                      첫 목표 만들기
+                    </button>
+                  </div>
+                ) : (
+                  <GoalList />
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* 메인 3단 레이아웃 */}
+        {/* 메인 3단 레이아웃 - 개선된 비율 */}
         <div className="grid grid-cols-12 gap-6">
-          {/* 좌측: AI 채팅 (4열) */}
-          <div className="col-span-4">
+          {/* 좌측: AI 채팅 (3.5열) */}
+          <div className="col-span-3">
             <AiChatPanel />
           </div>
 
-          {/* 중앙: 캘린더 (5열) */}
-          <div className="col-span-5">
+          {/* 중앙: 캘린더 (6열) - 더 넓게 */}
+          <div className="col-span-6">
             <CalendarGrid />
           </div>
 
-          {/* 우측: 일일 일정 (3열) */}
+          {/* 우측: 일일 일정 (2.5열) */}
           <div className="col-span-3">
             <DayDetailPanel />
           </div>
         </div>
 
-        {/* AI 제안 섹션 (하단 전체 폭) */}
-        <div className="mt-6">
-          <SuggestionPanel />
-        </div>
-      </main>
+        {/* AI 제안 섹션 - 조건부 렌더링 */}
+        {suggestions.length > 0 && (
+          <div className="mt-6">
+            <SuggestionPanel />
+          </div>
+        )}
+        </main>
+      )}
+      
+      {/* 🎯 Focus View (Vertical Gravity Timeline) */}
+      {viewMode === 'focus' && (
+        <main className="flex-1 flex flex-col overflow-hidden min-h-0">
+          {/* 메인 영역: VerticalTimeline (좌) + AI Shadow Planner (우) */}
+          <div className="flex-1 flex min-h-0">
+            {/* 좌측: Vertical Gravity Timeline */}
+            <div className="flex-1 min-h-0">
+              <VerticalTimeline />
+            </div>
+            
+            {/* 우측: AI 추천 일정 (Shadow Schedules) */}
+            <div className="w-80 bg-white border-l border-gray-200 p-6 overflow-y-auto">
+              <AIShadowPlanner />
+            </div>
+          </div>
+          
+          {/* 🚀 Dynamic Action Button (고정 위치) */}
+          <DynamicActionButton />
+        </main>
+      )}
 
       {/* 목표 생성 모달 */}
       <GoalModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} />

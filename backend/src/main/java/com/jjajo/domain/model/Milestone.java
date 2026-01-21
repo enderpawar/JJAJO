@@ -3,8 +3,6 @@ package com.jjajo.domain.model;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDate;
-
 /**
  * 목표의 마일스톤
  */

@@ -1,6 +1,21 @@
-# 짜조 백엔드
+# 짜조 (JJA-JO) 백엔드
 
-Spring Boot 3.4 + Spring AI 기반의 AI 일정 플래너 백엔드
+**Google Gemini AI 기반** 대화형 목표 달성 플래너 백엔드
+
+## ⚠️ 중요: AI 엔진 명확화
+
+| 항목 | 설명 |
+|------|------|
+| **실제 사용 AI** | ✅ **Google Gemini 2.0 Flash** |
+| **NOT 사용** | ❌ OpenAI GPT |
+| **NOT 사용** | ❌ Claude, LLaMA 등 |
+| **문서화 도구** | OpenAPI (Swagger) - API 문서 자동 생성용 📄 |
+
+### 용어 구분
+
+- **Gemini API**: Google의 생성형 AI - 실제 AI 기능 제공
+- **OpenAPI/Swagger**: API 문서화 표준 - 개발자 문서 생성
+- **Spring AI**: Spring 프레임워크 - Gemini API 통합
 
 ## 🚀 시작하기
 
@@ -91,8 +106,51 @@ Content-Type: application/json
 
 ## 🛠 기술 스택
 
+### AI 엔진
+- **Google Gemini 2.0 Flash (Experimental)** - 생성형 AI
+- **Spring AI** - AI 통합 프레임워크
+- **Vertex AI** - Google Cloud AI 플랫폼
+
+### 백엔드 프레임워크
 - **Java 17** - LTS 버전
 - **Spring Boot 3.4** - 프레임워크
-- **Spring AI** - AI 통합
+- **Spring Data JPA** - ORM
+- **H2 Database** - 개발용 인메모리 DB
 - **Lombok** - 보일러플레이트 코드 감소
 - **Maven** - 빌드 도구
+
+### 테스트 & 문서화
+- **JUnit 5** - 단위 테스트
+- **Mockito** - Mock 프레임워크
+- **AssertJ** - Fluent Assertion
+- **Swagger/OpenAPI 3.0** - API 문서 자동 생성
+
+## 🔑 Gemini API Key 설정
+
+### 1. API Key 발급
+[Google AI Studio](https://makersuite.google.com/app/apikey)에서 무료로 발급
+
+### 2. 환경 변수 설정
+```bash
+# Windows (PowerShell)
+$env:GEMINI_API_KEY="AIzaSy..."
+
+# Mac/Linux
+export GEMINI_API_KEY="AIzaSy..."
+```
+
+### 3. 사용 예시
+```bash
+curl -X POST http://localhost:8080/api/v1/conversations/chat \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-gemini-api-key" \
+  -d '{"userId": "test", "message": "안녕하세요"}'
+```
+
+## 📚 문서
+
+- **API 명세서**: [API_SPECIFICATION.md](./API_SPECIFICATION.md)
+- **구현 보고서**: [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)
+- **Gemini 설정 가이드**: [GEMINI_API_SETUP.md](./GEMINI_API_SETUP.md)
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **H2 콘솔**: http://localhost:8080/h2-console

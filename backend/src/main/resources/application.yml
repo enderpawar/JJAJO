@@ -1,20 +1,55 @@
-server:
-  port: 8080
-
 spring:
   application:
     name: jjajo-backend
   
+  # Spring AI - Google Gemini 설정
   ai:
     vertex:
       ai:
         gemini:
-          # API 키는 요청 헤더에서 동적으로 주입됨 (BYOK)
-          project-id: dummy
-          location: us-central1
-          model: gemini-2.0-flash-thinking-exp-01-21
-          
+          project-id: ${GEMINI_PROJECT_ID:jjajo-project}
+          location: ${GEMINI_LOCATION:us-central1}
+          model: gemini-2.0-flash-exp
+    retry:
+      max-attempts: 3
+  
+  # JPA & Database 설정
+  datasource:
+    url: jdbc:h2:mem:jjajodev
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+    open-in-view: false
+
+# SpringDoc OpenAPI 설정
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    display-request-duration: true
+    doc-expansion: none
+
+# Logging
 logging:
   level:
     com.jjajo: DEBUG
-    org.springframework.ai: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

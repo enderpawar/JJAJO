@@ -16,53 +16,60 @@ export default function CalendarStats() {
   const aiTodos = todos.filter(t => t.createdBy === 'ai').length
   
   return (
-    <div className="grid grid-cols-4 gap-4 mb-6">
-      {/* 오늘 일정 */}
-      <div className="stat-card">
-        <div className="flex items-start justify-between mb-4">
-          <div className="p-3 bg-primary-500/10 rounded-xl">
-            <Calendar className="w-6 h-6 text-primary-500" />
+    <div className="grid grid-cols-4 gap-4">
+      {/* 오늘 일정 - 강조 */}
+      <div className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-3">
+            <Calendar className="w-5 h-5" />
+            <span className="text-sm font-medium opacity-90">오늘</span>
           </div>
-          <div className="text-xs text-gray-400 font-medium">오늘</div>
+          <div className="text-4xl font-bold mb-1">{todayTodos.length}</div>
+          <div className="text-sm opacity-80">오늘의 일정</div>
         </div>
-        <div className="text-3xl font-bold mb-1">{todayTodos.length}</div>
-        <div className="text-sm text-gray-400">오늘의 일정</div>
       </div>
       
       {/* 완료율 */}
-      <div className="stat-card">
-        <div className="flex items-start justify-between mb-4">
-          <div className="p-3 bg-green-500/10 rounded-xl">
-            <CheckCircle2 className="w-6 h-6 text-green-500" />
+      <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition-shadow">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="p-2 bg-green-50 rounded-lg">
+            <CheckCircle2 className="w-5 h-5 text-green-500" />
           </div>
-          <div className="text-xs text-gray-400 font-medium">완료율</div>
+          <span className="text-sm font-medium text-gray-600">완료율</span>
         </div>
-        <div className="text-3xl font-bold mb-1">{completionRate}%</div>
-        <div className="text-sm text-gray-400">{completedTodos}/{totalTodos} 완료</div>
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-bold text-gray-900">{completionRate}%</span>
+          <span className="text-sm text-gray-500">{completedTodos}/{totalTodos}</span>
+        </div>
       </div>
       
       {/* AI 생성 */}
-      <div className="stat-card">
-        <div className="flex items-start justify-between mb-4">
-          <div className="p-3 bg-purple-500/10 rounded-xl">
-            <TrendingUp className="w-6 h-6 text-purple-500" />
+      <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition-shadow">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="p-2 bg-purple-50 rounded-lg">
+            <TrendingUp className="w-5 h-5 text-purple-500" />
           </div>
-          <div className="text-xs text-gray-400 font-medium">AI</div>
+          <span className="text-sm font-medium text-gray-600">AI 생성</span>
         </div>
-        <div className="text-3xl font-bold mb-1">{aiTodos}</div>
-        <div className="text-sm text-gray-400">AI 생성 일정</div>
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-bold text-gray-900">{aiTodos}</span>
+          <span className="text-sm text-gray-500">개</span>
+        </div>
       </div>
       
       {/* 전체 일정 */}
-      <div className="stat-card">
-        <div className="flex items-start justify-between mb-4">
-          <div className="p-3 bg-blue-500/10 rounded-xl">
-            <Clock className="w-6 h-6 text-blue-500" />
+      <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition-shadow">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="p-2 bg-blue-50 rounded-lg">
+            <Clock className="w-5 h-5 text-blue-500" />
           </div>
-          <div className="text-xs text-gray-400 font-medium">전체</div>
+          <span className="text-sm font-medium text-gray-600">전체</span>
         </div>
-        <div className="text-3xl font-bold mb-1">{totalTodos}</div>
-        <div className="text-sm text-gray-400">총 일정 수</div>
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-bold text-gray-900">{totalTodos}</span>
+          <span className="text-sm text-gray-500">개</span>
+        </div>
       </div>
     </div>
   )
