@@ -89,4 +89,70 @@ public class GeminiChatAdapter {
             throw new RuntimeException("AI 채팅 처리 중 오류가 발생했습니다", e);
         }
     }
+    
+    /**
+     * Gemini API와 채팅 (웹 검색 기능 포함)
+     */
+    public String chatWithWebSearch(String userMessage, String apiKey) {
+        try {
+            log.debug("Gemini API 웹 검색 채팅 시작: {}", userMessage);
+            
+            // 웹 검색 도구를 포함한 요청 바디 구성
+            Map<String, Object> requestBody = Map.of(
+                "contents", List.of(
+                    Map.of(
+                        "parts", List.of(
+                            Map.of("text", userMessage)
+                        )
+                    )
+                ),
+                "tools", List.of(
+                    Map.of("googleSearch", Map.of())
+                ),
+                "generationConfig", Map.of(
+                    "temperature", 0.7,
+                    "maxOutputTokens", 2000
+                )
+            );
+            
+            Map response = webClient.post()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/models/gemini-2.0-flash-exp:generateContent")
+                            .queryParam("key", apiKey)
+                            .build())
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block(Duration.ofSeconds(60)); // 웹 검색 포함이므로 타임아웃 증가
+            
+            if (response != null && response.containsKey("candidates")) {
+                List<Map> candidates = (List<Map>) response.get("candidates");
+                if (!candidates.isEmpty()) {
+                    Map firstCandidate = candidates.get(0);
+                    Map content = (Map) firstCandidate.get("content");
+                    List<Map> parts = (List<Map>) content.get("parts");
+                    
+                    // 모든 텍스트 부분을 합침
+                    StringBuilder fullText = new StringBuilder();
+                    for (Map part : parts) {
+                        if (part.containsKey("text")) {
+                            fullText.append((String) part.get("text"));
+                        }
+                    }
+                    
+                    if (fullText.length() > 0) {
+                        log.debug("Gemini API 웹 검색 응답 성공 (길이: {})", fullText.length());
+                        return fullText.toString();
+                    }
+                }
+            }
+            
+            log.warn("Gemini API 웹 검색 응답 형식 오류");
+            throw new RuntimeException("AI 응답 형식 오류");
+            
+        } catch (Exception e) {
+            log.error("Gemini API 웹 검색 채팅 실패", e);
+            throw new RuntimeException("AI 웹 검색 채팅 처리 중 오류가 발생했습니다: " + e.getMessage(), e);
+        }
+    }
 }
