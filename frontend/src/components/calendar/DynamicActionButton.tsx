@@ -83,54 +83,58 @@ export function DynamicActionButton() {
   const Icon = buttonState.icon
   
   return (
-    <div className="fixed bottom-8 right-8 z-50">
-      <button
-        onClick={handleClick}
-        className={`
-          group relative overflow-hidden
-          px-8 py-4 rounded-2xl
-          text-white font-bold text-lg
-          shadow-2xl hover:shadow-3xl
-          transform hover:scale-105 active:scale-95
-          transition-all duration-300
-          ${buttonState.color === 'primary' ? 'bg-primary-500 hover:bg-primary-600' : ''}
-          ${buttonState.color === 'purple' ? 'bg-purple-500 hover:bg-purple-600' : ''}
-          ${buttonState.color === 'gradient' ? 'bg-gradient-to-r from-purple-500 to-primary-500 hover:from-purple-600 hover:to-primary-600' : ''}
-        `}
-      >
-        {/* 배경 애니메이션 */}
-        <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
-        
-        {/* 버튼 내용 */}
-        <div className="relative flex items-center gap-3">
-          <Icon className="w-6 h-6 animate-pulse" />
-          <span>{buttonState.label}</span>
-        </div>
-        
-        {/* 태스크 정보 툴팁 */}
-        {buttonState.task && (
-          <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="font-bold mb-1">{buttonState.task.title}</div>
-            <div className="text-xs text-gray-300">
-              {buttonState.task.startTime} - {buttonState.task.endTime}
-            </div>
+    <>
+      {/* 🎯 단일 동적 액션 버튼 - ADHD 친화적 */}
+      <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-3">
+        {/* 메인 액션 버튼 */}
+        <button
+          onClick={handleClick}
+          className={`
+            group relative overflow-hidden
+            px-10 py-5 rounded-2xl
+            text-white font-bold text-xl
+            shadow-2xl hover:shadow-3xl
+            transform hover:scale-110 active:scale-95
+            transition-all duration-300
+            ${buttonState.color === 'primary' ? 'bg-primary-500 hover:bg-primary-600' : ''}
+            ${buttonState.color === 'purple' ? 'bg-purple-500 hover:bg-purple-600' : ''}
+            ${buttonState.color === 'gradient' ? 'bg-gradient-to-r from-purple-500 to-primary-500 hover:from-purple-600 hover:to-primary-600' : ''}
+          `}
+        >
+          {/* 배경 애니메이션 */}
+          <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
+          
+          {/* 버튼 내용 */}
+          <div className="relative flex flex-col items-center gap-2">
+            <Icon className="w-8 h-8" />
+            <span className="text-base">{buttonState.label}</span>
+            
+            {/* 태스크 이름 표시 (있을 경우) */}
+            {buttonState.task && (
+              <div className="text-xs font-normal text-white/90 mt-1">
+                {buttonState.task.title}
+              </div>
+            )}
           </div>
-        )}
+          
+          {/* Pulse 효과 (추천받기일 때) */}
+          {buttonState.type === 'recommend' && (
+            <div className="absolute inset-0 rounded-2xl bg-purple-400 opacity-30 animate-ping" />
+          )}
+        </button>
         
-        {/* Pulse 효과 (추천받기일 때) */}
-        {buttonState.type === 'recommend' && (
-          <div className="absolute inset-0 rounded-2xl bg-purple-400 opacity-50 animate-ping" />
-        )}
-      </button>
-      
-      {/* 추가 빠른 액션 버튼 */}
-      <button
-        onClick={() => setShowAddModal(true)}
-        className="mt-3 w-full bg-gray-800 hover:bg-gray-900 text-white px-6 py-3 rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-      >
-        <Plus className="w-4 h-4" />
-        빠른 일정 추가
-      </button>
+        {/* 보조 버튼: 빠른 추가 (작게) */}
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="bg-gray-800/90 hover:bg-gray-900 text-white px-4 py-2 rounded-lg 
+                     text-xs font-medium transition-all duration-200 shadow-lg hover:shadow-xl 
+                     flex items-center gap-2 opacity-60 hover:opacity-100"
+          title="Shift + N"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>빠른 추가</span>
+        </button>
+      </div>
       
       {/* 빠른 일정 추가 모달 */}
       {showAddModal && (
@@ -139,6 +143,6 @@ export function DynamicActionButton() {
           onClose={() => setShowAddModal(false)} 
         />
       )}
-    </div>
+    </>
   )
 }

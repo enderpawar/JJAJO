@@ -1,8 +1,10 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { useCalendarStore } from '@/stores/calendarStore'
-import { Clock, Plus } from 'lucide-react'
+import { Clock, Plus, Edit2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { motion } from 'framer-motion'
+import EditTodoPanel from './EditTodoPanel'
+import type { Todo } from '../../types/calendar'
 
 /**
  * 🕐 VerticalTimeline: Vertical Gravity Timeline
@@ -21,6 +23,8 @@ export function VerticalTimeline() {
   const [expandedGaps, setExpandedGaps] = useState<Set<string>>(new Set()) // 펼쳐진 gap 추적
   const [showPastTime, setShowPastTime] = useState(false) // 과거 시간 표시 여부
   const [dragPreview, setDragPreview] = useState<{ taskId: string; startTime: string; endTime: string } | null>(null) // 드래그 프리뷰
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null) // 편집 중인 일정
+  const isDraggingRef = useRef(false) // 드래그 중 여부
   
   // 1초마다 현재 시간 업데이트
   useEffect(() => {
@@ -138,6 +142,9 @@ export function VerticalTimeline() {
           boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)",
           cursor: "grabbing"
         }}
+        onDragStart={() => {
+          isDraggingRef.current = true
+        }}
         onDrag={(event, info) => {
           // 드래그 중 실시간 시간 계산
           const newStartPixel = Math.max(0, Math.min(timelineHeight - (endPixel - startPixel), startPixel + info.offset.y))
@@ -166,6 +173,8 @@ export function VerticalTimeline() {
           
           // 유효성 검증
           if (newStartPixel < 0 || newEndPixel > timelineHeight) {
+            // 드래그 플래그 리셋
+            setTimeout(() => { isDraggingRef.current = false }, 100)
             return
           }
           
@@ -178,6 +187,9 @@ export function VerticalTimeline() {
             startTime: newStartTime,
             endTime: newEndTime
           })
+          
+          // 드래그 플래그 리셋 (약간의 딜레이 후)
+          setTimeout(() => { isDraggingRef.current = false }, 100)
         }}
       >
         {/* 🎯 시작 위치 인디케이터 (좌측 화살표) */}
@@ -190,27 +202,23 @@ export function VerticalTimeline() {
         
         {/* 📍 드래그 프리뷰 (카드 내부에 크게 표시) */}
         {dragPreview && dragPreview.taskId === task.id && (
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-md flex flex-col items-center justify-center z-30 rounded-xl px-4">
-            <div className="text-center w-full">
-              {/* 시작 시간 */}
-              <div className="text-5xl font-black text-white drop-shadow-2xl animate-pulse leading-tight">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-md flex flex-col items-center justify-center z-30 rounded-xl px-4 py-2">
+            {/* 시간 (가로 배치) */}
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <span className="text-3xl font-black text-white drop-shadow-2xl animate-pulse">
                 {dragPreview.startTime}
-              </div>
-              
-              {/* 구분선 */}
-              <div className="text-2xl font-bold text-white/70 drop-shadow-lg my-1">
+              </span>
+              <span className="text-2xl font-bold text-white/70 drop-shadow-lg">
                 ~
-              </div>
-              
-              {/* 종료 시간 */}
-              <div className="text-4xl font-bold text-white/90 drop-shadow-xl leading-tight">
+              </span>
+              <span className="text-3xl font-black text-white drop-shadow-2xl animate-pulse">
                 {dragPreview.endTime}
-              </div>
-              
-              {/* 안내 메시지 */}
-              <div className="mt-3 px-4 py-1.5 bg-primary-500 rounded-full text-white text-xs font-bold shadow-lg inline-block">
-                📍 10분 단위
-              </div>
+              </span>
+            </div>
+            
+            {/* 안내 메시지 */}
+            <div className="px-3 py-1 bg-primary-500 rounded-full text-white text-xs font-bold shadow-lg">
+              📍 10분 단위
             </div>
           </div>
         )}
@@ -247,6 +255,30 @@ export function VerticalTimeline() {
         )}
         
         <div className={`relative z-10 ${isPast ? 'p-2' : 'p-4'}`}>
+          {/* 🎯 편집 버튼 (항상 표시 - 모바일 친화적) */}
+          {!isPast && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation() // 드래그 이벤트 방지
+                if (!isDraggingRef.current) {
+                  setEditingTodo(task)
+                }
+              }}
+              onPointerDown={(e) => e.stopPropagation()} // 드래그 시작 방지
+              className={`absolute top-2 right-2 z-20 p-2 rounded-lg transition-all cursor-pointer
+                ${isCurrent 
+                  ? 'bg-white/20 hover:bg-white/30 backdrop-blur-sm' 
+                  : 'bg-gray-100/80 hover:bg-blue-500 hover:shadow-lg group'
+                }`}
+            >
+              <Edit2 className={`w-4 h-4 transition-colors ${
+                isCurrent 
+                  ? 'text-white' 
+                  : 'text-gray-600 group-hover:text-white'
+              }`} />
+            </button>
+          )}
+          
           {/* 과거 태스크 - 압축된 뷰 */}
           {isPast ? (
             <div className="flex items-center gap-2 text-gray-600">
@@ -536,6 +568,12 @@ export function VerticalTimeline() {
           style={{ height: `${currentTimePosition}px`, zIndex: 2 }}
         />
       </div>
+
+      {/* 편집 패널 */}
+      <EditTodoPanel
+        todo={editingTodo}
+        onClose={() => setEditingTodo(null)}
+      />
     </div>
   )
 }

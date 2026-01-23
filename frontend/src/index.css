@@ -107,6 +107,124 @@
   bottom: 0;
 }
 
+/* 🎴 FlipCard Planner 스타일 */
+.flip-card-container {
+  perspective: 1000px;
+  min-height: 600px;
+}
+
+.question-card {
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.rationale {
+  color: #6B7280;
+  font-size: 14px;
+  line-height: 1.5;
+  background: #F3F4F6;
+  border-radius: 12px;
+}
+
+/* 슬라이더 커스텀 스타일 */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+  background: #E5E7EB;
+  border-radius: 9999px;
+  height: 12px;
+}
+
+input[type="range"]::-moz-range-track {
+  background: #E5E7EB;
+  border-radius: 9999px;
+  height: 12px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6B00 0%, #9333EA 100%);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.4);
+  transition: transform 0.2s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6B00 0%, #9333EA 100%);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.4);
+  border: none;
+  transition: transform 0.2s;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.1);
+}
+
+/* 카드 애니메이션 */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%) rotateY(-15deg);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) rotateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    transform: translateX(0) rotateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%) rotateY(15deg);
+    opacity: 0;
+  }
+}
+
+.card-enter {
+  animation: slideInRight 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.card-exit {
+  animation: slideOutLeft 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* 로딩 애니메이션 */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 .compressed-gap:hover {
   background: linear-gradient(to bottom right, #F3F4F6, #E5E7EB);
   transform: scale(1.01);

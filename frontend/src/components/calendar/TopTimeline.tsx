@@ -59,70 +59,65 @@ export function TopTimeline() {
   }
   
   return (
-    <div className="h-[10vh] min-h-[80px] bg-white border-b border-gray-200 shadow-sm">
-      <div className="container mx-auto px-4 h-full flex items-center gap-2">
-        {/* 주간 레이블 */}
-        <div className="text-sm font-bold text-gray-700 w-20">
-          Week {format(weekStart, 'w', { locale: ko })}
-        </div>
-        
-        {/* 7개의 히트맵 컬럼 */}
-        <div className="flex-1 flex gap-2 h-full py-3">
+    <div className="h-[10vh] min-h-[80px] bg-gradient-to-b from-white to-gray-50 border-b border-gray-200">
+      <div className="container mx-auto px-6 h-full flex items-center justify-center">
+        {/* 7개의 히트맵 컬럼 - ADHD 친화적: 오늘 중심 */}
+        <div className="flex gap-3 h-full py-4 max-w-4xl w-full">
           {weekDays.map((date, index) => {
             const density = getDensity(date)
             const heatmapColor = getHeatmapColor(density)
             const today = isToday(date)
             const selected = isSelected(date)
+            const todoCount = todos.filter(t => t.date === format(date, 'yyyy-MM-dd')).length
             
             return (
               <button
                 key={index}
                 onClick={() => handleDayClick(date)}
                 className={`
-                  flex-1 rounded-lg transition-all duration-300 cursor-pointer
-                  hover:scale-105 hover:shadow-lg relative overflow-hidden
+                  rounded-xl transition-all duration-300 cursor-pointer
+                  relative overflow-hidden
                   ${heatmapColor}
-                  ${today ? 'ring-2 ring-primary-500 ring-offset-2' : ''}
-                  ${selected ? 'ring-2 ring-purple-500 ring-offset-2' : ''}
+                  ${today 
+                    ? 'flex-[2] scale-110 ring-4 ring-primary-500 ring-offset-2 shadow-2xl z-10' 
+                    : 'flex-1 opacity-60 hover:opacity-100 scale-95 hover:scale-100'}
+                  ${selected && !today ? 'ring-2 ring-purple-400' : ''}
                 `}
               >
-                {/* 날짜 레이블 (상단 작게) */}
-                <div className="absolute top-1 left-0 right-0 text-center">
-                  <div className="text-[10px] font-medium text-gray-600">
+                {/* 날짜 레이블 */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                  <div className={`text-xs font-medium ${
+                    today ? 'text-gray-700' : 'text-gray-500'
+                  }`}>
                     {format(date, 'EEE', { locale: ko })}
                   </div>
-                  <div className={`text-lg font-bold ${density > 0.5 ? 'text-white' : 'text-gray-800'}`}>
+                  <div className={`font-bold ${
+                    today ? 'text-3xl' : 'text-xl'
+                  } ${density > 0.5 ? 'text-white' : 'text-gray-800'}`}>
                     {format(date, 'd')}
                   </div>
+                  
+                  {/* 일정 개수 - 오늘만 명확하게 표시 */}
+                  {todoCount > 0 && (
+                    <div className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      today 
+                        ? 'bg-white/90 text-primary-600' 
+                        : density > 0.5 
+                          ? 'bg-white/30 text-white' 
+                          : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      {todoCount}개
+                    </div>
+                  )}
                 </div>
                 
-                {/* 일정 개수 표시 (하단) */}
-                <div className="absolute bottom-1 left-0 right-0 text-center">
-                  <div className={`text-xs font-medium ${density > 0.5 ? 'text-white' : 'text-gray-600'}`}>
-                    {todos.filter(t => t.date === format(date, 'yyyy-MM-dd')).length}개
-                  </div>
-                </div>
-                
-                {/* 오늘 표시 */}
+                {/* 오늘 펄스 효과 */}
                 {today && (
-                  <div className="absolute top-0 right-0 w-2 h-2 bg-primary-500 rounded-full m-1" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary-500 rounded-full animate-pulse" />
                 )}
               </button>
             )
           })}
-        </div>
-        
-        {/* 범례 */}
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <span>낮음</span>
-          <div className="flex gap-1">
-            <div className="w-3 h-3 rounded bg-gray-100" />
-            <div className="w-3 h-3 rounded bg-primary-100" />
-            <div className="w-3 h-3 rounded bg-primary-300" />
-            <div className="w-3 h-3 rounded bg-primary-500" />
-            <div className="w-3 h-3 rounded bg-primary-600" />
-          </div>
-          <span>높음</span>
         </div>
       </div>
     </div>
