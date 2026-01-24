@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { Todo, ViewMode } from '@/types/calendar'
+import { format, subDays } from 'date-fns'
 
 interface CalendarStore {
   // 현재 선택된 날짜
@@ -24,6 +25,7 @@ interface CalendarStore {
   clearAllTodos: () => void
   getTodosByDate: (date: string) => Todo[]
   getAiTodos: () => Todo[]
+  copyTodosFromPreviousDay: () => number
 }
 
 /**
@@ -65,5 +67,41 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   getAiTodos: () => {
     const todos = get().todos
     return todos.filter((todo) => todo.createdBy === 'ai')
+  },
+
+  /**
+   * 전날 일정을 현재 선택된 날짜로 복사
+   * @returns 복사된 일정 개수
+   */
+  copyTodosFromPreviousDay: () => {
+    const { selectedDate, todos } = get()
+    const currentDateStr = format(selectedDate, 'yyyy-MM-dd')
+    const previousDate = subDays(selectedDate, 1)
+    const previousDateStr = format(previousDate, 'yyyy-MM-dd')
+
+    // 전날 일정 찾기
+    const previousTodos = todos.filter(todo => todo.date === previousDateStr)
+
+    if (previousTodos.length === 0) {
+      return 0
+    }
+
+    // 전날 일정을 오늘 날짜로 복사 (시간은 동일하게 유지)
+    const copiedTodos: Todo[] = previousTodos.map(todo => ({
+      ...todo,
+      id: `${Date.now()}-${Math.random()}`, // 새로운 ID 생성
+      date: currentDateStr, // 오늘 날짜로 변경
+      createdBy: 'user' as const,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      completed: false, // 완료 상태 초기화
+    }))
+
+    // 복사된 일정 추가
+    set(state => ({
+      todos: [...state.todos, ...copiedTodos]
+    }))
+
+    return copiedTodos.length
   },
 }))

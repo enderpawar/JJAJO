@@ -91,7 +91,7 @@ export default function EditTodoPanel({ todo, onClose }: EditTodoPanelProps) {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 h-full w-[400px] bg-white shadow-2xl z-[9999] flex flex-col"
+            className="fixed right-0 top-0 h-full w-[400px] bg-notion-sidebar border-l border-notion-border z-[9999] flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-purple-50">
@@ -210,7 +210,7 @@ export default function EditTodoPanel({ todo, onClose }: EditTodoPanelProps) {
                     </button>
                     <button
                       onClick={() => setShowDeleteConfirm(false)}
-                      className="flex-1 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors border border-gray-300"
+                      className="flex-1 py-2 bg-notion-bg text-notion-text rounded-md font-medium hover:bg-notion-hover transition-colors border border-notion-border"
                     >
                       취소
                     </button>
@@ -220,7 +220,7 @@ export default function EditTodoPanel({ todo, onClose }: EditTodoPanelProps) {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t bg-gray-50 space-y-3">
+            <div className="px-6 py-4 border-t border-notion-border bg-notion-bg space-y-3">
               {!showDeleteConfirm && (
                 <button
                   onClick={() => setShowDeleteConfirm(true)}

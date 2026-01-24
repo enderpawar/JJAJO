@@ -6,6 +6,10 @@ import { motion } from 'framer-motion'
 import EditTodoPanel from './EditTodoPanel'
 import type { Todo } from '../../types/calendar'
 
+interface VerticalTimelineProps {
+  onOpenQuickSchedule?: (clickedTime: string, date: string) => void
+}
+
 /**
  * 🕐 VerticalTimeline: Vertical Gravity Timeline
  * 
@@ -15,8 +19,8 @@ import type { Todo } from '../../types/calendar'
  * - 과거는 Dimmed, 현재는 Glow, 미래는 반투명
  * - Ghost Block (빈 시간)
  */
-export function VerticalTimeline() {
-  const { todos, addTodo, updateTodo } = useCalendarStore()
+export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps = {}) {
+  const { todos, addTodo, updateTodo, selectedDate } = useCalendarStore()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [quickAddSlot, setQuickAddSlot] = useState<{ startTime: string; endTime: string } | null>(null)
   const [quickTitle, setQuickTitle] = useState('')
@@ -115,13 +119,17 @@ export function VerticalTimeline() {
     
     return (
       <motion.div
-        key={`${task.id}-${task.startTime}-${task.endTime}`} // ✅ startTime 변경 시 강제 재렌더링
+        key={`${task.id}-${task.startTime}-${task.endTime}`}
         className={`
-          absolute left-0 right-0 mx-4 rounded-xl cursor-grab active:cursor-grabbing
-          overflow-hidden
+          task-card group
+          absolute left-0 right-0 mx-4 rounded-lg cursor-pointer active:cursor-grabbing
+          overflow-hidden relative
           ${isPast ? 'task-card-past' : ''}
-          ${isCurrent ? 'task-card-active' : ''}
-          ${isFuture ? 'bg-white border-2 border-gray-300 opacity-70' : ''}
+          ${isCurrent ? 'task-card-active border-l-4 border-blue-500 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-md shadow-[0_0_30px_rgba(59,130,246,0.3)]' : ''}
+          ${isFuture 
+            ? 'bg-[#252525]/90 backdrop-blur-md border border-white/10 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] hover:border-white/30 hover:bg-[#2a2a2a]/90 transition-all duration-300 ease-out' 
+            : isCurrent ? '' : 'bg-[#252525]/90 backdrop-blur-md border border-white/10 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] hover:border-white/30 hover:bg-[#2a2a2a]/90 transition-all duration-300 ease-out'
+          }
         `}
         style={{
           top: `${startPixel}px`,
@@ -139,7 +147,6 @@ export function VerticalTimeline() {
         whileDrag={{ 
           scale: 1.05, 
           zIndex: 100,
-          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)",
           cursor: "grabbing"
         }}
         onDragStart={() => {
@@ -194,7 +201,7 @@ export function VerticalTimeline() {
       >
         {/* 🎯 시작 위치 인디케이터 (좌측 화살표) */}
         <div className="absolute -left-6 top-0 z-50 flex items-center">
-          <div className="w-5 h-5 bg-primary-500 rounded-full shadow-md flex items-center justify-center">
+          <div className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
             <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-white ml-0.5"></div>
           </div>
           <div className="w-6 h-0.5 bg-primary-500"></div>
@@ -268,7 +275,7 @@ export function VerticalTimeline() {
               className={`absolute top-2 right-2 z-20 p-2 rounded-lg transition-all cursor-pointer
                 ${isCurrent 
                   ? 'bg-white/20 hover:bg-white/30 backdrop-blur-sm' 
-                  : 'bg-gray-100/80 hover:bg-blue-500 hover:shadow-lg group'
+                  : 'bg-notion-sidebar/80 hover:bg-blue-500 group'
                 }`}
             >
               <Edit2 className={`w-4 h-4 transition-colors ${
@@ -281,39 +288,63 @@ export function VerticalTimeline() {
           
           {/* 과거 태스크 - 압축된 뷰 */}
           {isPast ? (
-            <div className="flex items-center gap-2 text-gray-600">
+            <div className="flex items-center gap-2 text-notion-muted">
               <div className="text-xs">✓</div>
               <div className="text-xs font-medium truncate">{task.title}</div>
               <div className="text-xs opacity-50 ml-auto">{task.startTime}</div>
             </div>
           ) : (
             <>
+              {/* 드래그 핸들 (6개 점) */}
+              <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-40 transition-opacity">
+                <div className="w-1 h-1 bg-white rounded-full"></div>
+                <div className="w-1 h-1 bg-white rounded-full"></div>
+                <div className="w-1 h-1 bg-white rounded-full"></div>
+                <div className="w-1 h-1 bg-white rounded-full"></div>
+                <div className="w-1 h-1 bg-white rounded-full"></div>
+                <div className="w-1 h-1 bg-white rounded-full"></div>
+              </div>
+
               {/* 시간 */}
-              <div className={`text-xs font-medium mb-1 ${isCurrent ? 'text-white drop-shadow-lg' : 'text-gray-600'}`}>
+              <div className={`text-sm font-medium mb-2 ${
+                isCurrent ? 'text-white drop-shadow-lg' : 'text-gray-400'
+              }`}>
                 {task.startTime} - {task.endTime}
               </div>
               
               {/* 제목 */}
-              <div className={`font-bold mb-1 ${isCurrent ? 'text-white text-xl drop-shadow-lg' : 'text-gray-800'}`}>
+              <div className={`text-lg font-semibold mb-2 leading-tight ${
+                isCurrent ? 'text-white text-2xl drop-shadow-lg' : 'text-white'
+              }`}>
                 {task.title}
               </div>
               
               {/* 설명 */}
               {task.description && !isPast && (
-                <div className={`text-xs ${isCurrent ? 'text-white/90 drop-shadow' : 'text-gray-600'}`}>
+                <div className={`text-sm mb-3 ${
+                  isCurrent ? 'text-white/90 drop-shadow' : 'text-gray-400'
+                }`}>
                   {task.description}
                 </div>
               )}
               
               {/* 진행률 표시 (현재 진행 중) */}
               {isCurrent && (
-                <div className="mt-3">
-                  <div className="flex justify-between text-sm text-white drop-shadow mb-1">
-                    <span className="font-medium">진행 중</span>
-                    <span className="font-bold">{Math.round(progress)}%</span>
+                <div className="mt-4 mr-4">
+                  {/* 진행률 바 */}
+                  <div className="relative h-2 bg-white/10 rounded-full overflow-hidden mb-2">
+                    <div 
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-1000 ease-out"
+                      style={{ width: `${progress}%` }}
+                    >
+                      <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                    </div>
                   </div>
-                  <div className="text-xs text-white/80">
-                    💧 {Math.round(completedHeight)}% 완료됨
+                  
+                  {/* 진행률 텍스트 */}
+                  <div className="flex justify-between text-xs">
+                    <span className="text-white/60">🔥 진행 중</span>
+                    <span className="text-white font-bold">{Math.round(progress)}%</span>
                   </div>
                 </div>
               )}
@@ -368,31 +399,31 @@ export function VerticalTimeline() {
   }
   
   return (
-    <div className="flex-1 bg-gradient-to-br from-gray-50 to-gray-100 overflow-y-auto relative">
+    <div className="flex-1 bg-[#191919] overflow-y-auto relative">
       {/* 빠른 일정 추가 모달 */}
       {quickAddSlot && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center">
           <motion.div
-            className="bg-white rounded-2xl shadow-2xl p-6 w-96"
+            className="bg-notion-sidebar rounded-2xl p-6 w-96"
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <h3 className="text-xl font-bold text-gray-800 mb-4">
+            <h3 className="text-xl font-bold text-notion-text mb-4">
               ⚡ 빠른 일정 추가
             </h3>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-notion-text mb-2">
                 시간
               </label>
-              <div className="bg-gray-100 px-4 py-2 rounded-lg text-gray-700 font-medium">
+              <div className="bg-notion-sidebar px-4 py-2 rounded-lg text-notion-text font-medium">
                 {quickAddSlot.startTime} - {quickAddSlot.endTime}
               </div>
             </div>
             
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-notion-text mb-2">
                 일정 제목 <span className="text-red-500">*</span>
               </label>
               <input
@@ -402,7 +433,7 @@ export function VerticalTimeline() {
                 onKeyPress={(e) => e.key === 'Enter' && handleQuickAdd()}
                 placeholder="무엇을 하시겠어요?"
                 autoFocus
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:outline-none transition-colors"
+                className="w-full px-4 py-2 border-2 border-notion-border rounded-lg focus:border-primary-500 focus:outline-none transition-colors"
               />
             </div>
             
@@ -410,7 +441,7 @@ export function VerticalTimeline() {
               <button
                 onClick={handleQuickAdd}
                 disabled={!quickTitle.trim()}
-                className="flex-1 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-md hover:shadow-lg"
+                className="flex-1 bg-primary-500 hover:bg-primary-600 disabled:bg-notion-sidebar disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-bold transition-colors"
               >
                 ✅ 추가하기
               </button>
@@ -419,7 +450,7 @@ export function VerticalTimeline() {
                   setQuickAddSlot(null)
                   setQuickTitle('')
                 }}
-                className="px-6 py-2 bg-white border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 rounded-lg font-medium transition-colors"
+                className="px-6 py-2 bg-notion-sidebar border-2 border-notion-border hover:border-notion-border hover:bg-notion-hover text-notion-text rounded-lg font-medium transition-colors"
               >
                 취소
               </button>
@@ -430,13 +461,13 @@ export function VerticalTimeline() {
       
       {/* 펼쳐진 상태에서 접기 버튼 (상단 고정) */}
       {showPastTime && (
-        <div className="sticky top-0 left-0 right-0 z-[100] bg-gradient-to-b from-white via-white to-transparent pb-4 pt-4">
+        <div className="sticky top-0 left-0 right-0 z-[100] bg-gradient-to-b from-notion-sidebar via-notion-sidebar to-transparent pb-4 pt-4">
           <div className="mx-4">
             <button
               onClick={() => {
                 setShowPastTime(false)
               }}
-              className="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-3"
+              className="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-3"
             >
               <Clock className="w-5 h-5" />
               <span>이전 기록 접기 (현재 시간으로 돌아가기) ↑</span>
@@ -462,22 +493,22 @@ export function VerticalTimeline() {
         return (
           <motion.div
             key="past-summary-card-fixed"
-            className="mx-4 mb-4 rounded-xl cursor-pointer overflow-hidden border-2 border-dashed border-primary-400 bg-gradient-to-r from-primary-50 to-orange-50 hover:from-primary-100 hover:to-orange-100"
+            className="mx-4 mb-4 rounded-xl cursor-pointer overflow-hidden border border-white/10 bg-[#252525]/60 backdrop-blur-xl hover:bg-[#2a2a2a]/70 hover:border-white/20"
             style={{
               height: `100px`,
-              zIndex: 100, // z-index 증가
-              position: 'relative', // position 명시
+              zIndex: 100,
+              position: 'relative',
             }}
             onClick={handleClick}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
             <div className="h-full flex items-center justify-center pointer-events-none">
-              <div className="bg-white border-2 border-primary-400 px-6 py-3 rounded-full shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 hover:border-primary-500">
+              <div className="px-6 py-3 rounded-full transition-all duration-300">
                 <div className="flex items-center gap-3">
                   <Clock className="w-5 h-5 text-primary-600 animate-pulse" />
                   <div className="text-left">
-                    <div className="text-sm font-bold text-gray-800">
+                    <div className="text-sm font-bold text-notion-text">
                       📜 이전 기록: {timeLabel} ({pastTodos.length}개 일정)
                     </div>
                     <div className="text-xs text-primary-600 font-medium">
@@ -493,12 +524,48 @@ export function VerticalTimeline() {
       
       {/* 타임라인 컨테이너 */}
       <div 
-        className="relative transition-all duration-500" 
+        className="relative transition-all duration-500 bg-[#191919]" 
         style={{ 
           height: `${timelineHeight}px`,
           marginTop: !showPastTime ? `-${currentTimePosition - 100}px` : '0px', // 과거를 위로 밀어올림
         }}
+        onDoubleClick={(e) => {
+          if (!onOpenQuickSchedule) return
+          
+          // 이벤트가 Task Block이나 다른 요소에서 발생한 경우 무시
+          const target = e.target as HTMLElement
+          if (target.closest('.task-card') || target.closest('.ghost-block')) {
+            return
+          }
+          
+          // 클릭한 Y 좌표에서 시간 계산
+          const rect = e.currentTarget.getBoundingClientRect()
+          const clickY = e.clientY - rect.top + (!showPastTime ? (currentTimePosition - 100) : 0) // 마진 보정
+          const clickedTime = pixelToTime(clickY)
+          const targetDate = format(selectedDate || new Date(), 'yyyy-MM-dd')
+          
+          console.log('Double clicked at:', clickedTime, 'on', targetDate)
+          onOpenQuickSchedule(clickedTime, targetDate)
+        }}
       > {/* 동적 높이 + 동적 마진 */}
+        
+        {/* 빈 공간 더블클릭 힌트 (미래 일정이 없을 때만 표시) */}
+        {onOpenQuickSchedule && todayTodos.filter(task => timeToPixels(task.startTime) > currentTimePosition).length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+            <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 backdrop-blur-xl border border-white/10 rounded-2xl px-10 py-8 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+              <div className="text-center space-y-3">
+                <div className="text-4xl animate-bounce">⚡</div>
+                <div className="text-base font-semibold text-white">빈 공간을 더블클릭하여</div>
+                <div className="text-sm text-gray-400">해당 시간에 일정 추가하기</div>
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                  <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* 배경 그리드 (시간 가이드라인) */}
         <div className="absolute inset-0" style={{ zIndex: 1 }}>
@@ -512,10 +579,10 @@ export function VerticalTimeline() {
               <div key={i}>
                 {/* 정시 눈금 (진한 선) */}
                 <div
-                  className="absolute left-0 right-0 border-t border-gray-200"
+                  className="absolute left-0 right-0 border-t border-[#373737]"
                   style={{ top: `${i * 100}px` }}
                 >
-                  <div className="absolute left-4 -top-3 text-xs font-medium text-gray-400 bg-gray-50 px-2" style={{ zIndex: 5 }}>
+                  <div className="absolute left-4 -top-3 text-xs text-white/40 bg-[#191919] px-2" style={{ zIndex: 5 }}>
                     {String(i).padStart(2, '0')}:00
                   </div>
                 </div>
@@ -523,10 +590,10 @@ export function VerticalTimeline() {
                 {/* 30분 보조 눈금 (연한 점선) */}
                 {i < 23 && (
                   <div
-                    className="absolute left-0 right-0 border-t border-dashed border-gray-100"
+                    className="absolute left-0 right-0 border-t border-dashed border-[#373737]/50"
                     style={{ top: `${i * 100 + 50}px` }}
                   >
-                    <div className="absolute left-4 -top-2 text-[10px] text-gray-300 bg-gray-50 px-1.5" style={{ zIndex: 5 }}>
+                    <div className="absolute left-4 -top-2 text-[10px] text-white/20 bg-[#191919] px-1.5" style={{ zIndex: 5 }}>
                       {String(i).padStart(2, '0')}:30
                     </div>
                   </div>
@@ -550,15 +617,15 @@ export function VerticalTimeline() {
           className="absolute left-0 right-0 z-50 transition-all duration-1000 ease-linear"
           style={{ top: `${currentTimePosition}px` }}
         >
-          {/* 빨간색 선 */}
-          <div className="relative h-0.5 bg-red-500 shadow-lg">
+          {/* 빨간색 선 with Pulsing Glow */}
+          <div className="relative h-0.5 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.6)]">
             {/* 좌측 시간 표시 */}
-            <div className="absolute -left-2 -top-4 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow-lg">
+            <div className="absolute -left-2 -top-4 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow-[0_0_10px_rgba(239,68,68,0.8)]">
               {format(currentTime, 'HH:mm:ss')}
             </div>
             
-            {/* 우측 점 (ping 제거) */}
-            <div className="absolute right-0 -top-1.5 w-4 h-4 bg-red-500 rounded-full" />
+            {/* 우측 점 with Pulse Animation */}
+            <div className="absolute right-0 -top-1.5 w-4 h-4 bg-red-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.8)]" />
           </div>
         </div>
         

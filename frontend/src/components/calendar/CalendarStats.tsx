@@ -31,43 +31,43 @@ export default function CalendarStats() {
       </div>
       
       {/* 완료율 */}
-      <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition-shadow">
+      <div className="bg-notion-sidebar border border-notion-border rounded-md p-6 hover:bg-notion-hover transition-colors">
         <div className="flex items-center gap-2 mb-3">
-          <div className="p-2 bg-green-50 rounded-lg">
-            <CheckCircle2 className="w-5 h-5 text-green-500" />
+          <div className="p-2 bg-green-500/20 rounded-md">
+            <CheckCircle2 className="w-5 h-5 text-green-400" />
           </div>
-          <span className="text-sm font-medium text-gray-600">완료율</span>
+          <span className="text-sm font-medium text-notion-muted">완료율</span>
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-gray-900">{completionRate}%</span>
-          <span className="text-sm text-gray-500">{completedTodos}/{totalTodos}</span>
+          <span className="text-3xl font-bold text-notion-text">{completionRate}%</span>
+          <span className="text-sm text-notion-muted">{completedTodos}/{totalTodos}</span>
         </div>
       </div>
       
       {/* AI 생성 */}
-      <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition-shadow">
+      <div className="bg-notion-sidebar border border-notion-border rounded-md p-6 hover:bg-notion-hover transition-colors">
         <div className="flex items-center gap-2 mb-3">
-          <div className="p-2 bg-purple-50 rounded-lg">
-            <TrendingUp className="w-5 h-5 text-purple-500" />
+          <div className="p-2 bg-purple-500/20 rounded-md">
+            <TrendingUp className="w-5 h-5 text-purple-400" />
           </div>
-          <span className="text-sm font-medium text-gray-600">AI 생성</span>
+          <span className="text-sm font-medium text-notion-muted">AI 생성</span>
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-gray-900">{aiTodos}</span>
-          <span className="text-sm text-gray-500">개</span>
+          <span className="text-3xl font-bold text-notion-text">{aiTodos}</span>
+          <span className="text-sm text-notion-muted">개</span>
         </div>
       </div>
       
       {/* 전체 일정 */}
-      <div className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition-shadow">
+      <div className="bg-notion-sidebar border border-notion-border rounded-md p-6 hover:bg-notion-hover transition-colors">
         <div className="flex items-center gap-2 mb-3">
-          <div className="p-2 bg-blue-50 rounded-lg">
-            <Clock className="w-5 h-5 text-blue-500" />
+          <div className="p-2 bg-blue-500/20 rounded-md">
+            <Clock className="w-5 h-5 text-blue-400" />
           </div>
-          <span className="text-sm font-medium text-gray-600">전체</span>
+          <span className="text-sm font-medium text-notion-muted">전체</span>
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-gray-900">{totalTodos}</span>
+          <span className="text-3xl font-bold text-notion-text">{totalTodos}</span>
           <span className="text-sm text-gray-500">개</span>
         </div>
       </div>

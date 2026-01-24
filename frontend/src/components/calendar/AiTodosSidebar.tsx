@@ -27,7 +27,7 @@ export default function AiTodosSidebar() {
   }
   
   return (
-    <div className="w-80 bg-white rounded-xl shadow-lg p-6 flex flex-col">
+    <div className="w-80 bg-notion-sidebar border border-notion-border rounded-lg p-6 flex flex-col">
       {/* 헤더 */}
       <div className="flex items-center gap-2 mb-4">
         <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center">

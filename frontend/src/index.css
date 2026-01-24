@@ -1,6 +1,97 @@
+/* Inter 폰트 불러오기 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Notion Dark Mode 전역 스타일 */
+@layer base {
+  * {
+    border-color: #373737;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+  body {
+    background-color: #191919;
+    color: #FFFFFF;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    font-size: 14px;
+    line-height: 1.625;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  /* 모든 요소에 Inter 폰트 적용 */
+  *, *::before, *::after {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  }
+
+  /* Notion 타이포그래피 규칙 */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: #FFFFFF;
+  }
+
+  h1 {
+    font-size: 32px;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+
+  h2 {
+    font-size: 24px;
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  h3 {
+    font-size: 20px;
+    line-height: 1.4;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  p {
+    line-height: 1.625;
+    letter-spacing: -0.01em;
+  }
+
+  /* 항상 다크모드 적용 */
+  html.dark {
+    color-scheme: dark;
+  }
+}
+
+/* 스크롤바 Notion 스타일 */
+@layer utilities {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
 
 /* 🎉 도파민 피드백 애니메이션 */
 @keyframes fadeIn {
@@ -32,24 +123,18 @@
   animation: particle 1.5s ease-out infinite;
 }
 
-/* 🎯 Vertical Timeline 스타일 */
+/* 🎯 Vertical Timeline 스타일 (Notion 버전) */
 
-/* 1. 현재 태스크 강조 (Glassmorphism + Glow) */
+/* 1. 현재 태스크 강조 (Notion 스타일 - 미묘한 강조) */
 .task-card-active {
-  background: rgba(255, 107, 0, 0.1) !important;
-  border: 2px solid #FF6B00 !important;
-  box-shadow: 0 8px 32px rgba(255, 107, 0, 0.3), 
-              0 0 60px rgba(255, 107, 0, 0.2) !important;
-  will-change: transform;
-  backface-visibility: hidden;
-  -webkit-font-smoothing: antialiased;
+  background: rgba(56, 139, 253, 0.1) !important;
+  border: 1px solid rgba(56, 139, 253, 0.4) !important;
+  box-shadow: none !important;
 }
 
-/* 2. 과거 태스크 압축 */
+/* 2. 과거 태스크 (Notion 스타일 - 불투명도만) */
 .task-card-past {
-  filter: grayscale(100%);
-  opacity: 0.5 !important;
-  overflow: hidden;
+  opacity: 0.4;
 }
 
 /* 3. 빈 시간 슬롯 (Hover Effect) */
@@ -231,38 +316,72 @@ input[type="range"]::-moz-range-thumb:hover {
   cursor: pointer;
 }
 
-@layer base {
-  body {
-    @apply bg-white min-h-screen font-sans;
+/* Notion 스타일 컴포넌트 클래스 (필요 시 사용) */
+@layer components {
+  .btn-notion {
+    background-color: #202020;
+    color: #FFFFFF;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: 1px solid #373737;
+    transition: background-color 0.15s ease;
+  }
+  
+  .btn-notion:hover {
+    background-color: #2F3437;
+  }
+  
+  .btn-notion:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  
+  .input-notion {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid #373737;
+    background-color: #202020;
+    color: #FFFFFF;
+    font-size: 14px;
+    transition: border-color 0.15s ease;
+  }
+  
+  .input-notion:focus {
+    outline: none;
+    border-color: rgba(56, 139, 253, 0.5);
+  }
+  
+  .card-notion {
+    background-color: #202020;
+    border-radius: 6px;
+    border: 1px solid #373737;
+    padding: 1rem;
+  }
+  
+  .tag-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  .tag-high {
+    background-color: rgba(255, 107, 107, 0.2);
+    color: #FFB3B3;
+  }
+  
+  .tag-medium {
+    background-color: rgba(255, 214, 107, 0.2);
+    color: #FFE9B3;
+  }
+  
+  .tag-low {
+    background-color: rgba(107, 214, 107, 0.2);
+    color: #C8FFB3;
   }
 }
 
-@layer components {
-  .btn-primary {
-    @apply bg-primary-500 hover:bg-primary-600 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-  
-  .btn-secondary {
-    @apply bg-white hover:bg-gray-50 text-gray-900 font-semibold px-6 py-3 rounded-xl border-2 border-gray-200 transition-all duration-200 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-  
-  .btn-dark {
-    @apply bg-dark-50 hover:bg-dark-100 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-  
-  .input-field {
-    @apply w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200;
-  }
-  
-  .card {
-    @apply bg-white rounded-2xl shadow-lg p-6 border border-gray-100;
-  }
-  
-  .card-dark {
-    @apply bg-dark-50 rounded-2xl shadow-md p-6 text-white;
-  }
-  
-  .stat-card {
-    @apply bg-dark-50 rounded-2xl shadow-md p-6 text-white relative overflow-hidden;
-  }
-}

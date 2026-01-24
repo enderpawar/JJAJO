@@ -81,13 +81,13 @@ export function DopamineFeedback() {
       <div className="fixed inset-0 bg-black/20 backdrop-blur-sm animate-fadeIn" />
 
       {/* 축하 카드 */}
-      <div className="relative bg-gradient-to-br from-primary-500 to-primary-600 rounded-3xl shadow-2xl p-8 animate-bounceIn text-white text-center min-w-[400px]">
+      <div className="relative bg-black dark:bg-white rounded-3xl shadow-2xl p-8 animate-bounceIn text-white dark:text-black text-center min-w-[400px] border-2 border-white dark:border-black">
         {/* 파티클 효과 */}
         <div className="absolute inset-0 overflow-hidden rounded-3xl">
           {[...Array(20)].map((_, i) => (
             <div
               key={i}
-              className="absolute w-2 h-2 bg-white rounded-full animate-particle"
+              className="absolute w-2 h-2 bg-accent rounded-full animate-particle"
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,

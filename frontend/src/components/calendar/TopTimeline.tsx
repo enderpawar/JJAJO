@@ -59,7 +59,7 @@ export function TopTimeline() {
   }
   
   return (
-    <div className="h-[10vh] min-h-[80px] bg-gradient-to-b from-white to-gray-50 border-b border-gray-200">
+    <div className="h-[10vh] min-h-[80px] bg-transparent border-b border-[#373737]">
       <div className="container mx-auto px-6 h-full flex items-center justify-center">
         {/* 7개의 히트맵 컬럼 - ADHD 친화적: 오늘 중심 */}
         <div className="flex gap-3 h-full py-4 max-w-4xl w-full">
@@ -75,25 +75,22 @@ export function TopTimeline() {
                 key={index}
                 onClick={() => handleDayClick(date)}
                 className={`
-                  rounded-xl transition-all duration-300 cursor-pointer
+                  transition-all duration-300 cursor-pointer rounded-lg
                   relative overflow-hidden
-                  ${heatmapColor}
                   ${today 
-                    ? 'flex-[2] scale-110 ring-4 ring-primary-500 ring-offset-2 shadow-2xl z-10' 
-                    : 'flex-1 opacity-60 hover:opacity-100 scale-95 hover:scale-100'}
-                  ${selected && !today ? 'ring-2 ring-purple-400' : ''}
+                    ? 'flex-[2]' 
+                    : 'flex-1 opacity-60 hover:opacity-100'}
+                  ${selected ? 'bg-[#2F3437] ring-2 ring-white/10' : 'bg-transparent hover:bg-[#252525]/50'}
                 `}
               >
                 {/* 날짜 레이블 */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-                  <div className={`text-xs font-medium ${
-                    today ? 'text-gray-700' : 'text-gray-500'
-                  }`}>
+                  <div className="text-xs font-medium text-white">
                     {format(date, 'EEE', { locale: ko })}
                   </div>
-                  <div className={`font-bold ${
+                  <div className={`font-bold text-white ${
                     today ? 'text-3xl' : 'text-xl'
-                  } ${density > 0.5 ? 'text-white' : 'text-gray-800'}`}>
+                  }`}>
                     {format(date, 'd')}
                   </div>
                   
@@ -101,10 +98,8 @@ export function TopTimeline() {
                   {todoCount > 0 && (
                     <div className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       today 
-                        ? 'bg-white/90 text-primary-600' 
-                        : density > 0.5 
-                          ? 'bg-white/30 text-white' 
-                          : 'bg-gray-200 text-gray-600'
+                        ? 'bg-notion-text/20 text-white' 
+                        : 'bg-notion-text/10 text-white'
                     }`}>
                       {todoCount}개
                     </div>

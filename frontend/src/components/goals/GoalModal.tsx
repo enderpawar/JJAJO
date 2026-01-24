@@ -338,57 +338,6 @@ export function GoalModal({ isOpen, onClose }: GoalModalProps) {
 
           {/* 버튼 */}
           <div className="space-y-3 pt-4">
-            {/* AI 계획 수립 버튼 (NEW - 메인) */}
-            <button
-              type="button"
-              onClick={handleAIPlanningClick}
-              disabled={isGenerating || !formData.title || !formData.deadline}
-              className="w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 
-                         hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600
-                         disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed
-                         text-white font-black py-5 px-6 rounded-2xl
-                         transition-all duration-200 transform hover:scale-105 active:scale-95
-                         shadow-2xl hover:shadow-pink-500/50
-                         flex items-center justify-center gap-3 text-lg"
-            >
-              <Brain className="w-7 h-7" />
-              <span>🧠 AI 계획 수립 (대화형)</span>
-            </button>
-            
-            <p className="text-xs text-gray-500 text-center">
-              AI와 대화하며 맞춤형 학습 계획을 수립합니다 (웹 검색 기반 최신 정보 반영)
-            </p>
-
-            {/* AI 일정 생성 버튼 (기존) */}
-            <button
-              type="button"
-              onClick={handleGenerateSchedule}
-              disabled={isGenerating || !formData.title || !formData.deadline}
-              className="w-full bg-gradient-to-r from-purple-500 to-primary-500 
-                         hover:from-purple-600 hover:to-primary-600
-                         disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed
-                         text-white font-bold py-4 px-6 rounded-xl
-                         transition-all duration-200 transform hover:scale-105 active:scale-95
-                         shadow-lg hover:shadow-xl
-                         flex items-center justify-center gap-3"
-            >
-              {isGenerating ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>AI가 일정 생성 중...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-6 h-6" />
-                  <span>✨ AI가 하루 일정 짜기</span>
-                </>
-              )}
-            </button>
-            
-            <p className="text-xs text-gray-500 text-center">
-              AI가 목표를 분석하여 최적의 하루 일정을 자동으로 생성합니다
-            </p>
-            
             {/* 기본 버튼들 */}
             <div className="flex justify-end gap-3 pt-2 border-t border-gray-200">
               <button

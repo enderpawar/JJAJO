@@ -44,12 +44,12 @@ export default function DayDetailPanel() {
   }
   
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col h-[600px]">
+    <div className="bg-notion-sidebar rounded-2xl p-6 flex flex-col h-[600px]">
       {/* 헤더 */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
           <Calendar className="w-5 h-5 text-primary-500" />
-          <h3 className="text-lg font-bold text-gray-800">
+          <h3 className="text-lg font-bold text-notion-text">
             {formatDateWithDay(selectedDate)}
           </h3>
         </div>
@@ -62,13 +62,13 @@ export default function DayDetailPanel() {
       <div className="flex-1 overflow-y-auto space-y-3 mb-4">
         {todos.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Calendar className="w-8 h-8 text-gray-300" />
+            <div className="w-16 h-16 bg-notion-hover rounded-full flex items-center justify-center mx-auto mb-3">
+              <Calendar className="w-8 h-8 text-notion-muted" />
             </div>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-notion-muted">
               등록된 일정이 없습니다
             </p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-notion-muted mt-1">
               새 일정을 추가해보세요
             </p>
           </div>
@@ -78,10 +78,9 @@ export default function DayDetailPanel() {
               key={todo.id}
               className={cn(
                 'p-4 rounded-lg border transition-all duration-200',
-                'hover:shadow-md',
                 todo.createdBy === 'ai' 
                   ? 'border-purple-200 bg-purple-50' 
-                  : 'border-gray-200 bg-white'
+                  : 'border-notion-border bg-notion-sidebar'
               )}
             >
               <div className="flex items-start gap-3">
@@ -90,12 +89,12 @@ export default function DayDetailPanel() {
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h4 className="font-semibold text-gray-800">
+                    <h4 className="font-semibold text-notion-text">
                       {todo.title}
                     </h4>
                     <div className="flex gap-1">
-                      <button className="p-1 hover:bg-gray-100 rounded transition-colors">
-                        <Edit2 className="w-3 h-3 text-gray-500" />
+                      <button className="p-1 hover:bg-notion-hover rounded transition-colors">
+                        <Edit2 className="w-3 h-3 text-notion-muted" />
                       </button>
                       <button 
                         onClick={() => deleteTodo(todo.id)}
@@ -107,12 +106,12 @@ export default function DayDetailPanel() {
                   </div>
                   
                   {todo.description && (
-                    <p className="text-sm text-gray-600 mb-2">
+                    <p className="text-sm text-notion-muted mb-2">
                       {todo.description}
                     </p>
                   )}
                   
-                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <div className="flex items-center gap-3 text-xs text-notion-muted">
                     {todo.startTime && (
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
@@ -125,7 +124,7 @@ export default function DayDetailPanel() {
                       'px-2 py-0.5 rounded-full text-xs',
                       todo.status === 'completed' && 'bg-green-100 text-green-700',
                       todo.status === 'in-progress' && 'bg-blue-100 text-blue-700',
-                      todo.status === 'pending' && 'bg-gray-100 text-gray-700',
+                      todo.status === 'pending' && 'bg-notion-sidebar text-notion-muted',
                       todo.status === 'cancelled' && 'bg-red-100 text-red-700'
                     )}>
                       {getStatusLabel(todo.status)}

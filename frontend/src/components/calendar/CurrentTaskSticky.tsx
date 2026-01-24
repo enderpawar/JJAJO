@@ -64,12 +64,12 @@ export function CurrentTaskSticky() {
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg">
+    <div className="fixed top-0 left-0 right-0 z-50 bg-black dark:bg-white text-white dark:text-black shadow-lg border-b-2 border-accent">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           {/* 작업 정보 */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 bg-white/20 rounded-full">
+            <div className="flex items-center justify-center w-12 h-12 bg-white/20 dark:bg-black/20 rounded-full">
               <span className="text-2xl">🎯</span>
             </div>
             <div>

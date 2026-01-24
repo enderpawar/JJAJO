@@ -36,25 +36,25 @@ export default function CalendarGrid() {
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
   
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col h-full max-h-[750px]">
+    <div className="bg-notion-sidebar rounded-2xl p-6 flex flex-col h-full max-h-[750px]">
       {/* 월 네비게이션 */}
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <button
           onClick={handlePrevMonth}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-notion-hover rounded-lg transition-colors"
         >
-          <ChevronLeft className="w-5 h-5 text-gray-600" />
+          <ChevronLeft className="w-5 h-5 text-notion-muted" />
         </button>
         
-        <h2 className="text-xl font-bold text-gray-800">
+        <h2 className="text-xl font-bold text-notion-text">
           {formatYearMonth(currentMonth)}
         </h2>
         
         <button
           onClick={handleNextMonth}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-notion-hover rounded-lg transition-colors"
         >
-          <ChevronRight className="w-5 h-5 text-gray-600" />
+          <ChevronRight className="w-5 h-5 text-notion-muted" />
         </button>
       </div>
       
@@ -65,7 +65,7 @@ export default function CalendarGrid() {
             key={day}
             className={cn(
               'text-center text-xs font-semibold py-1',
-              index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-gray-600'
+              index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-notion-muted'
             )}
           >
             {day}
@@ -88,11 +88,11 @@ export default function CalendarGrid() {
               onClick={() => handleDateClick(date)}
               className={cn(
                 'w-full h-full p-1.5 rounded-lg transition-all duration-200',
-                'hover:bg-gray-50 relative flex flex-col items-center justify-center',
-                isCurrentMonthDay ? 'text-gray-800' : 'text-gray-300',
+                'hover:bg-notion-hover relative flex flex-col items-center justify-center',
+                isCurrentMonthDay ? 'text-notion-text' : 'text-notion-muted',
                 isTodayDate && 'bg-primary-50 border-2 border-primary-500',
                 isSelected && !isTodayDate && 'bg-primary-100 border-2 border-primary-400',
-                !isSelected && !isTodayDate && 'border border-gray-100'
+                !isSelected && !isTodayDate && 'border border-notion-border'
               )}
             >
               <div className="text-xs font-medium">{date.getDate()}</div>
@@ -110,7 +110,7 @@ export default function CalendarGrid() {
                     />
                   ))}
                   {dateTodos.length > 3 && (
-                    <div className="text-[10px] text-gray-400 ml-0.5">+</div>
+                    <div className="text-[10px] text-notion-muted ml-0.5">+</div>
                   )}
                 </div>
               )}
@@ -120,14 +120,14 @@ export default function CalendarGrid() {
       </div>
       
       {/* 하단: 초기화 버튼 */}
-      <div className="mt-3 pt-3 border-t border-gray-200 flex-shrink-0">
+      <div className="mt-3 pt-3 border-t border-notion-border flex-shrink-0">
         <button
           onClick={() => setShowConfirmDialog(true)}
           disabled={todos.length === 0}
           className={cn(
             'w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-sm',
             todos.length === 0
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              ? 'bg-notion-sidebar text-notion-muted cursor-not-allowed'
               : 'bg-red-50 text-red-600 hover:bg-red-100'
           )}
         >
@@ -139,16 +139,16 @@ export default function CalendarGrid() {
       {/* 확인 다이얼로그 */}
       {showConfirmDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl">
+          <div className="bg-notion-sidebar rounded-2xl p-6 max-w-md w-full mx-4">
             <div className="flex items-start gap-4 mb-4">
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-6 h-6 text-red-600" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                <h3 className="text-lg font-bold text-notion-text mb-2">
                   모든 일정을 삭제하시겠습니까?
                 </h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-notion-muted">
                   총 <span className="font-semibold text-red-600">{todos.length}개</span>의 일정이 삭제됩니다.
                   이 작업은 되돌릴 수 없습니다.
                 </p>
@@ -158,7 +158,7 @@ export default function CalendarGrid() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowConfirmDialog(false)}
-                className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+                className="flex-1 px-4 py-2 bg-notion-sidebar hover:bg-notion-hover text-notion-text rounded-lg font-medium transition-colors"
               >
                 취소
               </button>

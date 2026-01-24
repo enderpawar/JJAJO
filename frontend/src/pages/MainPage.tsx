@@ -3,19 +3,26 @@ import Header from '@/components/layout/Header'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import DayDetailPanel from '@/components/calendar/DayDetailPanel'
 import { GoalModal } from '@/components/goals/GoalModal'
+import { QuickScheduleModal } from '@/components/calendar/QuickScheduleModal'
 import { DopamineFeedback } from '@/components/feedback/DopamineFeedback'
 import { TopTimeline } from '@/components/calendar/TopTimeline'
 import { VerticalTimeline } from '@/components/calendar/VerticalTimeline'
-import { DynamicActionButton } from '@/components/calendar/DynamicActionButton'
 import { Target, Calendar as CalendarIcon, X } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useGoalStore } from '@/stores/goalStore'
 
 export default function MainPage() {
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false)
+  const [isQuickScheduleOpen, setIsQuickScheduleOpen] = useState(false)
+  const [quickScheduleInitial, setQuickScheduleInitial] = useState<{time?: string, date?: string}>({})
   const [showMonthlyCalendar, setShowMonthlyCalendar] = useState(false) // 월간 캘린더 모달
   const { goals } = useGoalStore()
   const { todos } = useCalendarStore()
+  
+  const handleOpenQuickSchedule = (clickedTime: string, date: string) => {
+    setQuickScheduleInitial({ time: clickedTime, date })
+    setIsQuickScheduleOpen(true)
+  }
   
   // ESC 키로 월간 캘린더 모달 닫기
   useEffect(() => {
@@ -106,7 +113,7 @@ export default function MainPage() {
   }, [])
   
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-notion-bg text-notion-text">
       {/* 🎉 즉각적 도파민 피드백 */}
       <DopamineFeedback />
       
@@ -115,35 +122,6 @@ export default function MainPage() {
       
       <Header />
       
-      {/* 우측 상단: 통계 배지 + 월간 일정보기 버튼 */}
-      {!showMonthlyCalendar && (
-        <div className="fixed top-20 right-8 z-40 flex items-center gap-3">
-          {/* 간결한 통계 배지 */}
-          <div className="bg-white rounded-lg shadow-lg px-4 py-2 flex items-center gap-3 border border-gray-200">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-sm font-medium text-gray-700">{todos.length}개 일정</span>
-            </div>
-            <div className="w-px h-4 bg-gray-300"></div>
-            <div className="flex items-center gap-2">
-              <Target className="w-3.5 h-3.5 text-purple-500" />
-              <span className="text-sm font-medium text-gray-700">{goals.length}개 목표</span>
-            </div>
-          </div>
-          
-          {/* 월간 일정보기 버튼 */}
-          <button
-            onClick={() => setShowMonthlyCalendar(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 
-                       text-white rounded-lg font-medium shadow-lg hover:shadow-xl
-                       transition-all duration-200 hover:scale-105"
-          >
-            <CalendarIcon className="w-4 h-4" />
-            월간보기
-          </button>
-        </div>
-      )}
-      
       {/* 🎯 Focus View (Vertical Gravity Timeline) - 기본 화면 */}
       {!showMonthlyCalendar && (
         <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
@@ -151,45 +129,40 @@ export default function MainPage() {
           <div className="flex-1 flex min-h-0 relative">
             {/* 중앙: Vertical Gravity Timeline - 전체 너비 */}
             <div className="flex-1 min-h-0">
-              <VerticalTimeline />
+              <VerticalTimeline onOpenQuickSchedule={handleOpenQuickSchedule} />
             </div>
           </div>
-          
-          {/* 🚀 Dynamic Action Button (고정 위치) */}
-          <DynamicActionButton />
         </main>
       )}
       
       {/* 🗓️ 월간 캘린더 모달 */}
       {showMonthlyCalendar && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={(e) => {
-            // 배경 클릭 시 모달 닫기 (모달 내부 클릭은 제외)
             if (e.target === e.currentTarget) {
               setShowMonthlyCalendar(false)
             }
           }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[1800px] max-h-[95vh] overflow-hidden flex flex-col">
-            {/* 모달 헤더 - 미니멀 & 기능적 */}
-            <div className="flex items-center justify-between px-8 py-6 border-b border-gray-200 bg-white">
-              {/* 좌측: 타이틀 & 간단한 통계 */}
+          <div className="bg-notion-sidebar rounded-lg border border-notion-border w-full max-w-[1800px] max-h-[95vh] overflow-hidden flex flex-col">
+            {/* 모달 헤더 */}
+            <div className="flex items-center justify-between px-8 py-6 border-b border-notion-border bg-notion-sidebar">
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
-                    <CalendarIcon className="w-5 h-5 text-white" />
+                  <div className="w-10 h-10 bg-notion-text rounded-lg flex items-center justify-center">
+                    <CalendarIcon className="w-5 h-5 text-notion-bg" />
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900">월간 일정</h2>
+                  <h2 className="text-xl font-semibold text-notion-text">월간 일정</h2>
                 </div>
                 
                 {/* 간결한 통계 배지 */}
                 <div className="flex items-center gap-3">
-                  <div className="px-3 py-1.5 bg-blue-50 rounded-full flex items-center gap-2">
+                  <div className="px-3 py-1.5 bg-blue-500/20 rounded-full flex items-center gap-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm font-medium text-blue-700">{todos.length}개 일정</span>
+                    <span className="text-sm font-medium text-blue-400">{todos.length}개 일정</span>
                   </div>
-                  <div className="px-3 py-1.5 bg-purple-50 rounded-full flex items-center gap-2">
+                  <div className="px-3 py-1.5 bg-purple-500/20 rounded-full flex items-center gap-2">
                     <Target className="w-3.5 h-3.5 text-purple-500" />
                     <span className="text-sm font-medium text-purple-700">{goals.length}개 목표</span>
                   </div>
@@ -245,6 +218,17 @@ export default function MainPage() {
 
       {/* 목표 생성 모달 */}
       <GoalModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} />
+      
+      {/* 빠른 일정 추가 모달 */}
+      <QuickScheduleModal 
+        isOpen={isQuickScheduleOpen} 
+        onClose={() => {
+          setIsQuickScheduleOpen(false)
+          setQuickScheduleInitial({})
+        }}
+        initialDate={quickScheduleInitial.date}
+        initialStartTime={quickScheduleInitial.time}
+      />
     </div>
   )
 }
