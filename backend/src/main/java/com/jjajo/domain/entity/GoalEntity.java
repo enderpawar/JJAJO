@@ -21,8 +21,8 @@ import java.util.List;
  */
 @Entity
 @Table(name = "goals", indexes = {
-    @Index(name = "idx_user_status", columnList = "user_id,status"),
-    @Index(name = "idx_deadline", columnList = "deadline")
+    @Index(name = "idx_goal_user_status", columnList = "user_id,status"),
+    @Index(name = "idx_goal_deadline", columnList = "deadline")
 })
 @Getter
 @Setter

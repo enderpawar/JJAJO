@@ -19,8 +19,8 @@ import java.util.List;
  */
 @Entity
 @Table(name = "conversations", indexes = {
-    @Index(name = "idx_user_status", columnList = "user_id,status"),
-    @Index(name = "idx_created_at", columnList = "created_at")
+    @Index(name = "idx_conversation_user_status", columnList = "user_id,status"),
+    @Index(name = "idx_conversation_created_at", columnList = "created_at")
 })
 @Getter
 @Setter

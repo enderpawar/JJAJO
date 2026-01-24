@@ -15,7 +15,7 @@ spring:
   
   # JPA & Database 설정
   datasource:
-    url: jdbc:h2:mem:jjajodev
+    url: jdbc:h2:mem:jjajo_fresh_db_${random.uuid}
     driver-class-name: org.h2.Driver
     username: sa
     password: 
@@ -27,7 +27,7 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: create
     show-sql: true
     properties:
       hibernate:
