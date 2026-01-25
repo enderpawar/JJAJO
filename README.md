@@ -1,6 +1,6 @@
 # 짜조 (Jja-jo) - AI Autonomous Agent Planner
 
-> 자연어 명령으로 일정을 계획하고, AI가 전략을 수립하며, 캔버스에 시각화하는 Action-oriented AI Agent
+> 클릭한번으로 일정을 캔버스에 시각화하는 Action-oriented AI Agent
 
 ## 🎯 프로젝트 개요
 
