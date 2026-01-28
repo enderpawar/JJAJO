@@ -44,8 +44,8 @@ export default function MainPage() {
       title: '운동',
       description: '헬스장 30분',
       date: formatDate(today),
-      startTime: '14:00',
-      endTime: '15:00',
+      startTime: '11:00',
+      endTime: '12:00',
       status: 'in-progress',
       priority: 'medium',
       createdBy: 'user',
@@ -55,14 +55,42 @@ export default function MainPage() {
     
     addTodo({
       id: 'dummy-3',
+      title: '점심 식사',
+      description: '',
+      date: formatDate(today),
+      startTime: '12:50',
+      endTime: '14:50',
+      status: 'pending',
+      priority: 'medium',
+      createdBy: 'user',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    
+    addTodo({
+      id: 'dummy-4',
       title: '프로젝트 공부',
       description: 'React 심화 학습',
       date: formatDate(today),
-      startTime: '19:00',
-      endTime: '21:00',
+      startTime: '15:00',
+      endTime: '17:00',
       status: 'pending',
       priority: 'high',
       createdBy: 'ai',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    
+    addTodo({
+      id: 'dummy-5',
+      title: '저녁 약속',
+      description: '친구들과 저녁 식사',
+      date: formatDate(today),
+      startTime: '17:40',
+      endTime: '19:40',
+      status: 'pending',
+      priority: 'low',
+      createdBy: 'user',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
