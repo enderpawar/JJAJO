@@ -138,6 +138,37 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
     return () => clearTimeout(t)
   }, [selectedDateTodos, positionOffset])
   // #endregion
+
+  // #region agent log
+  useEffect(() => {
+    const logOverflow = () => {
+      const root = document.documentElement
+      const body = document.body
+      const timelineEl = timelineRef.current
+      const taskEl = timelineEl?.querySelector('.task-card') as HTMLElement | null
+
+      const rootClientWidth = root?.clientWidth ?? 0
+      const rootScrollWidth = root?.scrollWidth ?? 0
+      const bodyClientWidth = body?.clientWidth ?? 0
+      const bodyScrollWidth = body?.scrollWidth ?? 0
+      const timelineClientWidth = timelineEl?.clientWidth ?? 0
+      const timelineScrollWidth = timelineEl?.scrollWidth ?? 0
+      const taskOffsetWidth = taskEl?.offsetWidth ?? 0
+
+      if (
+        rootScrollWidth > rootClientWidth ||
+        bodyScrollWidth > bodyClientWidth ||
+        timelineScrollWidth > timelineClientWidth
+      ) {
+        fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VerticalTimeline.tsx:overflow',message:'horizontal overflow detected',data:{rootClientWidth,rootScrollWidth,bodyClientWidth,bodyScrollWidth,timelineClientWidth,timelineScrollWidth,taskOffsetWidth},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1,H2'})}).catch(()=>{});
+      }
+    }
+
+    logOverflow()
+    window.addEventListener('resize', logOverflow)
+    return () => window.removeEventListener('resize', logOverflow)
+  }, [selectedDateTodos])
+  // #endregion
   
   // 자동 스크롤 (오늘 날짜일 때만, 한 번만)
   useEffect(() => {
@@ -355,7 +386,7 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
   }, [quickAddSlot, quickTitle, selectedDate, addTodo])
   
   return (
-    <div className="flex-1 bg-[#191919] overflow-y-auto relative" ref={timelineRef}>
+    <div className="flex-1 bg-[#191919] overflow-y-auto overflow-x-hidden relative" ref={timelineRef}>
       {/* 빠른 일정 추가 모달 */}
       <AnimatePresence>
         {quickAddSlot && (
