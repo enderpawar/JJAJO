@@ -36,6 +36,7 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null)
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
   const isDraggingRef = useRef(false)
+  const hasLoggedDragRef = useRef(false)
   const timelineRef = useRef<HTMLDivElement>(null)
   const hasAutoScrolled = useRef(false)
   
@@ -43,18 +44,40 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
   const TIMELINE_HEIGHT = 2400 // 24시간 * 100px
   const HOUR_HEIGHT = 100
   
-  // 1초마다 현재 시간 업데이트
+  // ✅ 시/분만 추출 (초는 무시하여 불필요한 리렌더링 방지)
+  const currentHourMinute = useMemo(() => {
+    const hours = currentTime.getHours()
+    const minutes = currentTime.getMinutes()
+    return { hours, minutes }
+  }, [currentTime])
+  
+  // 1초마다 현재 시간 업데이트 (실제로는 분이 바뀔 때만 리렌더링)
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(new Date())
+      const now = new Date()
+      setCurrentTime(prev => {
+        // 분이 바뀌었을 때만 상태 업데이트
+        if (prev.getHours() !== now.getHours() || prev.getMinutes() !== now.getMinutes()) {
+          return now
+        }
+        return prev
+      })
     }, 1000)
     return () => clearInterval(interval)
   }, [])
   
   // 시간을 픽셀로 변환
   const timeToPixels = useCallback((timeStr: string): number => {
-    const [hours, minutes] = timeStr.split(':').map(Number)
-    return hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT
+    const parts = timeStr.split(':').map(Number)
+    const hours = parts[0] ?? 0
+    const minutes = parts[1] ?? 0
+    const px = hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT
+    // #region agent log
+    if (timeStr >= '16:00' && timeStr <= '18:00') {
+      fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-baf8-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VerticalTimeline.tsx:timeToPixels',message:'timeToPixels',data:{timeStr,hours,minutes,px,HOUR_HEIGHT},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+    }
+    // #endregion
+    return px
   }, [])
   
   // 픽셀을 시간으로 변환 (10분 단위 스냅)
@@ -84,17 +107,37 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
       .sort((a, b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'))
   }, [todos, selectedDate])
   
-  // 현재 시간 픽셀 위치
+  // ✅ 현재 시간 픽셀 위치 (분 단위로만 업데이트)
   const currentTimePosition = useMemo(() => {
-    const hours = currentTime.getHours()
-    const minutes = currentTime.getMinutes()
-    return hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT
-  }, [currentTime])
+    return currentHourMinute.hours * HOUR_HEIGHT + (currentHourMinute.minutes / 60) * HOUR_HEIGHT
+  }, [currentHourMinute.hours, currentHourMinute.minutes, HOUR_HEIGHT])
   
   // 선택된 날짜가 오늘인지
   const isSelectedDateToday = useMemo(() => {
     return format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
   }, [selectedDate])
+  
+  // ✅ 통합된 위치 오프셋 계산 (카드와 그리드 모두 동일하게 사용)
+  const positionOffset = useMemo(() => {
+    return !showPastTime && isSelectedDateToday 
+      ? Math.max(0, currentTimePosition - HOUR_HEIGHT)
+      : 0
+  }, [showPastTime, isSelectedDateToday, currentTimePosition])
+
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-baf8-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VerticalTimeline.tsx:positionOffset',message:'positionOffset state',data:{positionOffset,showPastTime,isSelectedDateToday,currentTimePosition,HOUR_HEIGHT,TIMELINE_HEIGHT},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1,H3'})}).catch(()=>{});
+  }, [positionOffset, showPastTime, isSelectedDateToday, currentTimePosition]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const el = document.querySelector('.task-card') as HTMLElement | null
+      if (!el) return
+      const s = window.getComputedStyle(el)
+      fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-baf8-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VerticalTimeline.tsx:dom',message:'computed style',data:{cssTop:s.top,transform:s.transform},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
+    }, 300)
+    return () => clearTimeout(t)
+  }, [selectedDateTodos, positionOffset])
+  // #endregion
   
   // 자동 스크롤 (오늘 날짜일 때만, 한 번만)
   useEffect(() => {
@@ -121,13 +164,14 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
   }, [selectedDate])
   
   // 태스크 블록 렌더링 (✅ 타입 안정성 강화)
-  const renderTaskBlock = useCallback((task: Todo) => {
+  const renderTaskBlock = useCallback((task: Todo, index?: number) => {
     if (!task.startTime || !task.endTime) return null
     
     const startPixel = timeToPixels(task.startTime)
     const endPixel = timeToPixels(task.endTime)
     const height = endPixel - startPixel
-    
+    const yTop = startPixel - positionOffset // 타임라인 그리드와 동일 Y: hour*HOUR_HEIGHT - positionOffset
+
     // 상태 판단
     const isPast = isSelectedDateToday && endPixel < currentTimePosition
     const isCurrent = isSelectedDateToday && startPixel <= currentTimePosition && currentTimePosition < endPixel
@@ -139,72 +183,51 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
       ? Math.max(0, Math.min(100, ((currentTimePosition - startPixel) / height) * 100))
       : 0
     
-    // 과거 숨기기 시 위치 오프셋
-    const positionOffset = !showPastTime && isSelectedDateToday 
-      ? Math.max(0, currentTimePosition - HOUR_HEIGHT)
-      : 0
-    
-    // 드래그 중인지 확인
     const isDragging = dragPreview?.taskId === task.id
 
     return (
-      <motion.div
+      <div
         key={`${task.id}-${task.startTime}-${task.endTime}`}
-        className={`
-          task-card group absolute left-0 right-0 mx-4 rounded-lg
-          overflow-hidden relative cursor-grab active:cursor-grabbing
-          ${isDragging ? 'opacity-40' : ''}
-          ${isPast ? 'opacity-50 bg-[#1a1a1a]/70 border border-white/5' : ''}
-          ${isCurrent ? 'border-l-4 border-blue-500 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-md shadow-[0_0_30px_rgba(59,130,246,0.3)] z-10' : ''}
-          ${isFuture || isOtherDay ? 'bg-[#252525]/90 backdrop-blur-md border border-white/10 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] hover:border-white/30 hover:bg-[#2a2a2a]/90' : ''}
-        `}
-        style={{
-          top: `${startPixel - positionOffset}px`,
-          height: `${height}px`,
-        }}
-        drag="y"
-        dragConstraints={{ top: -startPixel + positionOffset, bottom: TIMELINE_HEIGHT - startPixel - height + positionOffset }}
-        dragElastic={0}
-        dragMomentum={false}
-        dragTransition={{ bounceStiffness: 300, bounceDamping: 30 }}
-        whileDrag={{ 
-          scale: 1.03,
-          zIndex: 100,
-          boxShadow: '0 0 40px rgba(59, 130, 246, 0.6), 0 10px 30px rgba(0, 0, 0, 0.5)',
-          cursor: 'grabbing'
-        }}
-        onDragStart={() => { isDraggingRef.current = true }}
-        onDrag={(_event, info) => {
-          const newStartPixel = Math.max(0, Math.min(TIMELINE_HEIGHT - height, startPixel + info.offset.y))
-          setDragPreview({
-            taskId: task.id,
-            startTime: pixelToTime(newStartPixel),
-            endTime: pixelToTime(newStartPixel + height)
-          })
-        }}
-        onDragEnd={(_event, info) => {
-          setDragPreview(null)
-          const newStartPixel = Math.max(0, Math.min(TIMELINE_HEIGHT - height, startPixel + info.offset.y))
-          
-          if (newStartPixel >= 0 && newStartPixel + height <= TIMELINE_HEIGHT) {
-            updateTodo(task.id, {
-              startTime: pixelToTime(newStartPixel),
-              endTime: pixelToTime(newStartPixel + height)
-            })
-          }
-          
-          setTimeout(() => { isDraggingRef.current = false }, 100)
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            setEditingTodo(task)
-          }
-        }}
+        className={`task-card group absolute left-0 right-0 mx-4 rounded-lg cursor-default ${isDragging ? 'overflow-visible z-[1000]' : 'overflow-hidden'}`}
+        style={{ top: `${yTop}px`, height: `${height}px` }}
         aria-label={`${task.title}, ${task.startTime}부터 ${task.endTime}까지`}
-        role="button"
-        tabIndex={0}
       >
+        <motion.div
+          className={`
+            relative w-full h-full cursor-grab active:cursor-grabbing rounded-lg
+            ${isDragging ? 'opacity-40' : ''}
+            ${isPast ? 'opacity-50 bg-[#1a1a1a]/70 border border-white/5' : ''}
+            ${isCurrent ? 'border-l-4 border-blue-500 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-md shadow-[0_0_30px_rgba(59,130,246,0.3)] z-10' : ''}
+            ${isFuture || isOtherDay ? 'bg-[#252525]/90 backdrop-blur-md border border-white/10 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] hover:border-white/30 hover:bg-[#2a2a2a]/90' : ''}
+          `}
+          style={{ position: 'absolute', inset: 0 }}
+          drag="y"
+          dragConstraints={{ top: -yTop, bottom: TIMELINE_HEIGHT - yTop - height }}
+          dragElastic={0}
+          dragMomentum={false}
+          dragTransition={{ bounceStiffness: 300, bounceDamping: 30 }}
+          whileDrag={{ scale: 1.03, zIndex: 100, boxShadow: '0 0 40px rgba(59, 130, 246, 0.6), 0 10px 30px rgba(0, 0, 0, 0.5)', cursor: 'grabbing' }}
+          onDragStart={(e) => {
+            isDraggingRef.current = true
+            hasLoggedDragRef.current = false
+            setDragPreview({ taskId: task.id, startTime: task.startTime!, endTime: task.endTime! })
+          }}
+          onDrag={(_event, info) => {
+            const newStartPixel = Math.max(0, Math.min(TIMELINE_HEIGHT - height, startPixel + info.offset.y))
+            setDragPreview({ taskId: task.id, startTime: pixelToTime(newStartPixel), endTime: pixelToTime(newStartPixel + height) })
+          }}
+          onDragEnd={(_event, info) => {
+            hasLoggedDragRef.current = false
+            setDragPreview(null)
+            const newStartPixel = Math.max(0, Math.min(TIMELINE_HEIGHT - height, startPixel + info.offset.y))
+            if (newStartPixel >= 0 && newStartPixel + height <= TIMELINE_HEIGHT) {
+              updateTodo(task.id, { startTime: pixelToTime(newStartPixel), endTime: pixelToTime(newStartPixel + height) })
+            }
+            setTimeout(() => { isDraggingRef.current = false }, 100)
+          }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditingTodo(task) } }}
+          tabIndex={0}
+        >
         {/* 드래그 프리뷰 */}
         <AnimatePresence>
           {isDragging && (
@@ -265,13 +288,6 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
             </div>
           ) : (
             <>
-              {/* 드래그 핸들 */}
-              <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-50 transition-opacity" aria-hidden="true">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="w-1 h-1 bg-white rounded-full" />
-                ))}
-              </div>
-
               {/* 시간 */}
               <div className={`text-sm font-medium mb-2 ${isCurrent ? 'text-white' : 'text-gray-400'}`}>
                 {task.startTime} ~ {task.endTime}
@@ -309,9 +325,10 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
             </>
           )}
         </div>
-      </motion.div>
+        </motion.div>
+      </div>
     )
-  }, [timeToPixels, pixelToTime, currentTimePosition, isSelectedDateToday, dragPreview, updateTodo, TIMELINE_HEIGHT, showPastTime])
+  }, [timeToPixels, pixelToTime, currentTimePosition, isSelectedDateToday, positionOffset, dragPreview, updateTodo, setEditingTodo, TIMELINE_HEIGHT, HOUR_HEIGHT])
   
   // 빠른 일정 추가
   const handleQuickAdd = useCallback(() => {
@@ -461,7 +478,8 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
           if (target.closest('.task-card')) return
           
           const rect = e.currentTarget.getBoundingClientRect()
-          const clickY = e.clientY - rect.top + (timelineRef.current?.scrollTop || 0)
+          // 타임라인 div 기준 로컬 Y: rect가 이미 스크롤 반영된 뷰포트 위치이므로 scrollTop 더하면 안 됨
+          const clickY = e.clientY - rect.top
           // 과거 숨기기 상태일 때는 오프셋 추가
           const offset = !showPastTime && isSelectedDateToday 
             ? Math.max(0, currentTimePosition - HOUR_HEIGHT)
@@ -498,67 +516,47 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
           </motion.div>
         )}
         
-        {/* 배경 그리드 */}
+        {/* 배경 그리드 + 일정 블록: 동일 컨테이너 내부에서 같은 Y좌표계(top px) 사용 */}
         <div className="absolute inset-0 z-0">
           {Array.from({ length: 24 }, (_, hour) => {
-            // 과거 숨기기: 현재 시간보다 1시간 이전의 그리드는 숨김
             if (!showPastTime && isSelectedDateToday && (hour + 1) * HOUR_HEIGHT < currentTimePosition) {
               return null
             }
-            
-            // 오프셋 계산 (과거 숨기기 시 위치 조정)
-            const offset = !showPastTime && isSelectedDateToday 
-              ? Math.max(0, currentTimePosition - HOUR_HEIGHT)
-              : 0
-            
+            const gridTop = hour * HOUR_HEIGHT - positionOffset
+            // #region agent log
+            if (hour >= 16 && hour <= 18) {
+              fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-baf8-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VerticalTimeline.tsx:grid',message:'grid line',data:{hour,gridTop,positionOffset,HOUR_HEIGHT},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1,H5'})}).catch(()=>{});
+            }
+            // #endregion
             return (
               <div key={hour}>
-                <div
-                  className="absolute left-0 right-0 border-t border-[#373737]"
-                  style={{ top: `${hour * HOUR_HEIGHT - offset}px` }}
-                >
+                <div className="absolute left-0 right-0 border-t border-[#373737]" style={{ top: `${gridTop}px` }}>
                   <div className="absolute left-4 -top-3 text-xs text-white/40 bg-[#191919] px-2">
                     {String(hour).padStart(2, '0')}:00
                   </div>
                 </div>
-                
                 {hour < 23 && (
-                  <div
-                    className="absolute left-0 right-0 border-t border-dashed border-[#373737]/40"
-                    style={{ top: `${hour * HOUR_HEIGHT + 50 - offset}px` }}
-                  />
+                  <div className="absolute left-0 right-0 border-t border-dashed border-[#373737]/40" style={{ top: `${gridTop + 50}px` }} />
                 )}
               </div>
             )
           })}
+          {selectedDateTodos
+            .filter(task => {
+              if (!isSelectedDateToday) return true
+              if (showPastTime) return true
+              if (task.endTime) return timeToPixels(task.endTime) >= currentTimePosition
+              return true
+            })
+            .map((task, i) => renderTaskBlock(task, i))}
         </div>
-        
-        {/* 일정 블록 */}
-        {selectedDateTodos
-          .filter(task => {
-            // 오늘이 아닌 날짜는 모두 표시
-            if (!isSelectedDateToday) return true
-            
-            // 과거 보기가 켜져있으면 모두 표시
-            if (showPastTime) return true
-            
-            // 과거 숨기기: 종료 시간이 현재 시간보다 이전인 일정은 숨김
-            if (task.endTime) {
-              return timeToPixels(task.endTime) >= currentTimePosition
-            }
-            
-            return true
-          })
-          .map(renderTaskBlock)}
         
         {/* 현재 시간 선 */}
         {isSelectedDateToday && (
           <motion.div
             className="absolute left-0 right-0 z-20"
             style={{ 
-              top: `${currentTimePosition - (!showPastTime && isSelectedDateToday 
-                ? Math.max(0, currentTimePosition - HOUR_HEIGHT)
-                : 0)}px` 
+              top: `${currentTimePosition - positionOffset}px` 
             }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
