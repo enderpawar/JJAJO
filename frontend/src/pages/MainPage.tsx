@@ -55,7 +55,7 @@ export default function MainPage() {
     
     addTodo({
       id: 'dummy-3',
-      title: '미노르',
+      title: '점심 식사',
       description: '',
       date: formatDate(today),
       startTime: '12:50',
@@ -83,8 +83,8 @@ export default function MainPage() {
     
     addTodo({
       id: 'dummy-5',
-      title: '미노우',
-      description: '',
+      title: '저녁 약속',
+      description: '친구들과 저녁 식사',
       date: formatDate(today),
       startTime: '17:40',
       endTime: '19:40',

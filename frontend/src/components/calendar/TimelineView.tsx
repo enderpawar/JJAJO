@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import { Clock, Edit2, Trash2 } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { formatDate } from '@/utils/dateUtils'
@@ -8,6 +8,12 @@ import type { Todo } from '@/types/calendar'
 interface TimelineViewProps {
   showPastTime?: boolean
 }
+
+// 타임라인 설정 상수 (컴포넌트 외부로 이동)
+const HOUR_HEIGHT = 80 // 1시간당 픽셀 높이
+const TIMELINE_HEIGHT = 24 * HOUR_HEIGHT // 24시간 전체 높이
+const START_HOUR = 0
+const END_HOUR = 24
 
 export default function TimelineView({ showPastTime = true }: TimelineViewProps) {
   const { selectedDate, getTodosByDate, deleteTodo } = useCalendarStore()
@@ -33,12 +39,6 @@ export default function TimelineView({ showPastTime = true }: TimelineViewProps)
     return () => clearInterval(interval)
   }, [])
   
-  // 타임라인 설정
-  const HOUR_HEIGHT = 80 // 1시간당 픽셀 높이
-  const TIMELINE_HEIGHT = 24 * HOUR_HEIGHT // 24시간 전체 높이
-  const START_HOUR = 0
-  const END_HOUR = 24
-  
   /**
    * 중앙 집중식 오프셋 관리 (positionOffset)
    * showPastTime 옵션에 따라 모든 요소(그리드, 카드, 현재 시간 선)가 
@@ -54,7 +54,7 @@ export default function TimelineView({ showPastTime = true }: TimelineViewProps)
       return -(roundedMinutes / 60) * HOUR_HEIGHT
     }
     return 0
-  }, [showPastTime, currentTime, HOUR_HEIGHT])
+  }, [showPastTime, currentTime])
   
   /**
    * 좌표 계산 공식 정규화
@@ -63,13 +63,26 @@ export default function TimelineView({ showPastTime = true }: TimelineViewProps)
    * @param timeStr - HH:mm 형식의 시간 문자열
    * @returns 픽셀 단위 Y 좌표
    */
-  const getYPosition = (timeStr: string): number => {
+  const getYPosition = useCallback((timeStr: string): number => {
+    // 시간 형식 검증
+    if (!timeStr || !timeStr.includes(':')) {
+      console.warn(`Invalid time format: ${timeStr}`)
+      return 0
+    }
+    
     const [hours, minutes] = timeStr.split(':').map(Number)
+    
+    // 유효한 숫자인지 확인
+    if (isNaN(hours) || isNaN(minutes)) {
+      console.warn(`Invalid time values: ${timeStr}`)
+      return 0
+    }
+    
     const minutesFromDayStart = hours * 60 + minutes
     const totalMinutesInDay = 24 * 60
     const top = (minutesFromDayStart / totalMinutesInDay) * TIMELINE_HEIGHT + positionOffset
     return top
-  }
+  }, [positionOffset])
   
   /**
    * 시간 duration을 픽셀 높이로 변환
@@ -78,14 +91,21 @@ export default function TimelineView({ showPastTime = true }: TimelineViewProps)
    * @param endTime - 종료 시간 (HH:mm)
    * @returns 픽셀 단위 높이
    */
-  const getCardHeight = (startTime: string, endTime: string): number => {
+  const getCardHeight = useCallback((startTime: string, endTime: string): number => {
     const [startHours, startMinutes] = startTime.split(':').map(Number)
     const [endHours, endMinutes] = endTime.split(':').map(Number)
     const startMinutesFromDay = startHours * 60 + startMinutes
     const endMinutesFromDay = endHours * 60 + endMinutes
     const durationMinutes = endMinutesFromDay - startMinutesFromDay
+    
+    // 종료 시간이 시작 시간보다 이전인 경우 최소 높이 반환
+    if (durationMinutes <= 0) {
+      console.warn(`Invalid time range: ${startTime} to ${endTime}`)
+      return 60 // 최소 높이
+    }
+    
     return (durationMinutes / (24 * 60)) * TIMELINE_HEIGHT
-  }
+  }, [])
   
   /**
    * 현재 시간의 Y 좌표
@@ -96,7 +116,7 @@ export default function TimelineView({ showPastTime = true }: TimelineViewProps)
     const minutesFromDayStart = hours * 60 + minutes
     const totalMinutesInDay = 24 * 60
     return (minutesFromDayStart / totalMinutesInDay) * TIMELINE_HEIGHT + positionOffset
-  }, [currentTime, TIMELINE_HEIGHT, positionOffset])
+  }, [currentTime, positionOffset])
   
   const getPriorityColor = (priority: Todo['priority']) => {
     switch (priority) {
@@ -200,12 +220,17 @@ export default function TimelineView({ showPastTime = true }: TimelineViewProps)
                   </div>
                   
                   <div className="flex gap-1">
-                    <button className="p-1 hover:bg-white/20 rounded transition-colors">
-                      <Edit2 className="w-3 h-3 text-white" />
+                    <button 
+                      className="p-1 hover:bg-white/20 rounded transition-colors"
+                      aria-label={`일정 수정: ${todo.title}`}
+                      disabled
+                    >
+                      <Edit2 className="w-3 h-3 text-white/50" />
                     </button>
                     <button 
                       onClick={() => deleteTodo(todo.id)}
                       className="p-1 hover:bg-white/20 rounded transition-colors"
+                      aria-label={`일정 삭제: ${todo.title}`}
                     >
                       <Trash2 className="w-3 h-3 text-white" />
                     </button>

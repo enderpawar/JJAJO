@@ -66,6 +66,7 @@ export default function DayDetailPanel() {
                 viewMode === 'list' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'
               )}
               title="리스트 뷰"
+              aria-label="리스트 뷰로 전환"
             >
               <List className="w-4 h-4" />
             </button>
@@ -76,6 +77,7 @@ export default function DayDetailPanel() {
                 viewMode === 'timeline' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'
               )}
               title="타임라인 뷰"
+              aria-label="타임라인 뷰로 전환"
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
@@ -126,12 +128,17 @@ export default function DayDetailPanel() {
                           {todo.title}
                         </h4>
                         <div className="flex gap-1">
-                          <button className="p-1 hover:bg-gray-100 rounded transition-colors">
-                            <Edit2 className="w-3 h-3 text-gray-500" />
+                          <button 
+                            className="p-1 hover:bg-gray-100 rounded transition-colors"
+                            aria-label={`일정 수정: ${todo.title}`}
+                            disabled
+                          >
+                            <Edit2 className="w-3 h-3 text-gray-400" />
                           </button>
                           <button 
                             onClick={() => deleteTodo(todo.id)}
                             className="p-1 hover:bg-red-50 rounded transition-colors"
+                            aria-label={`일정 삭제: ${todo.title}`}
                           >
                             <Trash2 className="w-3 h-3 text-red-500" />
                           </button>
