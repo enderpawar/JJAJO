@@ -1,21 +1,15 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import ApiKeyPage from './pages/ApiKeyPage'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import AuthPage from './pages/AuthPage'
 import MainPage from './pages/MainPage'
-import { useApiKeyStore } from './stores/apiKeyStore'
 
 function App() {
-  const { apiKey } = useApiKeyStore()
-
   return (
     <Router>
       <Routes>
-        <Route path="/api-key" element={<ApiKeyPage />} />
-        <Route 
-          path="/" 
-          element={
-            apiKey ? <MainPage /> : <Navigate to="/api-key" replace />
-          } 
-        />
+        {/* 1. 진입점: 회원가입/로그인 화면 */}
+        <Route path="/" element={<AuthPage />} />
+        {/* 2. 플래너 메인 화면 */}
+        <Route path="/app" element={<MainPage />} />
       </Routes>
     </Router>
   )

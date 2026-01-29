@@ -3,6 +3,7 @@ import { X, Zap, Clock, CheckCircle, Plus, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { createSchedule } from '@/services/scheduleService'
 import { suggestSchedulePlacement } from '@/utils/scheduleUtils'
 import type { Todo } from '@/types/calendar'
 
@@ -146,47 +147,57 @@ export function QuickScheduleModal({
     }, 500)
   }
 
-  // 일정 확정 (다중 tasks)
-  const handleConfirm = () => {
+  // 일정 확정 (다중 tasks) — 원격 DB 저장 후 스토어 반영
+  const handleConfirm = async () => {
     if (suggestions.length === 0) return
 
     let successCount = 0
-    
+    const toAdd: { title: string; date: string; startTime: string; endTime: string; priority: typeof initialPriority; createdBy: 'user' | 'ai' }[] = []
+
     suggestions.forEach((sug) => {
       if (sug.canPlace && sug.suggestion) {
-        const newTodo: Todo = {
-          id: `quick-${Date.now()}-${sug.taskId}`,
+        toAdd.push({
           title: sug.taskTitle,
           date: targetDate,
           startTime: sug.suggestion.startTime,
           endTime: sug.suggestion.endTime,
-          status: 'pending',
           priority: initialPriority,
           createdBy: 'ai',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-        addTodo(newTodo)
-        successCount++
+        })
       } else if (sug.conflicts && overrideConflict && sug.suggestion) {
-        const newTodo: Todo = {
-          id: `quick-${Date.now()}-${sug.taskId}`,
+        toAdd.push({
           title: sug.taskTitle,
           date: targetDate,
           startTime: sug.suggestion.startTime,
           endTime: sug.suggestion.endTime,
-          status: 'pending',
           priority: initialPriority,
           createdBy: 'user',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-        addTodo(newTodo)
-        successCount++
+        })
       }
     })
 
-    alert(`✅ ${successCount}개의 일정이 추가되었습니다!`)
+    for (const item of toAdd) {
+      try {
+        const saved = await createSchedule({
+          title: item.title,
+          date: item.date,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          status: 'pending',
+          priority: item.priority,
+          createdBy: item.createdBy,
+        })
+        addTodo(saved)
+        successCount++
+      } catch (e) {
+        console.error('일정 저장 실패:', e)
+        alert(`일정 저장 중 오류가 발생했습니다: ${e instanceof Error ? e.message : '알 수 없음'}`)
+      }
+    }
+
+    if (successCount > 0) {
+      alert(`✅ ${successCount}개의 일정이 추가되었습니다!`)
+    }
     resetAndClose()
   }
 

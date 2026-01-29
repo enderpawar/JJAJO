@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock, FileText, AlertCircle, Trash2 } from 'lucide-react';
 import { useCalendarStore } from '../../stores/calendarStore';
+import { updateSchedule, deleteSchedule } from '@/services/scheduleService';
 import type { Todo } from '../../types/calendar';
 
 interface EditTodoPanelProps {
@@ -46,21 +47,35 @@ export default function EditTodoPanel({ todo, onClose }: EditTodoPanelProps) {
 
   if (!todo) return null;
 
-  const handleSave = () => {
-    updateTodo(todo.id, {
-      title,
-      startTime,
-      endTime,
-      description,
-      priority,
-      updatedAt: new Date().toISOString(),
-    });
-    onClose();
+  const handleSave = async () => {
+    try {
+      const updated = await updateSchedule(todo.id, {
+        title,
+        startTime: startTime || undefined,
+        endTime: endTime || undefined,
+        description: description || undefined,
+        priority,
+      });
+      updateTodo(todo.id, {
+        ...updated,
+        updatedAt: updated.updatedAt ?? new Date().toISOString(),
+      });
+      onClose();
+    } catch (e) {
+      console.error('일정 수정 실패:', e);
+      alert(`일정 수정 실패: ${e instanceof Error ? e.message : '알 수 없음'}`);
+    }
   };
 
-  const handleDelete = () => {
-    deleteTodo(todo.id);
-    onClose();
+  const handleDelete = async () => {
+    try {
+      await deleteSchedule(todo.id);
+      deleteTodo(todo.id);
+      onClose();
+    } catch (e) {
+      console.error('일정 삭제 실패:', e);
+      alert(`일정 삭제 실패: ${e instanceof Error ? e.message : '알 수 없음'}`);
+    }
   };
 
   const getPriorityColor = (p: string) => {

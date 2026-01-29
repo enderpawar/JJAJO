@@ -1,31 +1,32 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, Key, Settings, LogOut, X, Moon, Sun, Copy } from 'lucide-react'
+import { Sparkles, Settings, X, Moon, Sun, Copy } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useApiKeyStore } from '@/stores/apiKeyStore'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { TimeSlotSettings } from '@/components/settings/TimeSlotSettings'
+import { ApiKeySettings } from '@/components/settings/ApiKeySettings'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
 export default function Header() {
   const navigate = useNavigate()
-  const { clearApiKey } = useApiKeyStore()
   const { copyTodosFromPreviousDay, selectedDate } = useCalendarStore()
   const { theme, toggleTheme, initTheme } = useSettingsStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
+  const backendOrigin =
+    (import.meta as any).env.VITE_BACKEND_ORIGIN ??
+    ((import.meta as any).env.DEV ? 'http://localhost:8080' : '')
+
+  const handleGoogleLogin = () => {
+    const base = backendOrigin || ''
+    window.location.href = `${base}/oauth2/authorization/google`
+  }
 
   // 컴포넌트 마운트 시 테마 초기화
   useEffect(() => {
     initTheme()
   }, [initTheme])
-  
-  const handleLogout = () => {
-    if (confirm('로그아웃하시겠습니까? API 키가 삭제됩니다.')) {
-      clearApiKey()
-      navigate('/api-key', { replace: true })
-    }
-  }
 
   const handleCopyPreviousDay = () => {
     const count = copyTodosFromPreviousDay()
@@ -37,7 +38,7 @@ export default function Header() {
   }
   
   return (
-    <header className="bg-notion-card border-b border-notion-border shadow-none">
+    <header className="relative z-30 bg-notion-card border-b border-notion-border shadow-none" style={{ isolation: 'isolate' }}>
       <div className="max-w-screen-2xl mx-auto px-6 py-3">
         <div className="flex items-center justify-between">
           {/* 로고 - Notion 스타일 미니멀 */}
@@ -52,10 +53,21 @@ export default function Header() {
           
           {/* 우측 메뉴 - Notion 플랫 버튼 스타일 */}
           <div className="flex items-center gap-1">
+            {/* Google 로그인 */}
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="flex items-center gap-2 px-3 py-1.5 hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer"
+              title="Google 계정으로 로그인"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline">Google 로그인</span>
+            </button>
             {/* 어제 일정 가져오기 */}
             <button
+              type="button"
               onClick={handleCopyPreviousDay}
-              className="flex items-center gap-2 px-3 py-1.5 hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary"
+              className="flex items-center gap-2 px-3 py-1.5 hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer"
               title="어제 일정 가져오기"
             >
               <Copy className="w-4 h-4" />
@@ -76,20 +88,12 @@ export default function Header() {
             </button>
 
             <button
+              type="button"
               onClick={() => setIsSettingsOpen(true)}
-              className="p-2 hover:bg-notion-hover rounded-notion transition-colors"
+              className="p-2 hover:bg-notion-hover rounded-notion transition-colors cursor-pointer"
               title="설정"
             >
               <Settings className="w-4 h-4 text-notion-text-secondary hover:text-notion-text-primary" />
-            </button>
-            
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-1.5 hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-red-400"
-              title="로그아웃"
-            >
-              <Key className="w-4 h-4" />
-              <span className="hidden sm:inline">API 키</span>
             </button>
           </div>
         </div>
@@ -97,8 +101,13 @@ export default function Header() {
       
       {/* 설정 모달 - Notion 스타일 */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-notion flex items-center justify-center z-50 p-4">
-          <div className="bg-notion-card rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-notion flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => e.target === e.currentTarget && setIsSettingsOpen(false)}
+        >
+          <div className="bg-notion-card rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             {/* 헤더 */}
             <div className="sticky top-0 bg-notion-card border-b border-notion-border px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -106,16 +115,20 @@ export default function Header() {
                 <h2 className="text-lg font-semibold text-notion-text-primary">설정</h2>
               </div>
               <button
+                type="button"
                 onClick={() => setIsSettingsOpen(false)}
-                className="p-1.5 hover:bg-notion-hover rounded-notion transition-colors"
+                className="p-1.5 hover:bg-notion-hover rounded-notion transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5 text-notion-text-secondary" />
               </button>
             </div>
             
             {/* 컨텐츠 */}
-            <div className="p-6">
+            <div className="p-6 space-y-8">
               <TimeSlotSettings />
+              <div className="border-t border-notion-border pt-6">
+                <ApiKeySettings />
+              </div>
             </div>
           </div>
         </div>

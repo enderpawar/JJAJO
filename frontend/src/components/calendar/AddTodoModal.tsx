@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Calendar, Clock, AlertCircle } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
+import { createSchedule } from '@/services/scheduleService'
 import { formatDate } from '@/utils/dateUtils'
 import type { TodoPriority, TodoStatus } from '@/types/calendar'
 
@@ -22,32 +23,29 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
     status: 'pending' as TodoStatus,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     if (!formData.title.trim()) {
       alert('제목을 입력해주세요')
       return
     }
-
-    // 고유 ID 생성 (timestamp 기반)
-    const id = `todo-${Date.now()}`
-    
-    addTodo({
-      id,
-      title: formData.title,
-      description: formData.description,
-      date: formData.date,
-      startTime: formData.startTime || undefined,
-      endTime: formData.endTime || undefined,
-      status: formData.status,
-      priority: formData.priority,
-      createdBy: 'user',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    })
-
-    // 폼 초기화 및 모달 닫기
+    try {
+      const saved = await createSchedule({
+        title: formData.title,
+        description: formData.description || undefined,
+        date: formData.date,
+        startTime: formData.startTime || undefined,
+        endTime: formData.endTime || undefined,
+        status: formData.status,
+        priority: formData.priority,
+        createdBy: 'user',
+      })
+      addTodo(saved)
+    } catch (e) {
+      console.error('일정 추가 실패:', e)
+      alert(`일정 추가 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
+      return
+    }
     setFormData({
       title: '',
       description: '',

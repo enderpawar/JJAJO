@@ -1,0 +1,32 @@
+# JJAJO 백엔드 Render Blueprint (DEPLOYMENT_GUIDE.md 2-2 기준)
+# 사용: Render 대시보드 → New → Blueprint → 이 저장소 연결
+# DB는 Neon/Supabase 등 외부 PostgreSQL 사용 (1단계에서 연결 정보 입력)
+
+services:
+  - type: web
+    name: jjajo-backend
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+
+    plan: free
+
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+
+    healthCheckPath: /actuator/health
+    autoDeployTrigger: commit

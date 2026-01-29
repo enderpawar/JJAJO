@@ -3,11 +3,13 @@ import { Sparkles, Send, Trash2, MessageSquare, CheckCircle, Target, Bot, User a
 import { useChatStore } from '@/stores/chatStore'
 import { useGoalStore } from '@/stores/goalStore'
 import { useCalendarStore } from '@/stores/calendarStore'
+import { createSchedule } from '@/services/scheduleService'
 import { aiChatService } from '@/services/aiChatService'
 import { goalService } from '@/services/goalService'
 import { conversationService, type ConversationChatResponse } from '@/services/conversationService'
 import type { ChatMessage, QuickReply } from '@/types/chat'
 import { cn } from '@/utils/cn'
+import { normalizeGoalFromApi } from '@/utils/api'
 import ConversationProgress from './ConversationProgress'
 import InputHint from './InputHint'
 import LoadingIndicator from './LoadingIndicator'
@@ -84,7 +86,7 @@ export default function AiChatPanel() {
     try {
       // 대화가 진행 중이면 대화형 모드로 처리
       if (conversationId && useConversationalMode) {
-        const response = await conversationService.chat('user-123', value, conversationId)
+        const response = await conversationService.chat(value, conversationId)
         
         setCollectedInfo(response.collectedInfo || {})
         
@@ -137,46 +139,42 @@ export default function AiChatPanel() {
     }
   }
   
-  // 간단 일정 즉시 추가 (ADHD 친화적 + Task Chunking!)
-  const addQuickSchedule = (timeOption: string, goalTitle?: string) => {
+  // 간단 일정 즉시 추가 (ADHD 친화적 + Task Chunking!) — 원격 DB 저장
+  const addQuickSchedule = async (timeOption: string, goalTitle?: string) => {
     const now = new Date()
     let scheduledDate = new Date(now)
     let startHour = now.getHours()
     let startMinute = now.getMinutes()
-    
-    // 시간 옵션에 따라 일정 시간 결정
+
     if (timeOption.includes('지금') || timeOption.includes('바로')) {
-      // 지금 바로 → 현재 시간
       scheduledDate = now
       startHour = now.getHours()
       startMinute = now.getMinutes()
     } else if (timeOption.includes('오전')) {
-      // 오전 → 내일 오전 9시
       scheduledDate.setDate(scheduledDate.getDate() + 1)
       startHour = 9
       startMinute = 0
     } else if (timeOption.includes('저녁')) {
-      // 저녁 → 오늘 저녁 8시
       startHour = 20
       startMinute = 0
     }
-    
+
     const title = goalTitle || collectedInfo.goal_type || '새로운 일정'
     const dateStr = scheduledDate.toISOString().split('T')[0]
-    
-    // 🧠 Task Chunking: 1시간 일정을 10분 단위로 자동 분해!
+
     const chunks = [
       { title: `${title} - 준비하기`, duration: 5 },
       { title: `${title} - 시작하기`, duration: 10 },
       { title: `${title} - 집중하기`, duration: 20 },
       { title: `${title} - 마무리하기`, duration: 10 },
     ]
-    
+
     let currentHour = startHour
     let currentMinute = startMinute
     const addedTodos: string[] = []
-    
-    chunks.forEach((chunk, index) => {
+
+    for (let index = 0; index < chunks.length; index++) {
+      const chunk = chunks[index]
       const startTime = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`
       currentMinute += chunk.duration
       if (currentMinute >= 60) {
@@ -184,26 +182,23 @@ export default function AiChatPanel() {
         currentMinute = currentMinute % 60
       }
       const endTime = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`
-      
-      const now = new Date().toISOString()
-      
-      addTodo({
-        id: `chunk-${Date.now()}-${index}`,
-        title: chunk.title,
-        date: dateStr,
-        startTime: startTime,
-        endTime: endTime,
-        status: 'pending',
-        priority: 'medium',
-        createdBy: 'ai',
-        createdAt: now,
-        updatedAt: now,
-      })
-      
-      addedTodos.push(`${startTime} ${chunk.title} (${chunk.duration}분)`)
-    })
-    
-    // 성공 메시지 (작업 분해 내역 표시)
+      try {
+        const saved = await createSchedule({
+          title: chunk.title,
+          date: dateStr,
+          startTime,
+          endTime,
+          status: 'pending',
+          priority: 'medium',
+          createdBy: 'ai',
+        })
+        addTodo(saved)
+        addedTodos.push(`${startTime} ${chunk.title} (${chunk.duration}분)`)
+      } catch {
+        addedTodos.push(`${startTime} ${chunk.title} (저장 실패)`)
+      }
+    }
+
     const successMessage: ChatMessage = {
       id: `msg-${Date.now()}-success`,
       role: 'assistant',
@@ -211,8 +206,6 @@ export default function AiChatPanel() {
       timestamp: new Date().toISOString(),
     }
     addMessage(successMessage)
-    
-    // 대화 종료
     setConversationId(undefined)
     setQuickScheduleMode(false)
   }
@@ -232,7 +225,7 @@ export default function AiChatPanel() {
       }
       addMessage(forceMessage)
       
-      const response = await conversationService.chat('user-123', '지금 바로 계획 생성해줘', conversationId)
+      const response = await conversationService.chat('지금 바로 계획 생성해줘', conversationId)
       
       // 수집된 정보 업데이트
       setCollectedInfo(response.collectedInfo || {})
@@ -336,7 +329,7 @@ export default function AiChatPanel() {
       
       // 1. 대화가 진행 중이면 (conversationId가 있으면) 계속 대화형 모드
       if (conversationId && useConversationalMode) {
-        const response = await conversationService.chat('user-123', messageContent, conversationId)
+        const response = await conversationService.chat(messageContent, conversationId)
         
         // 수집된 정보 업데이트
         setCollectedInfo(response.collectedInfo || {})
@@ -385,7 +378,7 @@ export default function AiChatPanel() {
       
       if (isGoalRequest && useConversationalMode) {
         // 대화형 목표 설정 모드 시작
-        const response = await conversationService.chat('user-123', messageContent, undefined)
+        const response = await conversationService.chat(messageContent, undefined)
         
         // 대화 ID 저장 (새로운 대화 시작)
         setConversationId(response.conversationId)
@@ -544,28 +537,43 @@ export default function AiChatPanel() {
           updatedAt: new Date().toISOString(),
         })
       } else {
-        // 빠른 모드: 기존 방식
+        // 빠른 모드: 기존 방식 (백엔드 enum → 소문자 정규화 후 추가)
         result = await goalService.createGoalWithAI(goalRequest)
+        addGoal(normalizeGoalFromApi(result.goal as Record<string, unknown>))
         
-        // Goal 추가
-        addGoal(result.goal)
-        
-        // 일정들을 캘린더에 추가
-        result.schedules?.forEach((schedule, index) => {
-        addTodo({
-          id: `goal-schedule-${Date.now()}-${index}`,
-          title: schedule.title,
-          description: schedule.description || '',
-          date: schedule.date,
-          startTime: schedule.startTime,
-          endTime: schedule.endTime,
-          status: 'pending',
-          priority: schedule.priority as 'high' | 'medium' | 'low',
-          createdBy: 'ai',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          })
-        })
+        // 일정들을 원격 DB 저장 후 캘린더에 추가
+        if (result.schedules?.length) {
+          for (const schedule of result.schedules) {
+            try {
+              const saved = await createSchedule({
+                title: schedule.title,
+                description: schedule.description || undefined,
+                date: schedule.date,
+                startTime: schedule.startTime,
+                endTime: schedule.endTime,
+                status: 'pending',
+                priority: (schedule.priority as 'high' | 'medium' | 'low') || 'medium',
+                createdBy: 'ai',
+              })
+              addTodo(saved)
+            } catch {
+              // 저장 실패 시 스토어만 추가 (오프라인 대비)
+              addTodo({
+                id: `goal-schedule-${Date.now()}-${Math.random()}`,
+                title: schedule.title,
+                description: schedule.description || '',
+                date: schedule.date,
+                startTime: schedule.startTime,
+                endTime: schedule.endTime,
+                status: 'pending',
+                priority: (schedule.priority as 'high' | 'medium' | 'low') || 'medium',
+                createdBy: 'ai',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              })
+            }
+          }
+        }
       }
       
       // 완료 메시지

@@ -12,10 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConversationChatRequest {
-    
-    @NotBlank(message = "사용자 ID는 필수입니다")
-    private String userId;
-    
+        
     @NotBlank(message = "메시지는 필수입니다")
     private String message;
     

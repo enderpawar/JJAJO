@@ -26,10 +26,10 @@ public class GoalPlanningService {
     private final GoalSchedulingService goalSchedulingService;
     
     /**
-     * AI를 활용한 목표 계획 수립
+     * AI를 활용한 목표 계획 수립 (회원별 저장용 userId 사용)
      */
-    public PlanningResult createGoalPlan(String goalDescription, String apiKey) {
-        log.info("목표 계획 수립 시작: {}", goalDescription);
+    public PlanningResult createGoalPlan(String userId, String goalDescription, String apiKey) {
+        log.info("목표 계획 수립 시작: userId={}, goal={}", userId, goalDescription);
         
         // AI에게 목표 분석 및 계획 수립 요청
         String prompt = buildPlanningPrompt(goalDescription);
@@ -40,12 +40,12 @@ public class GoalPlanningService {
         // AI 응답 파싱
         PlanningResult result = parseAiResponse(goalDescription, aiResponse);
         
-        // Goal 생성
-        Goal goal = createGoalFromAnalysis(result);
+        // Goal 생성 (userId 포함)
+        Goal goal = createGoalFromAnalysis(userId, result);
         result.setGoal(goal);
         
-        // 기본 UserProfile 생성 (추후 사용자 설정으로 대체)
-        UserProfile defaultProfile = createDefaultUserProfile();
+        // 기본 UserProfile 생성 (현재 사용자 기준)
+        UserProfile defaultProfile = createDefaultUserProfile(userId);
         
         // 자동 일정 생성
         List<ScheduleRequest> schedules = goalSchedulingService.generateScheduleForGoal(goal, defaultProfile);
@@ -192,13 +192,14 @@ public class GoalPlanningService {
     }
     
     /**
-     * 분석 결과로부터 Goal 생성
+     * 분석 결과로부터 Goal 생성 (userId 포함)
      */
-    private Goal createGoalFromAnalysis(PlanningResult result) {
+    private Goal createGoalFromAnalysis(String userId, PlanningResult result) {
         LocalDate deadline = LocalDate.now().plusWeeks(result.getWeeks());
         
         return Goal.builder()
                 .id(UUID.randomUUID().toString())
+                .userId(userId)
                 .title(result.getTitle())
                 .description(result.getCurriculum())
                 .deadline(deadline.toString())
@@ -212,11 +213,11 @@ public class GoalPlanningService {
     }
     
     /**
-     * 기본 UserProfile 생성
+     * 기본 UserProfile 생성 (현재 사용자 기준)
      */
-    private UserProfile createDefaultUserProfile() {
+    private UserProfile createDefaultUserProfile(String userId) {
         return UserProfile.builder()
-                .userId("default")
+                .userId(userId)
                 .name("사용자")
                 .preferences(UserProfile.UserPreferences.builder()
                         .workStartTime(java.time.LocalTime.of(9, 0))

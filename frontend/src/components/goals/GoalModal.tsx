@@ -4,7 +4,7 @@ import { format } from 'date-fns'
 import type { GoalFormData, GoalPriority, GoalCategory } from '@/types/goal'
 import { useGoalStore } from '@/stores/goalStore'
 import { useCalendarStore } from '@/stores/calendarStore'
-import { generateDailySchedule, type DailyScheduleResponse } from '@/services/scheduleService'
+import { createSchedule, generateDailySchedule, type DailyScheduleResponse } from '@/services/scheduleService'
 import { FlipCardPlanner } from './FlipCardPlanner'
 import type { PlanResponse } from '@/types/goalPlanning'
 
@@ -60,7 +60,7 @@ export function GoalModal({ isOpen, onClose }: GoalModalProps) {
     setShowFlipCardPlanner(true)
   }
 
-  const handlePlanComplete = (plan: PlanResponse) => {
+  const handlePlanComplete = async (plan: PlanResponse) => {
     // 1. 목표 생성
     const newGoal = {
       id: `goal-${Date.now()}`,
@@ -81,24 +81,37 @@ export function GoalModal({ isOpen, onClose }: GoalModalProps) {
     
     addGoal(newGoal)
 
-    // 2. 일정 생성
+    // 2. 일정 생성 (원격 DB 저장 후 스토어 반영)
     const { addTodo } = useCalendarStore.getState()
-    
-    plan.schedules.forEach((schedule, index) => {
-      addTodo({
-        id: `ai-plan-${Date.now()}-${index}`,
-        title: schedule.title,
-        description: schedule.description,
-        date: schedule.date,
-        startTime: schedule.startTime,
-        endTime: schedule.endTime,
-        status: 'pending',
-        priority: schedule.priority as 'high' | 'medium' | 'low',
-        createdBy: 'ai',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-    })
+    for (const schedule of plan.schedules) {
+      try {
+        const saved = await createSchedule({
+          title: schedule.title,
+          description: schedule.description,
+          date: schedule.date,
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          status: 'pending',
+          priority: (schedule.priority as 'high' | 'medium' | 'low') || 'medium',
+          createdBy: 'ai',
+        })
+        addTodo(saved)
+      } catch {
+        addTodo({
+          id: `ai-plan-${Date.now()}-${Math.random()}`,
+          title: schedule.title,
+          description: schedule.description,
+          date: schedule.date,
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          status: 'pending',
+          priority: (schedule.priority as 'high' | 'medium' | 'low') || 'medium',
+          createdBy: 'ai',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      }
+    }
 
     alert(`✅ 계획이 적용되었습니다!\n- 목표 1개\n- 마일스톤 ${plan.milestones.length}개\n- 일정 ${plan.schedules.length}개`)
     
@@ -140,8 +153,8 @@ export function GoalModal({ isOpen, onClose }: GoalModalProps) {
       setGeneratedSchedule(schedule)
       
       // TODO: 미리보기 모달 표시
-      // 지금은 바로 타임라인에 추가
-      addScheduleToTimeline(schedule)
+      // 지금은 바로 타임라인에 추가 (원격 DB 저장)
+      await addScheduleToTimeline(schedule)
       
       onClose()
       resetForm()
@@ -153,26 +166,40 @@ export function GoalModal({ isOpen, onClose }: GoalModalProps) {
     }
   }
   
-  const addScheduleToTimeline = (schedule: DailyScheduleResponse) => {
+  const addScheduleToTimeline = async (schedule: DailyScheduleResponse) => {
     const { addTodo } = useCalendarStore.getState()
     const targetDateStr = format(selectedDate || new Date(), 'yyyy-MM-dd')
-    
-    schedule.schedule.forEach((item, index) => {
-      addTodo({
-        id: `ai-schedule-${Date.now()}-${index}`,
-        title: item.title,
-        description: item.description,
-        date: targetDateStr,
-        startTime: item.startTime,
-        endTime: item.endTime,
-        status: 'pending',
-        priority: item.priority as 'high' | 'medium' | 'low',
-        createdBy: 'ai',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-    })
-    
+
+    for (const item of schedule.schedule) {
+      try {
+        const saved = await createSchedule({
+          title: item.title,
+          description: item.description,
+          date: targetDateStr,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          status: 'pending',
+          priority: (item.priority as 'high' | 'medium' | 'low') || 'medium',
+          createdBy: 'ai',
+        })
+        addTodo(saved)
+      } catch {
+        addTodo({
+          id: `ai-schedule-${Date.now()}-${Math.random()}`,
+          title: item.title,
+          description: item.description,
+          date: targetDateStr,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          status: 'pending',
+          priority: (item.priority as 'high' | 'medium' | 'low') || 'medium',
+          createdBy: 'ai',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      }
+    }
+
     alert(`✅ ${schedule.schedule.length}개의 일정이 생성되었습니다!`)
   }
   

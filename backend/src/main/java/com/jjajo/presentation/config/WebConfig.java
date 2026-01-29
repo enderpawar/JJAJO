@@ -13,7 +13,11 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOriginPatterns("http://localhost:*") // 로컬 개발 환경 모든 포트 허용
+                .allowedOriginPatterns(
+                        "http://localhost:*",          // 로컬 개발 환경
+                        "https://*.pages.dev",        // Cloudflare Pages 기본 도메인
+                        "https://*.*"                 // (필요 시) 커스텀 도메인 - 실제 운영 시에는 구체적인 도메인으로 제한 권장
+                )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .exposedHeaders("X-Gemini-API-Key")

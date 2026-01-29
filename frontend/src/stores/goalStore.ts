@@ -3,6 +3,7 @@ import type { Goal } from '@/types/goal'
 
 interface GoalState {
   goals: Goal[]
+  setGoals: (goals: Goal[]) => void
   addGoal: (goal: Goal) => void
   updateGoal: (id: string, updates: Partial<Goal>) => void
   deleteGoal: (id: string) => void
@@ -12,6 +13,8 @@ interface GoalState {
 
 export const useGoalStore = create<GoalState>((set, get) => ({
   goals: [],
+
+  setGoals: (goals) => set({ goals }),
 
   addGoal: (goal) =>
     set((state) => ({

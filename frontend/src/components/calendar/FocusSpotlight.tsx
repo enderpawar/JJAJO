@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useCalendarStore } from '@/stores/calendarStore'
+import { updateSchedule } from '@/services/scheduleService'
 import { Clock, CheckCircle, PlayCircle, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { motion } from 'framer-motion'
@@ -23,8 +24,8 @@ export function FocusSpotlight() {
     
     // 오늘의 미완료 일정만 필터링
     const todayTodos = todos.filter(
-      t => t.date === todayStr && !t.completed
-    ).sort((a, b) => a.startTime.localeCompare(b.startTime))
+      t => t.date === todayStr && t.status !== 'completed'
+    ).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''))
     
     // 현재 진행 중인 태스크
     const current = todayTodos.find(
@@ -49,9 +50,11 @@ export function FocusSpotlight() {
     }
   }, [todos])
   
-  // 태스크 완료 토글
+  // 태스크 완료 토글 (원격 DB 동기화)
   const handleToggleComplete = (taskId: string, completed: boolean) => {
-    updateTodo(taskId, { completed })
+    const status = completed ? 'completed' : 'pending'
+    updateTodo(taskId, { status })
+    updateSchedule(taskId, { status }).catch(() => {})
   }
   
   // 포커스 태스크가 없을 때

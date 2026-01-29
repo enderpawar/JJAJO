@@ -1,5 +1,6 @@
 import { useApiKeyStore } from '@/stores/apiKeyStore'
 import { useCalendarStore } from '@/stores/calendarStore'
+import { createSchedule } from '@/services/scheduleService'
 import type { Todo } from '@/types/calendar'
 
 const API_BASE_URL = '/api/v1'
@@ -52,25 +53,37 @@ export const aiChatService = {
 
     const data: ChatResponse = await response.json()
     
-    // 일정 정보가 있으면 자동으로 캘린더에 추가
+    // 일정 정보가 있으면 원격 DB 저장 후 캘린더에 추가
     if (data.schedule) {
       const { addTodo } = useCalendarStore.getState()
-      
-      const newTodo: Todo = {
-        id: `ai-${Date.now()}`,
-        title: data.schedule.title,
-        description: data.schedule.description || 'AI가 생성한 일정',
-        date: data.schedule.date,
-        startTime: data.schedule.startTime,
-        endTime: data.schedule.endTime,
-        status: 'pending',
-        priority: (data.schedule.priority as 'low' | 'medium' | 'high') || 'medium',
-        createdBy: 'ai',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      try {
+        const saved = await createSchedule({
+          title: data.schedule.title,
+          description: data.schedule.description || 'AI가 생성한 일정',
+          date: data.schedule.date,
+          startTime: data.schedule.startTime,
+          endTime: data.schedule.endTime,
+          status: 'pending',
+          priority: (data.schedule.priority as 'low' | 'medium' | 'high') || 'medium',
+          createdBy: 'ai',
+        })
+        addTodo(saved)
+      } catch {
+        const newTodo: Todo = {
+          id: `ai-${Date.now()}`,
+          title: data.schedule.title,
+          description: data.schedule.description || 'AI가 생성한 일정',
+          date: data.schedule.date,
+          startTime: data.schedule.startTime,
+          endTime: data.schedule.endTime,
+          status: 'pending',
+          priority: (data.schedule.priority as 'low' | 'medium' | 'high') || 'medium',
+          createdBy: 'ai',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        addTodo(newTodo)
       }
-      
-      addTodo(newTodo)
     }
     
     return data

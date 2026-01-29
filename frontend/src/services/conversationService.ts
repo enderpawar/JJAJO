@@ -31,8 +31,7 @@ export const conversationService = {
    * AI와 대화하기
    */
   async chat(
-    userId: string, 
-    message: string, 
+    message: string,
     conversationId?: string
   ): Promise<ConversationChatResponse> {
     const { apiKey } = useApiKeyStore.getState()
@@ -48,10 +47,10 @@ export const conversationService = {
         'X-API-Key': apiKey,
       },
       body: JSON.stringify({
-        userId,
         message,
         conversationId,
       }),
+      credentials: 'include',
     })
 
     if (!response.ok) {
@@ -82,6 +81,7 @@ export const conversationService = {
       body: JSON.stringify({
         conversationId,
       }),
+      credentials: 'include',
     })
 
     if (!response.ok) {

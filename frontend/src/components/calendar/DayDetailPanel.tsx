@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Calendar, Clock, Plus, Edit2, Trash2 } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
+import { deleteSchedule } from '@/services/scheduleService'
 import { formatDate, formatDateWithDay } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
 import type { Todo } from '@/types/calendar'
@@ -8,6 +9,16 @@ import AddTodoModal from './AddTodoModal'
 
 export default function DayDetailPanel() {
   const { selectedDate, getTodosByDate, deleteTodo } = useCalendarStore()
+
+  const handleDeleteTodo = async (todo: Todo) => {
+    try {
+      await deleteSchedule(todo.id)
+      deleteTodo(todo.id)
+    } catch (e) {
+      console.error('일정 삭제 실패:', e)
+      alert(`일정 삭제 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
+    }
+  }
   const dateStr = formatDate(selectedDate)
   const todos = getTodosByDate(dateStr)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -97,7 +108,7 @@ export default function DayDetailPanel() {
                         <Edit2 className="w-3 h-3 text-notion-muted" />
                       </button>
                       <button 
-                        onClick={() => deleteTodo(todo.id)}
+                        onClick={() => handleDeleteTodo(todo)}
                         className="p-1 hover:bg-red-50 rounded transition-colors"
                       >
                         <Trash2 className="w-3 h-3 text-red-500" />

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Header from '@/components/layout/Header'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import DayDetailPanel from '@/components/calendar/DayDetailPanel'
@@ -10,14 +11,56 @@ import { VerticalTimeline } from '@/components/calendar/VerticalTimeline'
 import { Target, Calendar as CalendarIcon, X } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useGoalStore } from '@/stores/goalStore'
+import { getSchedules } from '@/services/scheduleService'
+import { getApiBase, normalizeGoalFromApi } from '@/utils/api'
+import type { Goal } from '@/types/goal'
 
 export default function MainPage() {
+  const navigate = useNavigate()
+  const [checkingAuth, setCheckingAuth] = useState(true)
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false)
   const [isQuickScheduleOpen, setIsQuickScheduleOpen] = useState(false)
   const [quickScheduleInitial, setQuickScheduleInitial] = useState<{time?: string, date?: string}>({})
   const [showMonthlyCalendar, setShowMonthlyCalendar] = useState(false) // 월간 캘린더 모달
-  const { goals } = useGoalStore()
-  const { todos } = useCalendarStore()
+  const { goals, setGoals } = useGoalStore()
+  const { todos, setTodos } = useCalendarStore()
+
+  // 플래너 진입 시 인증 확인 + 회원별 목표 로드
+  useEffect(() => {
+    const base = getApiBase()
+    const apiMe = base ? `${base}/api/me` : '/api/me'
+    const apiGoals = base ? `${base}/api/v1/goals` : '/api/v1/goals'
+
+    const checkAuthAndLoadGoals = async () => {
+      try {
+        const res = await fetch(apiMe, { credentials: 'include' })
+        if (!res.ok) {
+          navigate('/', { replace: true })
+          return
+        }
+        // 로그인된 사용자의 목표 목록 로드 (백엔드 enum → 소문자 정규화)
+        const goalsRes = await fetch(apiGoals, { credentials: 'include' })
+        if (goalsRes.ok) {
+          const data = await goalsRes.json()
+          const list = Array.isArray(data) ? data.map((g: Record<string, unknown>) => normalizeGoalFromApi(g)) : []
+          setGoals(list as Goal[])
+        }
+        // 회원별 일정 목록 로드 (원격 DB)
+        try {
+          const scheduleList = await getSchedules()
+          setTodos(scheduleList)
+        } catch {
+          // 일정 조회 실패 시 빈 목록 유지
+        }
+      } catch {
+        // 네트워크 에러 등은 일단 진입 허용
+      } finally {
+        setCheckingAuth(false)
+      }
+    }
+
+    checkAuthAndLoadGoals()
+  }, [navigate, setGoals, setTodos])
   
   const handleOpenQuickSchedule = (clickedTime: string, date: string) => {
     setQuickScheduleInitial({ time: clickedTime, date })
@@ -36,82 +79,14 @@ export default function MainPage() {
     return () => window.removeEventListener('keydown', handleEscape)
   }, [showMonthlyCalendar])
   
-  // 테스트용 더미 데이터
-  useEffect(() => {
-    const { todos, addTodo } = useCalendarStore.getState()
-    
-    // 이미 일정이 있으면 추가하지 않음
-    if (todos.length > 0) return
-    
-    const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    
-    const formatDate = (date: Date) => {
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
-    
-    // 더미 일정 추가
-    addTodo({
-      id: 'dummy-1',
-      title: '팀 회의',
-      description: '주간 스프린트 회의',
-      date: formatDate(today),
-      startTime: '09:00',
-      endTime: '10:00',
-      status: 'pending',
-      priority: 'high',
-      createdBy: 'ai',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    })
-    
-    addTodo({
-      id: 'dummy-2',
-      title: '운동',
-      description: '헬스장 30분',
-      date: formatDate(today),
-      startTime: '14:00',
-      endTime: '15:00',
-      status: 'in-progress',
-      priority: 'medium',
-      createdBy: 'user',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    })
-    
-    addTodo({
-      id: 'dummy-3',
-      title: '프로젝트 공부',
-      description: 'React 심화 학습',
-      date: formatDate(today),
-      startTime: '19:00',
-      endTime: '21:00',
-      status: 'pending',
-      priority: 'high',
-      createdBy: 'ai',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    })
-    
-    addTodo({
-      id: 'dummy-4',
-      title: '저녁 약속',
-      description: '친구들과 저녁 식사',
-      date: formatDate(tomorrow),
-      startTime: '18:00',
-      endTime: '20:00',
-      status: 'pending',
-      priority: 'low',
-      createdBy: 'user',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    })
-  }, [])
-  
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-notion-bg text-notion-text">
+        <p className="text-sm text-notion-text-secondary">로그인 상태를 확인하고 있어요...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-notion-bg text-notion-text">
       {/* 🎉 즉각적 도파민 피드백 */}
@@ -122,9 +97,9 @@ export default function MainPage() {
       
       <Header />
       
-      {/* 🎯 Focus View (Vertical Gravity Timeline) - 기본 화면 */}
+      {/* 🎯 Focus View (Vertical Gravity Timeline) - 기본 화면 (z-0으로 헤더 아래 레이어) */}
       {!showMonthlyCalendar && (
-        <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
+        <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative z-0">
           {/* 메인 영역: VerticalTimeline + 토글 가능한 AI 사이드바 */}
           <div className="flex-1 flex min-h-0 relative">
             {/* 중앙: Vertical Gravity Timeline - 전체 너비 */}

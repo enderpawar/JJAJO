@@ -34,3 +34,8 @@ build/
 
 ### Logs ###
 *.log
+
+### 로컬 설정 (비밀 포함, 커밋 제외) ###
+application-local.yml
+.env
+.env.local

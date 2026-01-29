@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -40,10 +41,12 @@ public class ConversationalGoalController {
     @PostMapping("/chat")
     public ResponseEntity<ConversationChatResponse> chat(
             @Valid @RequestBody ConversationChatRequest request,
-            @RequestHeader(value = "X-API-Key", required = false) String apiKey
+            @RequestHeader(value = "X-API-Key", required = false) String apiKey,
+            Authentication authentication
     ) {
-        log.info("[대화형 상담 API] 사용자: {} | 메시지: {}", 
-                 request.getUserId(), request.getMessage());
+        String userId = com.jjajo.presentation.config.SecurityConfig.extractUserId(authentication);
+        log.info("[대화형 상담 API] 사용자: {} | 메시지: {}",
+                 userId, request.getMessage());
         
         try {
             // API Key 검증 (간단 버전)
@@ -57,7 +60,7 @@ public class ConversationalGoalController {
             // 대화 진행
             ConversationalGoalService.ConversationResponse response = 
                     conversationalGoalService.chat(
-                            request.getUserId(), 
+                            userId, 
                             request.getMessage(), 
                             apiKey
                     );

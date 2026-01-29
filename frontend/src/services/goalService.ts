@@ -1,8 +1,12 @@
+import { getApiBase } from '@/utils/api'
 import { useApiKeyStore } from '@/stores/apiKeyStore'
 import type { Goal } from '@/types/goal'
 import type { Todo } from '@/types/calendar'
 
-const API_BASE_URL = '/api/v1/goals'
+function getGoalsApiBase(): string {
+  const base = getApiBase()
+  return base ? `${base}/api/v1/goals` : '/api/v1/goals'
+}
 
 interface GoalCreationResult {
   goal: Goal
@@ -34,7 +38,7 @@ export const goalService = {
       throw new Error('API 키가 설정되지 않았습니다')
     }
 
-    const response = await fetch(`${API_BASE_URL}/create-with-ai`, {
+    const response = await fetch(`${getGoalsApiBase()}/create-with-ai`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -43,6 +47,7 @@ export const goalService = {
       body: JSON.stringify({
         goalDescription,
       }),
+      credentials: 'include',
     })
 
     if (!response.ok) {

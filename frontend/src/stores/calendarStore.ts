@@ -19,6 +19,7 @@ interface CalendarStore {
   setSelectedDate: (date: Date) => void
   setCurrentMonth: (date: Date) => void
   setViewMode: (mode: ViewMode) => void
+  setTodos: (todos: Todo[]) => void
   addTodo: (todo: Todo) => void
   updateTodo: (id: string, updates: Partial<Todo>) => void
   deleteTodo: (id: string) => void
@@ -42,7 +43,9 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   setCurrentMonth: (date) => set({ currentMonth: date }),
   
   setViewMode: (mode) => set({ viewMode: mode }),
-  
+
+  setTodos: (todos) => set({ todos }),
+
   addTodo: (todo) => set((state) => ({
     todos: [...state.todos, todo],
   })),
