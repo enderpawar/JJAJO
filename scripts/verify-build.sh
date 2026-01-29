@@ -10,7 +10,7 @@ echo "=== JJAJO 배포 전 빌드 검증 ==="
 
 echo ""
 echo "[1/2] Backend: Maven package..."
-(cd backend && bash mvnw -q -DskipTests package)
+(cd backend && (chmod +x mvnw 2>/dev/null || true) && ./mvnw -q -DskipTests package)
 echo "Backend OK."
 
 echo ""
