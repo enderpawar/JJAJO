@@ -5,8 +5,6 @@ import { useCalendarStore } from '@/stores/calendarStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { createSchedule } from '@/services/scheduleService'
 import { suggestSchedulePlacement } from '@/utils/scheduleUtils'
-import type { Todo } from '@/types/calendar'
-
 interface Task {
   id: string
   title: string
@@ -26,7 +24,7 @@ export function QuickScheduleModal({
   isOpen,
   onClose,
   initialDate,
-  initialStartTime,
+  initialStartTime: _initialStartTime,
   initialTitle = '',
   initialPriority = 'medium',
 }: QuickScheduleModalProps) {

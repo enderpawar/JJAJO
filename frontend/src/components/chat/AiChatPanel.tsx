@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import { Sparkles, Send, Trash2, MessageSquare, CheckCircle, Target, Bot, User as UserIcon } from 'lucide-react'
+import { Sparkles, Send, Trash2, MessageSquare, CheckCircle, Target, Bot } from 'lucide-react'
 import { useChatStore } from '@/stores/chatStore'
 import { useGoalStore } from '@/stores/goalStore'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { createSchedule } from '@/services/scheduleService'
 import { aiChatService } from '@/services/aiChatService'
 import { goalService } from '@/services/goalService'
-import { conversationService, type ConversationChatResponse } from '@/services/conversationService'
+import { conversationService, type ConversationChatResponse, type ConversationGoalCreationResult } from '@/services/conversationService'
 import type { ChatMessage, QuickReply } from '@/types/chat'
 import { cn } from '@/utils/cn'
 import { normalizeGoalFromApi } from '@/utils/api'
@@ -21,14 +21,14 @@ export default function AiChatPanel() {
   const { addTodo } = useCalendarStore()
   const [inputValue, setInputValue] = useState('')
   const [conversationId, setConversationId] = useState<string>()
-  const [isCreatingGoal, setIsCreatingGoal] = useState(false)
-  const [pendingGoalRequest, setPendingGoalRequest] = useState<string | null>(null)
+  const [_isCreatingGoal, setIsCreatingGoal] = useState(false)
+  const [_pendingGoalRequest, setPendingGoalRequest] = useState<string | null>(null)
   const [confirmationMessageId, setConfirmationMessageId] = useState<string | null>(null)
   const [useConversationalMode, setUseConversationalMode] = useState(true) // 대화형 모드 활성화
   const [readyToCreate, setReadyToCreate] = useState(false)
   const [collectedInfo, setCollectedInfo] = useState<ConversationChatResponse['collectedInfo']>({})
   const [nextHint, setNextHint] = useState<string>()
-  const [quickScheduleMode, setQuickScheduleMode] = useState(false) // 간단 일정 모드
+  const [_quickScheduleMode, setQuickScheduleMode] = useState(false) // 간단 일정 모드
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
   // 세션 초기화
@@ -514,36 +514,36 @@ export default function AiChatPanel() {
       }
       addMessage(progressMessage)
       
-      let result
+      let successContent: string
       
       if (readyToCreate && conversationId) {
         // 대화형 모드: 수집된 정보 기반 목표 생성
-        result = await conversationService.createGoalFromConversation(conversationId)
-        
-        // Goal 객체 변환 (API 응답 구조가 다름)
+        const convResult: ConversationGoalCreationResult = await conversationService.createGoalFromConversation(conversationId)
         addGoal({
-          id: result.goalId,
-          title: result.title,
-          description: result.description || '',
-          deadline: result.deadline,
-          category: 'STUDY',
-          priority: 'HIGH',
-          status: 'NOT_STARTED',
-          progress: 0,
-          estimatedHours: result.estimatedHours,
+          id: convResult.goalId,
+          title: convResult.title,
+          description: convResult.description || '',
+          deadline: convResult.deadline,
+          category: 'study',
+          priority: 'high',
+          status: 'not_started',
+          estimatedHours: convResult.estimatedHours,
           completedHours: 0,
           milestones: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
         })
+        successContent = `✅ **맞춤형 목표 계획이 완성되었습니다!**\n\n` +
+          `📋 **${convResult.title}**\n\n` +
+          `⏰ 마감일: ${convResult.deadline}\n` +
+          `📚 예상 시간: ${convResult.estimatedHours}시간\n` +
+          `🎯 마일스톤: ${convResult.milestoneCount}개\n\n` +
+          `수집된 정보를 바탕으로 최적화된 계획이 수립되었습니다!\n` +
+          `"내 목표" 섹션에서 진행 상황을 확인하세요.`
       } else {
         // 빠른 모드: 기존 방식 (백엔드 enum → 소문자 정규화 후 추가)
-        result = await goalService.createGoalWithAI(goalRequest)
-        addGoal(normalizeGoalFromApi(result.goal as Record<string, unknown>))
-        
-        // 일정들을 원격 DB 저장 후 캘린더에 추가
-        if (result.schedules?.length) {
-          for (const schedule of result.schedules) {
+        const goalResult = await goalService.createGoalWithAI(goalRequest)
+        addGoal(normalizeGoalFromApi(goalResult.goal as unknown as Record<string, unknown>))
+        if (goalResult.schedules?.length) {
+          for (const schedule of goalResult.schedules) {
             try {
               const saved = await createSchedule({
                 title: schedule.title,
@@ -557,7 +557,6 @@ export default function AiChatPanel() {
               })
               addTodo(saved)
             } catch {
-              // 저장 실패 시 스토어만 추가 (오프라인 대비)
               addTodo({
                 id: `goal-schedule-${Date.now()}-${Math.random()}`,
                 title: schedule.title,
@@ -574,28 +573,20 @@ export default function AiChatPanel() {
             }
           }
         }
+        successContent = `✅ 목표 달성 계획이 완성되었습니다!\n\n` +
+          `📋 **${goalResult.goal?.title || '새 목표'}**\n\n` +
+          `⏰ 예상 기간: ${goalResult.goal?.deadline}까지\n` +
+          `📚 총 학습 시간: ${goalResult.totalHours || 0}시간\n` +
+          `📅 주 ${goalResult.sessionsPerWeek || 5}회 학습\n\n` +
+          `**커리큘럼**\n${goalResult.curriculum || '계획 수립됨'}\n\n` +
+          `📌 ${goalResult.schedules?.length || 0}개의 일정이 캘린더에 자동으로 추가되었습니다!\n` +
+          `"내 목표" 섹션에서 진행 상황을 확인하세요.`
       }
       
-      // 완료 메시지
       const successMessage: ChatMessage = {
         id: `msg-${Date.now()}-success`,
         role: 'assistant',
-        content: readyToCreate 
-          ? `✅ **맞춤형 목표 계획이 완성되었습니다!**\n\n` +
-            `📋 **${result.title}**\n\n` +
-            `⏰ 마감일: ${result.deadline}\n` +
-            `📚 예상 시간: ${result.estimatedHours}시간\n` +
-            `🎯 마일스톤: ${result.milestoneCount}개\n\n` +
-            `수집된 정보를 바탕으로 최적화된 계획이 수립되었습니다!\n` +
-            `"내 목표" 섹션에서 진행 상황을 확인하세요.`
-          : `✅ 목표 달성 계획이 완성되었습니다!\n\n` +
-            `📋 **${result.goal?.title || '새 목표'}**\n\n` +
-            `⏰ 예상 기간: ${result.goal?.deadline}까지\n` +
-            `📚 총 학습 시간: ${result.totalHours || 0}시간\n` +
-            `📅 주 ${result.sessionsPerWeek || 5}회 학습\n\n` +
-            `**커리큘럼**\n${result.curriculum || '계획 수립됨'}\n\n` +
-            `📌 ${result.schedules?.length || 0}개의 일정이 캘린더에 자동으로 추가되었습니다!\n` +
-            `"내 목표" 섹션에서 진행 상황을 확인하세요.`,
+        content: successContent,
         timestamp: new Date().toISOString(),
       }
       addMessage(successMessage)

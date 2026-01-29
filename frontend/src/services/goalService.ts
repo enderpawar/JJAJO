@@ -1,7 +1,6 @@
 import { getApiBase } from '@/utils/api'
 import { useApiKeyStore } from '@/stores/apiKeyStore'
 import type { Goal } from '@/types/goal'
-import type { Todo } from '@/types/calendar'
 
 function getGoalsApiBase(): string {
   const base = getApiBase()

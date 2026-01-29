@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Sparkles, Brain } from 'lucide-react'
+import { X } from 'lucide-react'
 import { format } from 'date-fns'
 import type { GoalFormData, GoalPriority, GoalCategory } from '@/types/goal'
 import { useGoalStore } from '@/stores/goalStore'
@@ -27,7 +27,6 @@ export function GoalModal({ isOpen, onClose }: GoalModalProps) {
   })
   
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedSchedule, setGeneratedSchedule] = useState<DailyScheduleResponse | null>(null)
   const [showFlipCardPlanner, setShowFlipCardPlanner] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -65,16 +64,15 @@ export function GoalModal({ isOpen, onClose }: GoalModalProps) {
     const newGoal = {
       id: `goal-${Date.now()}`,
       ...formData,
-      status: 'in_progress' as const,
+      status: 'on_track' as const,
       milestones: plan.milestones.map((m) => ({
         id: `milestone-${Date.now()}-${m.orderIndex}`,
         goalId: '',
         title: m.title,
         description: m.description,
         targetDate: m.targetDate,
-        status: 'not_started' as const,
+        completed: false,
         estimatedHours: m.estimatedHours,
-        orderIndex: m.orderIndex,
       })),
       completedHours: 0,
     }
@@ -122,8 +120,6 @@ export function GoalModal({ isOpen, onClose }: GoalModalProps) {
 
   const handleGenerateSchedule = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // 목표 먼저 저장
     const newGoal = {
       id: `goal-${Date.now()}`,
       ...formData,
@@ -131,12 +127,9 @@ export function GoalModal({ isOpen, onClose }: GoalModalProps) {
       milestones: [],
       completedHours: 0,
     }
-    
     addGoal(newGoal)
     setIsGenerating(true)
-    
     try {
-      // AI 일정 생성 API 호출
       const schedule = await generateDailySchedule({
         goalId: newGoal.id,
         goalTitle: formData.title,
@@ -148,12 +141,6 @@ export function GoalModal({ isOpen, onClose }: GoalModalProps) {
         workEndTime: '18:00',
         breakDuration: 15,
       })
-      
-      console.log('생성된 일정:', schedule)
-      setGeneratedSchedule(schedule)
-      
-      // TODO: 미리보기 모달 표시
-      // 지금은 바로 타임라인에 추가 (원격 DB 저장)
       await addScheduleToTimeline(schedule)
       
       onClose()
@@ -365,7 +352,6 @@ export function GoalModal({ isOpen, onClose }: GoalModalProps) {
 
           {/* 버튼 */}
           <div className="space-y-3 pt-4">
-            {/* 기본 버튼들 */}
             <div className="flex justify-end gap-3 pt-2 border-t border-gray-200">
               <button
                 type="button"
@@ -375,8 +361,24 @@ export function GoalModal({ isOpen, onClose }: GoalModalProps) {
               >
                 취소
               </button>
-              <button 
-                type="submit" 
+              <button
+                type="button"
+                onClick={handleAIPlanningClick}
+                disabled={isGenerating}
+                className="btn-secondary"
+              >
+                AI 맞춤 계획
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateSchedule}
+                disabled={isGenerating}
+                className="btn-secondary"
+              >
+                목표 + 일정 생성
+              </button>
+              <button
+                type="submit"
                 disabled={isGenerating}
                 className="btn-primary"
               >

@@ -4,10 +4,9 @@
  * - 프로덕션: 빈 문자열이면 상대 경로(/api) 사용 (같은 도메인 프록시 가정)
  */
 export function getApiBase(): string {
-  const env = import.meta.env
-  const origin = (env as any).VITE_BACKEND_ORIGIN
-  if (origin && typeof origin === 'string') return origin.replace(/\/$/, '')
-  if ((env as any).DEV) return 'http://localhost:8080'
+  const origin = import.meta.env.VITE_BACKEND_ORIGIN
+  if (origin && typeof origin === 'string') return String(origin).replace(/\/$/, '')
+  if (import.meta.env.DEV) return 'http://localhost:8080'
   return ''
 }
 

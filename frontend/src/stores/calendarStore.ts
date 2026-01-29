@@ -92,12 +92,12 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
     // 전날 일정을 오늘 날짜로 복사 (시간은 동일하게 유지)
     const copiedTodos: Todo[] = previousTodos.map(todo => ({
       ...todo,
-      id: `${Date.now()}-${Math.random()}`, // 새로운 ID 생성
-      date: currentDateStr, // 오늘 날짜로 변경
+      id: `${Date.now()}-${Math.random()}`,
+      date: currentDateStr,
+      status: 'pending' as const,
       createdBy: 'user' as const,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      completed: false, // 완료 상태 초기화
     }))
 
     // 복사된 일정 추가

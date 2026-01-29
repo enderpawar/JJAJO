@@ -20,17 +20,18 @@ export function CurrentTaskSticky() {
     const todayStr = now.toISOString().split('T')[0]
     const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 
-    // 현재 시간에 해당하는 일정 찾기
-    const todayTodos = todos.filter(t => t.date === todayStr && !t.completed)
+    const todayTodos = todos.filter(t => t.date === todayStr && t.status !== 'completed')
     const activeTodo = todayTodos.find(t => {
-      return t.startTime <= currentTimeStr && t.endTime > currentTimeStr
+      const st = t.startTime ?? ''
+      const et = t.endTime ?? ''
+      return st && et && st <= currentTimeStr && et > currentTimeStr
     })
 
     setCurrentTask(activeTodo || null)
 
     // 1초마다 타이머 업데이트
     const interval = setInterval(() => {
-      if (activeTodo) {
+      if (activeTodo?.startTime && activeTodo?.endTime) {
         const nowTime = new Date()
         const [endHour, endMinute] = activeTodo.endTime.split(':').map(Number)
         const endTime = new Date(nowTime)

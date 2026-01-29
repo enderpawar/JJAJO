@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Save, Trash2, Plus, Calendar, Clock } from 'lucide-react'
-import type { PlanResponse, Milestone, ScheduleRecommendation, LearningResource } from '@/types/goalPlanning'
+import type { PlanResponse, Milestone, ScheduleRecommendation } from '@/types/goalPlanning'
 
 interface PlanEditorProps {
   initialPlan: PlanResponse

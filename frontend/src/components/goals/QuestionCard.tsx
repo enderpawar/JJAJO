@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Lightbulb } from 'lucide-react';
 import type { Question } from '../../types/goalPlanning';

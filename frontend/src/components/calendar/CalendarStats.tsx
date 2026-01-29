@@ -3,7 +3,7 @@ import { useCalendarStore } from '@/stores/calendarStore'
 import { formatDate } from '@/utils/dateUtils'
 
 export default function CalendarStats() {
-  const { todos, selectedDate } = useCalendarStore()
+  const { todos } = useCalendarStore()
   
   const today = new Date()
   const todayStr = formatDate(today)

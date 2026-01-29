@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Target, Calendar, Clock, Sparkles, TrendingUp, Sprout, Zap, Rocket, BookOpen, Video, GraduationCap, FileText, Link, ExternalLink } from 'lucide-react';
 import type { PlanResponse } from '../../types/goalPlanning';

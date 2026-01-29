@@ -12,7 +12,7 @@ import { ko } from 'date-fns/locale'
  * - 10vh 고정 높이
  */
 export function TopTimeline() {
-  const { todos, currentMonth, selectedDate } = useCalendarStore()
+  const { todos, selectedDate } = useCalendarStore()
   
   // 현재 주의 시작일 계산
   const weekStart = useMemo(() => {
@@ -80,7 +80,7 @@ export function TopTimeline() {
                   ${today 
                     ? 'flex-[2]' 
                     : 'flex-1 opacity-60 hover:opacity-100'}
-                  ${selected ? 'bg-[#2F3437] ring-2 ring-white/10' : 'bg-transparent hover:bg-[#252525]/50'}
+                  ${selected ? 'bg-[#2F3437] ring-2 ring-white/10' : today ? 'bg-transparent hover:bg-[#252525]/50' : heatmapColor}
                 `}
               >
                 {/* 날짜 레이블 */}

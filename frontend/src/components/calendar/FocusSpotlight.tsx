@@ -27,20 +27,13 @@ export function FocusSpotlight() {
       t => t.date === todayStr && t.status !== 'completed'
     ).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''))
     
-    // 현재 진행 중인 태스크
     const current = todayTodos.find(
-      t => t.startTime <= currentTimeStr && t.endTime > currentTimeStr
+      t => (t.startTime ?? '') <= currentTimeStr && (t.endTime ?? '') > currentTimeStr
     )
-    
-    // 다음 태스크
-    const next = todayTodos.find(t => t.startTime > currentTimeStr)
-    
-    // 지난 태스크
-    const past = todayTodos.filter(t => t.endTime <= currentTimeStr)
-    
-    // 다가오는 태스크
+    const next = todayTodos.find(t => (t.startTime ?? '') > currentTimeStr)
+    const past = todayTodos.filter(t => (t.endTime ?? '') <= currentTimeStr)
     const upcoming = todayTodos.filter(
-      t => t.startTime > currentTimeStr && t !== next
+      t => (t.startTime ?? '') > currentTimeStr && t !== next
     )
     
     return {
@@ -102,8 +95,10 @@ export function FocusSpotlight() {
   // 현재 시간 체크
   const now = new Date()
   const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-  const isCurrent = focusTask.startTime <= currentTimeStr && focusTask.endTime > currentTimeStr
-  const isUpcoming = focusTask.startTime > currentTimeStr
+  const st = focusTask.startTime ?? ''
+  const et = focusTask.endTime ?? ''
+  const isCurrent = st && et && st <= currentTimeStr && et > currentTimeStr
+  const isUpcoming = st > currentTimeStr
   
   return (
     <div className="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
@@ -126,7 +121,7 @@ export function FocusSpotlight() {
           ))}
           
           {/* 다가오는 태스크 */}
-          {upcomingTasks.map((task) => (
+          {upcomingTasks.map((task) => task ? (
             <div
               key={task.id}
               className="bg-white rounded-lg p-4 text-sm border border-gray-200"
@@ -134,11 +129,11 @@ export function FocusSpotlight() {
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-gray-400" />
                 <span className="font-medium text-gray-600">
-                  {task.startTime} {task.title}
+                  {task.startTime ?? ''} {task.title}
                 </span>
               </div>
             </div>
-          ))}
+          ) : null)}
         </div>
       </div>
       
@@ -183,10 +178,10 @@ export function FocusSpotlight() {
               <Clock className="w-8 h-8" />
               <div>
                 <div className="text-3xl font-bold text-gray-800">
-                  {focusTask.startTime}
+                  {st || '-'}
                 </div>
                 <div className="text-lg">
-                  {focusTask.endTime}까지
+                  {et ? `${et}까지` : ''}
                 </div>
               </div>
             </div>
@@ -246,19 +241,18 @@ export function FocusSpotlight() {
   )
 }
 
-// 진행률 계산 (시작 시간 ~ 현재 시간 / 전체 시간)
-function calculateProgress(task: any): number {
+function calculateProgress(task: { startTime?: string; endTime?: string }): number {
+  const sa = task.startTime ?? ''
+  const ea = task.endTime ?? ''
+  if (!sa || !ea) return 0
   const now = new Date()
   const currentMinutes = now.getHours() * 60 + now.getMinutes()
-  
-  const [startHour, startMinute] = task.startTime.split(':').map(Number)
-  const [endHour, endMinute] = task.endTime.split(':').map(Number)
-  
+  const [startHour, startMinute] = sa.split(':').map(Number)
+  const [endHour, endMinute] = ea.split(':').map(Number)
   const startMinutes = startHour * 60 + startMinute
   const endMinutes = endHour * 60 + endMinute
-  
   const totalDuration = endMinutes - startMinutes
   const elapsed = currentMinutes - startMinutes
-  
+  if (totalDuration <= 0) return 0
   return Math.min(100, Math.max(0, Math.round((elapsed / totalDuration) * 100)))
 }

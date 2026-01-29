@@ -2,15 +2,16 @@ import { useApiKeyStore } from '@/stores/apiKeyStore'
 
 const API_BASE_URL = '/api/v1/conversations'
 
-interface ConversationChatResponse {
+export interface ConversationChatResponse {
   conversationId: string
   aiMessage: string
   state: 'INITIAL' | 'UNDERSTANDING_CONTEXT' | 'COLLECTING_DETAILS' | 'READY_TO_CREATE'
   readyToCreateGoal: boolean
   collectedInfo: Record<string, any>
+  quickReplies?: string[]
 }
 
-interface GoalCreationResult {
+export interface ConversationGoalCreationResult {
   goalId: string
   title: string
   description: string
@@ -65,7 +66,7 @@ export const conversationService = {
    */
   async createGoalFromConversation(
     conversationId: string
-  ): Promise<GoalCreationResult> {
+  ): Promise<ConversationGoalCreationResult> {
     const { apiKey } = useApiKeyStore.getState()
     
     if (!apiKey) {

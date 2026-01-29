@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Sparkles, Settings, X, Moon, Sun, Copy } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { TimeSlotSettings } from '@/components/settings/TimeSlotSettings'
@@ -9,14 +8,13 @@ import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
 export default function Header() {
-  const navigate = useNavigate()
   const { copyTodosFromPreviousDay, selectedDate } = useCalendarStore()
   const { theme, toggleTheme, initTheme } = useSettingsStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   const backendOrigin =
-    (import.meta as any).env.VITE_BACKEND_ORIGIN ??
-    ((import.meta as any).env.DEV ? 'http://localhost:8080' : '')
+    import.meta.env.VITE_BACKEND_ORIGIN ??
+    (import.meta.env.DEV ? 'http://localhost:8080' : '')
 
   const handleGoogleLogin = () => {
     const base = backendOrigin || ''

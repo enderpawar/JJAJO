@@ -17,7 +17,7 @@ interface ChatStore {
 /**
  * AI 채팅 전역 상태 관리
  */
-export const useChatStore = create<ChatStore>((set, get) => ({
+export const useChatStore = create<ChatStore>((set) => ({
   currentSession: null,
   isLoading: false,
   

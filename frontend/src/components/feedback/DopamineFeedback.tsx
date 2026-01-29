@@ -18,12 +18,11 @@ export function DopamineFeedback() {
   const [lastCompletedId, setLastCompletedId] = useState<string>('')
 
   useEffect(() => {
-    // 새로 완료된 일정 감지
-    const newCompletedCount = todos.filter(t => t.completed).length
+    const newCompletedCount = todos.filter(t => t.status === 'completed').length
 
     if (newCompletedCount > completedCount) {
       const justCompleted = todos.find(
-        t => t.completed && t.id !== lastCompletedId
+        t => t.status === 'completed' && t.id !== lastCompletedId
       )
 
       if (justCompleted) {
