@@ -28,7 +28,7 @@ postgresql://USER:PASSWORD@HOST/dbname?sslmode=require
 위 URL을 Spring Boot JDBC 형식으로 바꿉니다.
 
 - **형식**: `jdbc:postgresql://HOST:PORT/DBNAME`
-- **SSL 필요 시**: `jdbc:postgresql://HOST:PORT/DBNAME?sslmode=require`그러러
+- **SSL 필요 시**: `jdbc:postgresql://HOST:PORT/DBNAME?sslmode=require`
 
 Neon 예시:
 

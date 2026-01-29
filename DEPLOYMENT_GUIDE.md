@@ -69,6 +69,9 @@
 
 ## 2단계: 백엔드 배포 (Railway 또는 Render)
 
+**사전 확인**: 1단계에서 보관한 `SPRING_DATASOURCE_*` 값, Google OAuth(`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`), 그리고 예정 프론트 URL(`FRONTEND_ORIGIN`)을 준비하세요.  
+프론트는 4단계에서 배포하므로, `FRONTEND_ORIGIN`은 `https://jjajo.pages.dev` 등 **예정 URL**을 넣고, 5단계에서 실제 프론트 URL로 갱신하면 됩니다.
+
 ### 2-1. Railway 사용 시
 
 1. [Railway](https://railway.app) 로그인 → **New Project**
@@ -76,7 +79,7 @@
 3. **Root Directory**: `backend` 지정
 4. **Build Command**: `./mvnw -q -DskipTests package` (또는 `mvn -q -DskipTests package`)
 5. **Start Command**: `java -Dspring.profiles.active=prod -jar target/jjajo-backend-0.0.1-SNAPSHOT.jar`
-6. **Variables**에 아래 환경 변수 추가:
+6. **Variables**에 아래 환경 변수 추가 (로컬에서 `backend/.env` 사용 중이면 동일한 값을 복사해 넣으면 됨):
 
    | 이름 | 값 |
    |------|-----|
@@ -86,7 +89,7 @@
    | `SPRING_DATASOURCE_PASSWORD` | DB 비밀번호 |
    | `GOOGLE_CLIENT_ID` | Google OAuth 클라이언트 ID |
    | `GOOGLE_CLIENT_SECRET` | Google OAuth 클라이언트 시크릿 |
-   | `FRONTEND_ORIGIN` | **프론트 URL** (예: `https://myapp.pages.dev` 또는 `https://myapp.com`) |
+   | `FRONTEND_ORIGIN` | **프론트 URL** (예: `https://jjajo.pages.dev`. 미배포 시 예정 URL 사용 후 5단계에서 갱신) |
 
 7. 배포 후 **Settings** → **Networking** → **Generate Domain** 으로 공개 URL 확인.  
    예: `https://jjajo-backend-production-xxxx.up.railway.app`  
@@ -97,7 +100,7 @@
 **방법 A: Blueprint (권장)**  
 1. [Render](https://render.com) 로그인 → **New** → **Blueprint**
 2. JJAJO 저장소 연결. 저장소 루트의 `render.yaml`이 자동 인식됨.
-3. 생성 시 비밀 값(`SPRING_DATASOURCE_*`, `GOOGLE_*`, `FRONTEND_ORIGIN`) 입력 프롬프트에 입력.
+3. 생성 시 비밀 값(`SPRING_DATASOURCE_*`, `GOOGLE_*`, `FRONTEND_ORIGIN`) 입력 프롬프트에 **1단계·OAuth·예정 프론트 URL** 입력. (`backend/.env`에 있으면 동일 값 사용)
 4. 배포 후 제공되는 URL을 **백엔드 URL**로 사용.
 
 **방법 B: 수동 Web Service**  
@@ -105,6 +108,8 @@
 2. **Runtime**: Docker. **Dockerfile path**: `backend/Dockerfile`, **Docker context**: `backend`
 3. **Environment**에 2-1과 동일한 환경 변수 추가.
 4. 배포 후 제공되는 URL(예: `https://jjajo-backend.onrender.com`)을 **백엔드 URL**로 사용.
+
+**2단계 완료 후**: 백엔드 URL을 메모해 두세요. → **3단계** OAuth 리다이렉트 URI, **4단계** `VITE_BACKEND_ORIGIN`에 사용합니다.
 
 ---
 

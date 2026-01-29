@@ -25,7 +25,7 @@ jobs:
           distribution: "temurin"
           cache: maven
       - name: Build
-        run: ./mvnw -q -DskipTests package
+        run: bash mvnw -q -DskipTests package
 
   frontend:
     name: Frontend
