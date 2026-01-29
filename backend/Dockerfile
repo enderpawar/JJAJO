@@ -1,19 +1,17 @@
 # JJAJO 백엔드 Docker 이미지 (Render/Docker 배포용)
 # DEPLOYMENT_GUIDE.md 2단계 참고
+# Maven Wrapper 대신 시스템 Maven 사용 (ClassNotFoundException 회피)
 
 FROM eclipse-temurin:17-jdk-alpine AS build
 WORKDIR /app
 
-# Maven wrapper 및 pom 복사
-COPY .mvn/ .mvn/
-COPY mvnw pom.xml ./
+RUN apk add --no-cache maven
 
-# 의존성만 다운로드 (캐시 활용)
-RUN ./mvnw dependency:go-offline -B
+COPY pom.xml ./
+RUN mvn dependency:go-offline -B
 
-# 소스 복사 후 패키징
 COPY src ./src
-RUN ./mvnw -q -DskipTests package
+RUN mvn -q -DskipTests package
 
 # 실행 스테이지
 FROM eclipse-temurin:17-jre-alpine
