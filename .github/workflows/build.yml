@@ -23,19 +23,10 @@ jobs:
         with:
           java-version: "17"
           distribution: "temurin"
-          cache: maven
-      # Debug: MavenWrapperMain ClassNotFoundException 진단
-      - name: Diagnose Maven wrapper (H1–H5)
-        run: |
-          echo "=== H1/H3: JAR exists, size, file type ==="
-          ls -la .mvn/wrapper/
-          file .mvn/wrapper/maven-wrapper.jar
-          wc -c .mvn/wrapper/maven-wrapper.jar
-          echo "=== H2/H4/H5: java -cp wrapper JAR MavenWrapperMain ==="
-          java -cp .mvn/wrapper/maven-wrapper.jar org.apache.maven.wrapper.MavenWrapperMain --version 2>&1 || true
-          echo "EXIT=$?"
+      - name: Install Maven
+        run: sudo apt-get update && sudo apt-get install -y maven
       - name: Build
-        run: chmod +x mvnw && ./mvnw -q -DskipTests package
+        run: mvn -q -DskipTests package
 
   frontend:
     name: Frontend
