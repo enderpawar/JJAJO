@@ -2,7 +2,7 @@ package com.jjajo.presentation.config;
 
 import com.jjajo.domain.entity.UserEntity;
 import com.jjajo.domain.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,14 +39,21 @@ import java.util.UUID;
  */
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final UserRepository userRepository;
-    private final DebugLogFilter debugLogFilter;
+    /** prod에서는 빈이 없음(@Profile("!prod")). 없을 때도 기동되도록 Optional로 주입 */
+    private final Optional<DebugLogFilter> debugLogFilter;
 
     @Value("${app.frontend-origin:http://localhost:5173}")
     private String frontendOrigin;
+
+    public SecurityConfig(
+            UserRepository userRepository,
+            @Autowired(required = false) DebugLogFilter debugLogFilter) {
+        this.userRepository = userRepository;
+        this.debugLogFilter = Optional.ofNullable(debugLogFilter);
+    }
 
     /**
      * Security 필터 체인 설정
@@ -81,8 +88,8 @@ public class SecurityConfig {
                 .deleteCookies("JSESSIONID")
                 .invalidateHttpSession(true)
             )
-            .formLogin(Customizer.withDefaults())
-            .addFilterBefore(debugLogFilter, AuthorizationFilter.class);
+            .formLogin(Customizer.withDefaults());
+        debugLogFilter.ifPresent(f -> http.addFilterBefore(f, AuthorizationFilter.class));
 
         return http.build();
     }
@@ -157,6 +164,7 @@ public class SecurityConfig {
     /**
      * Google OIDC 로그인 시 사용 (scope에 openid 포함 시).
      * DefaultOidcUser에는 userId가 없으므로, DB 조회 후 userId를 포함한 OidcUser를 반환한다.
+     * OAuth2와 동일하게 sub·email 필수 검증 후 없으면 DB 저장 없이 원본 사용자만 반환한다.
      */
     @Bean
     public OAuth2UserService<OidcUserRequest, OidcUser> customOidcUserService() {
@@ -168,17 +176,17 @@ public class SecurityConfig {
                 return oidcUser;
             }
             String sub = oidcUser.getSubject();
-            if (sub == null) {
+            String email = oidcUser.getEmail();
+            if (sub == null || email == null || email.isBlank()) {
                 return oidcUser;
             }
-            String email = oidcUser.getEmail();
             String name = oidcUser.getFullName();
             String picture = oidcUser.getPicture();
             Optional<UserEntity> existingUser =
                 userRepository.findByProviderAndProviderId(UserEntity.AuthProvider.GOOGLE, sub);
             UserEntity user = existingUser
                 .map(u -> updateUserIfChanged(u, email, name, picture))
-                .orElseGet(() -> createNewUser(sub, email != null ? email : "", name, picture));
+                .orElseGet(() -> createNewUser(sub, email, name, picture));
             return new OidcUserWithUserId(
                 oidcUser.getAuthorities(),
                 oidcUser.getIdToken(),
