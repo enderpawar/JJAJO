@@ -33,13 +33,22 @@ export default function MainPage() {
 
     const checkAuthAndLoadGoals = async () => {
       try {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainPage.tsx:checkAuthAndLoadGoals',message:'auth check entry',data:{apiMe,apiGoals,base},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{})
+        // #endregion
         const res = await fetch(apiMe, { credentials: 'include' })
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainPage.tsx:apiMe',message:'apiMe response',data:{status:res.status,ok:res.ok},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{})
+        // #endregion
         if (!res.ok) {
           navigate('/', { replace: true })
           return
         }
         // 로그인된 사용자의 목표 목록 로드 (백엔드 enum → 소문자 정규화)
         const goalsRes = await fetch(apiGoals, { credentials: 'include' })
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'MainPage.tsx:apiGoals',message:'apiGoals response',data:{status:goalsRes.status,ok:goalsRes.ok},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{})
+        // #endregion
         if (goalsRes.ok) {
           const data = await goalsRes.json()
           const list = Array.isArray(data) ? data.map((g: Record<string, unknown>) => normalizeGoalFromApi(g)) : []

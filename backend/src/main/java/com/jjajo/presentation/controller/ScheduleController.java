@@ -13,7 +13,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Tag(name = "Schedule", description = "회원별 일정 CRUD API")
 @RestController
@@ -39,6 +46,27 @@ public class ScheduleController {
     public ResponseEntity<ScheduleItemResponse> create(
             @Valid @RequestBody ScheduleCreateRequest request,
             Authentication authentication) {
+        // #region agent log
+        try {
+            Path base = Paths.get(System.getProperty("user.dir"));
+            if (base.getFileName() != null && "backend".equals(base.getFileName().toString())) base = base.getParent();
+            String logPath = System.getenv("DEBUG_LOG_PATH");
+            if (logPath == null) logPath = base.resolve(".cursor").resolve("debug.log").toString();
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("location", "ScheduleController.create");
+            payload.put("message", "create entry");
+            Map<String, Object> data = new HashMap<>();
+            data.put("authNull", authentication == null);
+            data.put("principalClass", authentication != null && authentication.getPrincipal() != null ? authentication.getPrincipal().getClass().getSimpleName() : null);
+            data.put("userId", SecurityConfig.extractUserId(authentication));
+            payload.put("data", data);
+            payload.put("timestamp", System.currentTimeMillis());
+            payload.put("sessionId", "debug-session");
+            payload.put("hypothesisId", "C");
+            String line = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payload) + "\n";
+            Files.write(Path.of(logPath), line.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        } catch (Exception ignored) {}
+        // #endregion
         String userId = SecurityConfig.extractUserId(authentication);
         if (userId == null) {
             return ResponseEntity.status(401).build();

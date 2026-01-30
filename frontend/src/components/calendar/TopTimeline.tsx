@@ -35,13 +35,13 @@ export function TopTimeline() {
     return dayTodos.length / 10
   }
   
-  // 밀도에 따른 색상 계산 (오렌지 그라디언트)
+  // 밀도에 따른 색상 계산 (다크 테마 친화적 - 따뜻한 톤)
   const getHeatmapColor = (density: number): string => {
-    if (density === 0) return 'bg-gray-100'
-    if (density < 0.3) return 'bg-primary-100'
-    if (density < 0.6) return 'bg-primary-300'
-    if (density < 0.8) return 'bg-primary-500'
-    return 'bg-primary-600'
+    if (density === 0) return 'bg-[#252525]'
+    if (density < 0.3) return 'bg-primary-500/20'
+    if (density < 0.6) return 'bg-primary-500/40'
+    if (density < 0.8) return 'bg-primary-500/60'
+    return 'bg-primary-500/80'
   }
   
   // 오늘인지 확인
@@ -79,18 +79,16 @@ export function TopTimeline() {
                   relative overflow-hidden
                   ${today 
                     ? 'flex-[2]' 
-                    : 'flex-1 opacity-60 hover:opacity-100'}
-                  ${selected ? 'bg-[#2F3437] ring-2 ring-white/10' : today ? 'bg-transparent hover:bg-[#252525]/50' : heatmapColor}
+                    : 'flex-1 hover:brightness-110'}
+                  ${selected ? 'bg-primary-500/25 ring-2 ring-primary-500/50' : today ? 'bg-transparent hover:bg-white/5' : heatmapColor}
                 `}
               >
                 {/* 날짜 레이블 */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-                  <div className="text-xs font-medium text-white">
+                  <div className={`text-xs font-medium ${today ? 'text-white' : 'text-white/90'}`}>
                     {format(date, 'EEE', { locale: ko })}
                   </div>
-                  <div className={`font-bold text-white ${
-                    today ? 'text-3xl' : 'text-xl'
-                  }`}>
+                  <div className={`font-bold ${today ? 'text-white text-3xl' : 'text-white/95 text-xl'}`}>
                     {format(date, 'd')}
                   </div>
                   

@@ -11,12 +11,16 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -39,6 +43,7 @@ import java.util.UUID;
 public class SecurityConfig {
 
     private final UserRepository userRepository;
+    private final DebugLogFilter debugLogFilter;
 
     @Value("${app.frontend-origin:http://localhost:5173}")
     private String frontendOrigin;
@@ -65,7 +70,9 @@ public class SecurityConfig {
             )
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
             .oauth2Login(oauth2 -> oauth2
-                .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService()))
+                .userInfoEndpoint(userInfo -> userInfo
+                    .userService(customOAuth2UserService())
+                    .oidcUserService(customOidcUserService()))
                 .successHandler(redirectToFrontendSuccessHandler())
             )
             .logout(logout -> logout
@@ -74,7 +81,8 @@ public class SecurityConfig {
                 .deleteCookies("JSESSIONID")
                 .invalidateHttpSession(true)
             )
-            .formLogin(Customizer.withDefaults());
+            .formLogin(Customizer.withDefaults())
+            .addFilterBefore(debugLogFilter, AuthorizationFilter.class);
 
         return http.build();
     }
@@ -143,6 +151,40 @@ public class SecurityConfig {
                 enrichedAttributes,
                 "sub"
             );
+        };
+    }
+
+    /**
+     * Google OIDC 로그인 시 사용 (scope에 openid 포함 시).
+     * DefaultOidcUser에는 userId가 없으므로, DB 조회 후 userId를 포함한 OidcUser를 반환한다.
+     */
+    @Bean
+    public OAuth2UserService<OidcUserRequest, OidcUser> customOidcUserService() {
+        OidcUserService delegate = new OidcUserService();
+        return (OidcUserRequest request) -> {
+            OidcUser oidcUser = delegate.loadUser(request);
+            String registrationId = request.getClientRegistration().getRegistrationId();
+            if (!"google".equalsIgnoreCase(registrationId)) {
+                return oidcUser;
+            }
+            String sub = oidcUser.getSubject();
+            if (sub == null) {
+                return oidcUser;
+            }
+            String email = oidcUser.getEmail();
+            String name = oidcUser.getFullName();
+            String picture = oidcUser.getPicture();
+            Optional<UserEntity> existingUser =
+                userRepository.findByProviderAndProviderId(UserEntity.AuthProvider.GOOGLE, sub);
+            UserEntity user = existingUser
+                .map(u -> updateUserIfChanged(u, email, name, picture))
+                .orElseGet(() -> createNewUser(sub, email != null ? email : "", name, picture));
+            return new OidcUserWithUserId(
+                oidcUser.getAuthorities(),
+                oidcUser.getIdToken(),
+                oidcUser.getUserInfo(),
+                "sub",
+                user.getId());
         };
     }
 
