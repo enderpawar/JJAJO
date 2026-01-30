@@ -2,7 +2,7 @@ package com.jjajo.presentation.config;
 
 import com.jjajo.domain.entity.UserEntity;
 import com.jjajo.domain.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,12 +11,16 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -35,13 +39,21 @@ import java.util.UUID;
  */
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final UserRepository userRepository;
+    /** prod에서는 빈이 없음(@Profile("!prod")). 없을 때도 기동되도록 Optional로 주입 */
+    private final Optional<DebugLogFilter> debugLogFilter;
 
     @Value("${app.frontend-origin:http://localhost:5173}")
     private String frontendOrigin;
+
+    public SecurityConfig(
+            UserRepository userRepository,
+            @Autowired(required = false) DebugLogFilter debugLogFilter) {
+        this.userRepository = userRepository;
+        this.debugLogFilter = Optional.ofNullable(debugLogFilter);
+    }
 
     /**
      * Security 필터 체인 설정
@@ -65,7 +77,9 @@ public class SecurityConfig {
             )
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
             .oauth2Login(oauth2 -> oauth2
-                .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService()))
+                .userInfoEndpoint(userInfo -> userInfo
+                    .userService(customOAuth2UserService())
+                    .oidcUserService(customOidcUserService()))
                 .successHandler(redirectToFrontendSuccessHandler())
             )
             .logout(logout -> logout
@@ -75,6 +89,7 @@ public class SecurityConfig {
                 .invalidateHttpSession(true)
             )
             .formLogin(Customizer.withDefaults());
+        debugLogFilter.ifPresent(f -> http.addFilterBefore(f, AuthorizationFilter.class));
 
         return http.build();
     }
@@ -143,6 +158,41 @@ public class SecurityConfig {
                 enrichedAttributes,
                 "sub"
             );
+        };
+    }
+
+    /**
+     * Google OIDC 로그인 시 사용 (scope에 openid 포함 시).
+     * DefaultOidcUser에는 userId가 없으므로, DB 조회 후 userId를 포함한 OidcUser를 반환한다.
+     * OAuth2와 동일하게 sub·email 필수 검증 후 없으면 DB 저장 없이 원본 사용자만 반환한다.
+     */
+    @Bean
+    public OAuth2UserService<OidcUserRequest, OidcUser> customOidcUserService() {
+        OidcUserService delegate = new OidcUserService();
+        return (OidcUserRequest request) -> {
+            OidcUser oidcUser = delegate.loadUser(request);
+            String registrationId = request.getClientRegistration().getRegistrationId();
+            if (!"google".equalsIgnoreCase(registrationId)) {
+                return oidcUser;
+            }
+            String sub = oidcUser.getSubject();
+            String email = oidcUser.getEmail();
+            if (sub == null || email == null || email.isBlank()) {
+                return oidcUser;
+            }
+            String name = oidcUser.getFullName();
+            String picture = oidcUser.getPicture();
+            Optional<UserEntity> existingUser =
+                userRepository.findByProviderAndProviderId(UserEntity.AuthProvider.GOOGLE, sub);
+            UserEntity user = existingUser
+                .map(u -> updateUserIfChanged(u, email, name, picture))
+                .orElseGet(() -> createNewUser(sub, email, name, picture));
+            return new OidcUserWithUserId(
+                oidcUser.getAuthorities(),
+                oidcUser.getIdToken(),
+                oidcUser.getUserInfo(),
+                "sub",
+                user.getId());
         };
     }
 

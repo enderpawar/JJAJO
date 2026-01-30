@@ -1,5 +1,6 @@
 import { format } from 'date-fns'
 import { getApiBase } from '@/utils/api'
+import { sendDebugIngest } from '@/utils/debugIngest'
 import type { Todo } from '@/types/calendar'
 
 function getSchedulesApiBase(): string {
@@ -43,7 +44,16 @@ export async function getSchedules(): Promise<Todo[]> {
 export async function createSchedule(
   todo: Pick<Todo, 'title' | 'description' | 'date' | 'startTime' | 'endTime' | 'status' | 'priority' | 'createdBy'>
 ): Promise<Todo> {
-  const response = await fetch(getSchedulesApiBase(), {
+  const schedulesUrl = getSchedulesApiBase()
+  sendDebugIngest({
+    location: 'scheduleService.ts:createSchedule',
+    message: 'createSchedule entry',
+    data: { schedulesUrl, hasCredentials: true },
+    timestamp: Date.now(),
+    sessionId: 'debug-session',
+    hypothesisId: 'A',
+  })
+  const response = await fetch(schedulesUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -57,6 +67,14 @@ export async function createSchedule(
       createdBy: todo.createdBy ?? 'user',
     }),
     credentials: 'include',
+  })
+  sendDebugIngest({
+    location: 'scheduleService.ts:createSchedule',
+    message: 'createSchedule response',
+    data: { status: response.status, ok: response.ok, url: response.url },
+    timestamp: Date.now(),
+    sessionId: 'debug-session',
+    hypothesisId: 'A',
   })
   if (!response.ok) {
     if (response.status === 401) throw new Error('로그인이 필요합니다')

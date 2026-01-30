@@ -13,6 +13,7 @@ import { useCalendarStore } from '@/stores/calendarStore'
 import { useGoalStore } from '@/stores/goalStore'
 import { getSchedules } from '@/services/scheduleService'
 import { getApiBase, normalizeGoalFromApi } from '@/utils/api'
+import { sendDebugIngest } from '@/utils/debugIngest'
 import type { Goal } from '@/types/goal'
 
 export default function MainPage() {
@@ -33,13 +34,37 @@ export default function MainPage() {
 
     const checkAuthAndLoadGoals = async () => {
       try {
+        sendDebugIngest({
+          location: 'MainPage.tsx:checkAuthAndLoadGoals',
+          message: 'auth check entry',
+          data: { apiMe, apiGoals, base },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          hypothesisId: 'B',
+        })
         const res = await fetch(apiMe, { credentials: 'include' })
+        sendDebugIngest({
+          location: 'MainPage.tsx:apiMe',
+          message: 'apiMe response',
+          data: { status: res.status, ok: res.ok },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          hypothesisId: 'B',
+        })
         if (!res.ok) {
           navigate('/', { replace: true })
           return
         }
         // 로그인된 사용자의 목표 목록 로드 (백엔드 enum → 소문자 정규화)
         const goalsRes = await fetch(apiGoals, { credentials: 'include' })
+        sendDebugIngest({
+          location: 'MainPage.tsx:apiGoals',
+          message: 'apiGoals response',
+          data: { status: goalsRes.status, ok: goalsRes.ok },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          hypothesisId: 'B',
+        })
         if (goalsRes.ok) {
           const data = await goalsRes.json()
           const list = Array.isArray(data) ? data.map((g: Record<string, unknown>) => normalizeGoalFromApi(g)) : []

@@ -22,7 +22,7 @@ interface DragPreview {
  * - 시간 그리드(00:00~24:00), 현재 시각 선, 일정 블록 표시
  * - 빈 공간 더블클릭 시 빠른 일정 추가
  */
-export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps = {}) {
+export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps = {} as VerticalTimelineProps) {
   const { todos, updateTodo, selectedDate } = useCalendarStore()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showPastTime, setShowPastTime] = useState(true)

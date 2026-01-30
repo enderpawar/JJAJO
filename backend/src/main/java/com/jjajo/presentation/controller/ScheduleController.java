@@ -9,11 +9,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Tag(name = "Schedule", description = "회원별 일정 CRUD API")
 @RestController
@@ -21,6 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ScheduleController {
 
+    private static final Logger DEBUG_LOG = LoggerFactory.getLogger("com.jjajo.debug");
     private final ScheduleService scheduleService;
 
     @Operation(summary = "현재 사용자 일정 목록 조회")
@@ -39,6 +44,21 @@ public class ScheduleController {
     public ResponseEntity<ScheduleItemResponse> create(
             @Valid @RequestBody ScheduleCreateRequest request,
             Authentication authentication) {
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("location", "ScheduleController.create");
+            payload.put("message", "create entry");
+            Map<String, Object> data = new HashMap<>();
+            data.put("authNull", authentication == null);
+            data.put("principalClass", authentication != null && authentication.getPrincipal() != null ? authentication.getPrincipal().getClass().getSimpleName() : null);
+            data.put("userId", SecurityConfig.extractUserId(authentication));
+            payload.put("data", data);
+            payload.put("timestamp", System.currentTimeMillis());
+            payload.put("sessionId", "debug-session");
+            payload.put("hypothesisId", "C");
+            DEBUG_LOG.debug(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payload));
+        } catch (Exception ignored) {
+        }
         String userId = SecurityConfig.extractUserId(authentication);
         if (userId == null) {
             return ResponseEntity.status(401).build();
