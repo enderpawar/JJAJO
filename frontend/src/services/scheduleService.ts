@@ -1,5 +1,6 @@
 import { format } from 'date-fns'
 import { getApiBase } from '@/utils/api'
+import { sendDebugIngest } from '@/utils/debugIngest'
 import type { Todo } from '@/types/calendar'
 
 function getSchedulesApiBase(): string {
@@ -43,10 +44,15 @@ export async function getSchedules(): Promise<Todo[]> {
 export async function createSchedule(
   todo: Pick<Todo, 'title' | 'description' | 'date' | 'startTime' | 'endTime' | 'status' | 'priority' | 'createdBy'>
 ): Promise<Todo> {
-  // #region agent log
   const schedulesUrl = getSchedulesApiBase()
-  fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scheduleService.ts:createSchedule',message:'createSchedule entry',data:{schedulesUrl,hasCredentials:true},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{})
-  // #endregion
+  sendDebugIngest({
+    location: 'scheduleService.ts:createSchedule',
+    message: 'createSchedule entry',
+    data: { schedulesUrl, hasCredentials: true },
+    timestamp: Date.now(),
+    sessionId: 'debug-session',
+    hypothesisId: 'A',
+  })
   const response = await fetch(schedulesUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -62,9 +68,14 @@ export async function createSchedule(
     }),
     credentials: 'include',
   })
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'scheduleService.ts:createSchedule',message:'createSchedule response',data:{status:response.status,ok:response.ok,url:response.url},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{})
-  // #endregion
+  sendDebugIngest({
+    location: 'scheduleService.ts:createSchedule',
+    message: 'createSchedule response',
+    data: { status: response.status, ok: response.ok, url: response.url },
+    timestamp: Date.now(),
+    sessionId: 'debug-session',
+    hypothesisId: 'A',
+  })
   if (!response.ok) {
     if (response.status === 401) throw new Error('로그인이 필요합니다')
     throw new Error(`일정 생성 실패: ${response.statusText}`)

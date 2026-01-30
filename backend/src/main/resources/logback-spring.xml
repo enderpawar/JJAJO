@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <!-- Spring Boot 기본 설정 유지 -->
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+  <!-- 디버그 로그 경로: 환경 변수 DEBUG_LOG_PATH 또는 기본값 -->
+  <springProperty name="debugLogPath" source="DEBUG_LOG_PATH" defaultValue="${user.dir:-.}/.cursor/debug.log"/>
+
+  <!-- com.jjajo.debug 전용 파일 앱ender (한 줄에 JSON 메시지) -->
+  <appender name="FILE_DEBUG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${debugLogPath}</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${debugLogPath}.%d{yyyy-MM-dd}</fileNamePattern>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%msg%n</pattern>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
+
+  <!-- 비동기 앱ender: 요청 스레드가 파일 I/O에서 블로킹되지 않음 -->
+  <appender name="ASYNC_DEBUG" class="ch.qos.logback.classic.AsyncAppender">
+    <queueSize>512</queueSize>
+    <discardingThreshold>0</discardingThreshold>
+    <appender-ref ref="FILE_DEBUG"/>
+  </appender>
+
+  <!-- com.jjajo.debug 로거: DEBUG 레벨만 파일로, 루트로 전파하지 않음 -->
+  <logger name="com.jjajo.debug" level="DEBUG" additivity="false">
+    <appender-ref ref="ASYNC_DEBUG"/>
+  </logger>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+</configuration>

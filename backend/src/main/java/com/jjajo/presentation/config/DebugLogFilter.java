@@ -5,24 +5,27 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 디버그: /api 요청 시 SecurityContext 인증 상태를 .cursor/debug.log에 기록
+ * 디버그: /api 요청 시 SecurityContext 인증 상태를 SLF4J 로거로 기록.
+ * prod 프로필에서는 빈이 등록되지 않아 운영 환경에서 동작하지 않음.
+ * Logback 비동기 로깅으로 전달. logback-spring.xml에서 파일 출력 설정.
  */
 @Component
+@Profile("!prod")
 public class DebugLogFilter extends OncePerRequestFilter {
+
+    private static final Logger DEBUG_LOG = LoggerFactory.getLogger("com.jjajo.debug");
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -40,13 +43,6 @@ public class DebugLogFilter extends OncePerRequestFilter {
         boolean hasCookie = (request.getHeader("Cookie") != null);
 
         try {
-            Path base = Paths.get(System.getProperty("user.dir"));
-            if (base.getFileName() != null && "backend".equals(base.getFileName().toString())) {
-                base = base.getParent();
-            }
-            String logPath = System.getenv("DEBUG_LOG_PATH");
-            if (logPath == null) logPath = base.resolve(".cursor").resolve("debug.log").toString();
-
             Map<String, Object> payload = new HashMap<>();
             payload.put("location", "DebugLogFilter");
             payload.put("message", "api request");
@@ -60,9 +56,8 @@ public class DebugLogFilter extends OncePerRequestFilter {
             payload.put("timestamp", System.currentTimeMillis());
             payload.put("sessionId", "debug-session");
             payload.put("hypothesisId", "C");
-            String line = new ObjectMapper().writeValueAsString(payload) + "\n";
-            Files.write(Path.of(logPath), line.getBytes(StandardCharsets.UTF_8),
-                StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            String line = new ObjectMapper().writeValueAsString(payload);
+            DEBUG_LOG.debug(line);
         } catch (Exception ignored) {
         }
         filterChain.doFilter(request, response);
