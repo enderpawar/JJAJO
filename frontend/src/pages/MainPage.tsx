@@ -4,7 +4,6 @@ import Header from '@/components/layout/Header'
 import MagicBar from '@/components/layout/MagicBar'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import DayDetailPanel from '@/components/calendar/DayDetailPanel'
-import { QuickScheduleModal } from '@/components/calendar/QuickScheduleModal'
 import { DopamineFeedback } from '@/components/feedback/DopamineFeedback'
 import { TopTimeline } from '@/components/calendar/TopTimeline'
 import { VerticalTimeline } from '@/components/calendar/VerticalTimeline'
@@ -19,8 +18,6 @@ import type { Goal } from '@/types/goal'
 export default function MainPage() {
   const navigate = useNavigate()
   const [checkingAuth, setCheckingAuth] = useState(true)
-  const [isQuickScheduleOpen, setIsQuickScheduleOpen] = useState(false)
-  const [quickScheduleInitial, setQuickScheduleInitial] = useState<{time?: string, date?: string}>({})
   const [showMonthlyCalendar, setShowMonthlyCalendar] = useState(false) // 월간 캘린더 모달
   const { goals, setGoals } = useGoalStore()
   const { todos, setTodos } = useCalendarStore()
@@ -92,11 +89,6 @@ export default function MainPage() {
     checkAuthAndLoadGoals()
   }, [navigate, setGoals, setTodos])
   
-  const handleOpenQuickSchedule = (clickedTime: string, date: string) => {
-    setQuickScheduleInitial({ time: clickedTime, date })
-    setIsQuickScheduleOpen(true)
-  }
-  
   // ESC 키로 월간 캘린더 모달 닫기
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -139,7 +131,7 @@ export default function MainPage() {
           <div className="flex-1 flex min-h-0 relative">
             {/* 중앙: Vertical Gravity Timeline - 전체 너비 */}
             <div className="flex-1 min-h-0">
-              <VerticalTimeline onOpenQuickSchedule={handleOpenQuickSchedule} />
+              <VerticalTimeline />
             </div>
           </div>
         </main>
@@ -215,17 +207,6 @@ export default function MainPage() {
           </div>
         </div>
       )}
-
-      {/* 빠른 일정 추가 모달 */}
-      <QuickScheduleModal 
-        isOpen={isQuickScheduleOpen} 
-        onClose={() => {
-          setIsQuickScheduleOpen(false)
-          setQuickScheduleInitial({})
-        }}
-        initialDate={quickScheduleInitial.date}
-        initialStartTime={quickScheduleInitial.time}
-      />
     </div>
   )
 }

@@ -8,6 +8,14 @@ function getSchedulesApiBase(): string {
   return base ? `${base}/api/v1/schedules` : '/api/v1/schedules'
 }
 
+/** 백엔드가 200 + HTML 로그인 페이지를 반환할 때 JSON 파싱 에러 방지 */
+function ensureJsonResponse(response: Response, text: string): void {
+  const ct = response.headers.get('content-type') ?? ''
+  if (ct.includes('text/html') || text.trimStart().startsWith('<!')) {
+    throw new Error('로그인이 필요합니다')
+  }
+}
+
 /** API 일정 응답 → Todo 타입 정규화 */
 export function scheduleFromApi(item: Record<string, unknown>): Todo {
   const status = String(item.status ?? 'pending').toLowerCase().replace(/-/g, '_') as Todo['status']
@@ -30,12 +38,15 @@ export function scheduleFromApi(item: Record<string, unknown>): Todo {
 
 /** 현재 사용자 일정 목록 조회 */
 export async function getSchedules(): Promise<Todo[]> {
-  const response = await fetch(getSchedulesApiBase(), { credentials: 'include' })
+  const url = getSchedulesApiBase()
+  const response = await fetch(url, { credentials: 'include' })
   if (!response.ok) {
     if (response.status === 401) throw new Error('로그인이 필요합니다')
     throw new Error(`일정 조회 실패: ${response.statusText}`)
   }
-  const data = await response.json()
+  const text = await response.text()
+  ensureJsonResponse(response, text)
+  const data = JSON.parse(text) as unknown
   const list = Array.isArray(data) ? data : []
   return list.map((item: Record<string, unknown>) => scheduleFromApi(item))
 }
@@ -80,7 +91,9 @@ export async function createSchedule(
     if (response.status === 401) throw new Error('로그인이 필요합니다')
     throw new Error(`일정 생성 실패: ${response.statusText}`)
   }
-  const item = await response.json()
+  const text = await response.text()
+  ensureJsonResponse(response, text)
+  const item = JSON.parse(text) as Record<string, unknown>
   return scheduleFromApi(item)
 }
 
@@ -97,7 +110,9 @@ export async function updateSchedule(id: string, updates: Partial<Pick<Todo, 'ti
     if (response.status === 404) throw new Error('일정을 찾을 수 없습니다')
     throw new Error(`일정 수정 실패: ${response.statusText}`)
   }
-  const item = await response.json()
+  const text = await response.text()
+  ensureJsonResponse(response, text)
+  const item = JSON.parse(text) as Record<string, unknown>
   return scheduleFromApi(item)
 }
 
@@ -177,5 +192,7 @@ export const generateDailySchedule = async (
     throw new Error(`일정 생성 실패: ${response.statusText}`)
   }
 
-  return response.json()
+  const text = await response.text()
+  ensureJsonResponse(response, text)
+  return JSON.parse(text)
 }

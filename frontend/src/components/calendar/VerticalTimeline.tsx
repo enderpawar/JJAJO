@@ -1,14 +1,10 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { useCalendarStore } from '@/stores/calendarStore'
-import { updateSchedule, deleteSchedule } from '@/services/scheduleService'
+import { updateSchedule, deleteSchedule, createSchedule } from '@/services/scheduleService'
 import { Clock, Edit2, Pencil, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { motion } from 'framer-motion'
 import type { Todo } from '../../types/calendar'
-
-interface VerticalTimelineProps {
-  onOpenQuickSchedule?: (clickedTime: string, date: string) => void
-}
 
 interface DragPreview {
   taskId: string
@@ -19,11 +15,24 @@ interface DragPreview {
 /**
  * VerticalTimeline: 24시간 수직 그리드 캔버스
  * - 시간 그리드(00:00~24:00), 현재 시각 선, 일정 블록 표시
- * 
- * - 빈 공간 더블클릭 시 빠른 일정 추가
  */
-export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps = {} as VerticalTimelineProps) {
-  const { todos, updateTodo, deleteTodo, selectedDate } = useCalendarStore()
+/** HH:mm → 당일 0시 기준 분 */
+function timeToMinutes(timeStr: string): number {
+  const [h, m] = timeStr.split(':').map(Number)
+  return h * 60 + m
+}
+
+/** 분 → HH:mm */
+function minutesToTimeStr(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60)
+  const m = Math.round(totalMinutes % 60)
+  const hours = Math.min(23, Math.max(0, h))
+  const minutes = Math.min(59, Math.max(0, m))
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
+export function VerticalTimeline() {
+  const { todos, updateTodo, deleteTodo, addTodo, selectedDate } = useCalendarStore()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showPastTime, setShowPastTime] = useState(false)
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null)
@@ -31,7 +40,6 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
   const [renamingTodoId, setRenamingTodoId] = useState<string | null>(null)
   const [renameInputValue, setRenameInputValue] = useState('')
   const [isSavingRename, setIsSavingRename] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
   const actionMenuRef = useRef<HTMLDivElement | null>(null)
   const renameInputRef = useRef<HTMLInputElement | null>(null)
   const isDraggingRef = useRef(false)
@@ -78,27 +86,24 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
     }
   }, [renameInputValue, updateTodo])
 
-  const handleDelete = useCallback(async (task: Todo) => {
+  /** 낙관적 삭제: 즉시 UI에서 제거한 뒤 백그라운드에서 API 호출. 실패 시 롤백. */
+  const handleDelete = useCallback((task: Todo) => {
     if (!confirm('정말 이 일정을 삭제할까요?')) return
-    setIsDeleting(true)
-    try {
-      await deleteSchedule(task.id)
-      deleteTodo(task.id)
-      setEditingTodo(null)
-    } catch (e) {
+    const taskCopy = { ...task }
+    deleteTodo(task.id)
+    setEditingTodo(null)
+
+    if (task.id.startsWith('opt-')) {
+      return
+    }
+    deleteSchedule(task.id).catch((e) => {
       const msg = e instanceof Error ? e.message : String(e)
-      if (msg.includes('찾을 수 없습니다')) {
-        // 서버에 없는 일정(클라이언트 전용 ID) → 로컬에서만 제거
-        deleteTodo(task.id)
-        setEditingTodo(null)
-        return
-      }
+      if (msg.includes('찾을 수 없습니다')) return
+      addTodo(taskCopy)
       console.error('일정 삭제 실패:', e)
       alert(`일정 삭제 실패: ${msg}`)
-    } finally {
-      setIsDeleting(false)
-    }
-  }, [deleteTodo])
+    })
+  }, [deleteTodo, addTodo])
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -128,6 +133,8 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
   }, [todos, selectedDate])
 
   const todayTodos = selectedDateTodos
+  const dateStr = useMemo(() => format(selectedDate ?? new Date(), 'yyyy-MM-dd'), [selectedDate])
+
   const TIMELINE_HEIGHT = 2400
   const timelineHeight = TIMELINE_HEIGHT
   const HOUR_HEIGHT = 100
@@ -137,6 +144,104 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
     const minutes = currentTime.getMinutes()
     return hours * HOUR_HEIGHT + (minutes / 60) * HOUR_HEIGHT
   }, [currentTime])
+
+  /** 당일 일정 기준 빈 구간(갭) 목록. [start분, end분] 오름차순. */
+  const gapsForDay = useMemo(() => {
+    const dayEndMinutes = 24 * 60
+    const intervals = todayTodos
+      .map(t => ({ start: timeToMinutes(t.startTime!), end: timeToMinutes(t.endTime!) }))
+      .sort((a, b) => a.start - b.start)
+    if (intervals.length === 0) return [{ start: 0, end: dayEndMinutes }]
+    const merged: Array<{ start: number; end: number }> = []
+    for (const { start, end } of intervals) {
+      if (merged.length === 0) {
+        merged.push({ start, end })
+        continue
+      }
+      const last = merged[merged.length - 1]
+      if (start <= last.end) {
+        last.end = Math.max(last.end, end)
+      } else {
+        merged.push({ start, end })
+      }
+    }
+    const gaps: Array<{ start: number; end: number }> = []
+    let prevEnd = 0
+    for (const { start, end } of merged) {
+      if (start > prevEnd) gaps.push({ start: prevEnd, end: start })
+      prevEnd = end
+    }
+    if (prevEnd < dayEndMinutes) gaps.push({ start: prevEnd, end: dayEndMinutes })
+    return gaps
+  }, [todayTodos])
+
+  const handleDoubleClickEmpty = useCallback(
+    async (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement
+      if (target.closest('.task-card') || target.closest('.ghost-block')) return
+
+      const rect = e.currentTarget.getBoundingClientRect()
+      const clickY = e.clientY - rect.top
+      const clickedMinutes = Math.round((clickY / 100) * 60)
+
+      const gap = gapsForDay.find(g => g.start <= clickedMinutes && clickedMinutes < g.end)
+      if (!gap) return
+
+      const durationMin = gap.end - gap.start
+      let blockStartMin: number
+      let blockEndMin: number
+
+      if (durationMin >= 60) {
+        const snappedToHour = Math.floor(clickedMinutes / 60) * 60
+        blockStartMin = Math.max(gap.start, Math.min(snappedToHour, gap.end - 60))
+        blockEndMin = Math.min(blockStartMin + 60, gap.end)
+      } else {
+        blockStartMin = gap.start
+        blockEndMin = gap.end
+      }
+
+      if (blockEndMin <= blockStartMin) return
+
+      const startTime = minutesToTimeStr(blockStartMin)
+      const endTime = minutesToTimeStr(blockEndMin)
+      const now = new Date().toISOString()
+      const tempId = `opt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+
+      const optimisticTodo: Todo = {
+        id: tempId,
+        title: '새 일정',
+        date: dateStr,
+        startTime,
+        endTime,
+        status: 'pending',
+        priority: 'medium',
+        createdBy: 'user',
+        createdAt: now,
+        updatedAt: now,
+      }
+      addTodo(optimisticTodo)
+
+      createSchedule({
+        title: optimisticTodo.title,
+        date: dateStr,
+        startTime,
+        endTime,
+        status: 'pending',
+        priority: 'medium',
+        createdBy: 'user',
+      })
+        .then((created) => {
+          deleteTodo(tempId)
+          addTodo(created)
+        })
+        .catch((err) => {
+          deleteTodo(tempId)
+          console.error('일정 생성 실패:', err)
+          alert(`일정 생성 실패: ${err instanceof Error ? err.message : '알 수 없음'}`)
+        })
+    },
+    [gapsForDay, dateStr, addTodo, deleteTodo]
+  )
 
   useEffect(() => {
     if (!timelineRef.current || hasAutoScrolled.current) return
@@ -304,12 +409,11 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
                       </button>
                       <button
                         type="button"
-                        disabled={isDeleting}
                         onClick={() => handleDelete(task)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-white hover:bg-white/10 transition-colors"
                       >
                         <Trash2 className="w-4 h-4 text-gray-400" />
-                        {isDeleting ? '삭제 중…' : '삭제'}
+                        삭제
                       </button>
                     </>
                   )}
@@ -344,7 +448,7 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
         </div>
       </motion.div>
     )
-  }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renamingTodoId, renameInputValue, isSavingRename, isDeleting, handleSaveRename, handleDelete])
+  }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renamingTodoId, renameInputValue, isSavingRename, handleSaveRename, handleDelete])
 
   const getMinutesDiff = (startPixel: number, endPixel: number) => ((endPixel - startPixel) / 100) * 60
 
@@ -395,29 +499,8 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
           height: `${timelineHeight}px`,
           marginTop: !showPastTime ? `-${currentTimePosition - 100}px` : '0px',
         }}
-        onDoubleClick={(e) => {
-          if (!onOpenQuickSchedule) return
-          const target = e.target as HTMLElement
-          if (target.closest('.task-card') || target.closest('.ghost-block')) return
-          const rect = e.currentTarget.getBoundingClientRect()
-          const clickY = e.clientY - rect.top + (!showPastTime ? currentTimePosition - 100 : 0)
-          const clickedTime = pixelToTime(clickY)
-          const targetDate = format(selectedDate ?? new Date(), 'yyyy-MM-dd')
-          onOpenQuickSchedule(clickedTime, targetDate)
-        }}
+        onDoubleClick={handleDoubleClickEmpty}
       >
-        {onOpenQuickSchedule && todayTodos.filter(task => timeToPixels(task.startTime!) > currentTimePosition).length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-            <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 backdrop-blur-xl border border-white/10 rounded-2xl px-10 py-8 shadow-[0_0_30px_rgba(59,130,246,0.2)]">
-              <div className="text-center space-y-3">
-                <div className="text-4xl animate-bounce">⚡</div>
-                <div className="text-base font-semibold text-white">빈 공간을 더블클릭하여</div>
-                <div className="text-sm text-gray-400">해당 시간에 일정 추가하기</div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* 그리드 레이어: 클릭은 부모(타임라인 컨테이너)로 전달되도록 pointer-events-none */}
         <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
           {Array.from({ length: 24 }, (_, i) => {
