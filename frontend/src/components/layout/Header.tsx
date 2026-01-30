@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, Settings, X, Moon, Sun, Copy } from 'lucide-react'
+import { Sparkles, Settings, X, Moon, Sun, Copy, Calendar } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { TimeSlotSettings } from '@/components/settings/TimeSlotSettings'
@@ -7,7 +7,11 @@ import { ApiKeySettings } from '@/components/settings/ApiKeySettings'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
-export default function Header() {
+interface HeaderProps {
+  onOpenMonthlyCalendar?: () => void
+}
+
+export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
   const { copyTodosFromPreviousDay, selectedDate } = useCalendarStore()
   const { theme, toggleTheme, initTheme } = useSettingsStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -71,6 +75,19 @@ export default function Header() {
               <Copy className="w-4 h-4" />
               <span className="hidden sm:inline">어제 일정</span>
             </button>
+
+            {/* 월간 캘린더 */}
+            {onOpenMonthlyCalendar && (
+              <button
+                type="button"
+                onClick={onOpenMonthlyCalendar}
+                className="flex items-center gap-2 px-3 py-1.5 hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer"
+                title="월간 일정 보기"
+              >
+                <Calendar className="w-4 h-4" />
+                <span className="hidden sm:inline">월간</span>
+              </button>
+            )}
 
             {/* 다크모드 토글 (Notion은 항상 다크모드이므로 숨김 처리 가능) */}
             <button

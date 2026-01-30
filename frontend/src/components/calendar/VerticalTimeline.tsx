@@ -1,10 +1,9 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { useCalendarStore } from '@/stores/calendarStore'
-import { updateSchedule } from '@/services/scheduleService'
-import { Clock, Edit2 } from 'lucide-react'
+import { updateSchedule, deleteSchedule } from '@/services/scheduleService'
+import { Clock, Edit2, Pencil, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { motion } from 'framer-motion'
-import EditTodoPanel from './EditTodoPanel'
 import type { Todo } from '../../types/calendar'
 
 interface VerticalTimelineProps {
@@ -24,14 +23,82 @@ interface DragPreview {
  * - 빈 공간 더블클릭 시 빠른 일정 추가
  */
 export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps = {} as VerticalTimelineProps) {
-  const { todos, updateTodo, selectedDate } = useCalendarStore()
+  const { todos, updateTodo, deleteTodo, selectedDate } = useCalendarStore()
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [showPastTime, setShowPastTime] = useState(true)
+  const [showPastTime, setShowPastTime] = useState(false)
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null)
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
+  const [renamingTodoId, setRenamingTodoId] = useState<string | null>(null)
+  const [renameInputValue, setRenameInputValue] = useState('')
+  const [isSavingRename, setIsSavingRename] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const actionMenuRef = useRef<HTMLDivElement | null>(null)
+  const renameInputRef = useRef<HTMLInputElement | null>(null)
   const isDraggingRef = useRef(false)
   const timelineRef = useRef<HTMLDivElement>(null)
   const hasAutoScrolled = useRef(false)
+
+  useEffect(() => {
+    if (!editingTodo) return
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (actionMenuRef.current && !actionMenuRef.current.contains(target)) {
+        setEditingTodo(null)
+        setRenamingTodoId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [editingTodo])
+
+  useEffect(() => {
+    if (renamingTodoId) {
+      setRenameInputValue(editingTodo?.title ?? '')
+      requestAnimationFrame(() => renameInputRef.current?.focus())
+    }
+  }, [renamingTodoId, editingTodo?.title])
+
+  const handleSaveRename = useCallback(async (task: Todo) => {
+    const title = renameInputValue.trim()
+    if (!title) return
+    setIsSavingRename(true)
+    try {
+      const updated = await updateSchedule(task.id, { title })
+      updateTodo(task.id, {
+        ...updated,
+        updatedAt: updated.updatedAt ?? new Date().toISOString(),
+      })
+      setRenamingTodoId(null)
+      setEditingTodo(null)
+    } catch (e) {
+      console.error('이름 변경 실패:', e)
+      alert(`이름 변경 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
+    } finally {
+      setIsSavingRename(false)
+    }
+  }, [renameInputValue, updateTodo])
+
+  const handleDelete = useCallback(async (task: Todo) => {
+    if (!confirm('정말 이 일정을 삭제할까요?')) return
+    setIsDeleting(true)
+    try {
+      await deleteSchedule(task.id)
+      deleteTodo(task.id)
+      setEditingTodo(null)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (msg.includes('찾을 수 없습니다')) {
+        // 서버에 없는 일정(클라이언트 전용 ID) → 로컬에서만 제거
+        deleteTodo(task.id)
+        setEditingTodo(null)
+        return
+      }
+      console.error('일정 삭제 실패:', e)
+      alert(`일정 삭제 실패: ${msg}`)
+    } finally {
+      setIsDeleting(false)
+    }
+  }, [deleteTodo])
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -109,7 +176,7 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
         className={`
           task-card group absolute left-0 right-0 mx-4 rounded-lg cursor-pointer active:cursor-grabbing overflow-hidden
           ${isPast ? 'task-card-past' : ''}
-          ${isCurrent ? 'task-card-active border-l-4 border-blue-500 bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-md shadow-[0_0_30px_rgba(59,130,246,0.3)]' : ''}
+          ${isCurrent ? 'task-card-active backdrop-blur-md' : ''}
           ${isFuture || (!isCurrent && !isPast) ? 'bg-[#252525]/90 backdrop-blur-md border border-white/10 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] hover:border-white/30 hover:bg-[#2a2a2a]/90 transition-all duration-300 ease-out' : ''}
         `}
         style={{
@@ -159,25 +226,96 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
         )}
         {isCurrent && (
           <>
-            <div className="absolute inset-x-0 top-0 bg-gradient-to-br from-primary-500 to-primary-600" style={{ height: `${completedHeight}%`, transition: 'height 2s ease-out' }} />
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-br from-primary-300 to-primary-400 opacity-50" style={{ height: `${100 - completedHeight}%`, transition: 'height 2s ease-out' }} />
-            <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
+            <div className="absolute inset-x-0 top-0 bg-slate-600/50" style={{ height: `${completedHeight}%`, transition: 'height 2s ease-out' }} />
+            <div className="absolute inset-x-0 bottom-0 bg-slate-700/25" style={{ height: `${100 - completedHeight}%`, transition: 'height 2s ease-out' }} />
+            <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-sm" />
           </>
         )}
         {isPast && <div className="absolute inset-0 bg-gray-300" />}
         <div className={`relative z-10 ${isPast ? 'p-2' : 'p-4'}`}>
           {!isPast && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                if (!isDraggingRef.current) setEditingTodo(task)
-              }}
-              onPointerDown={(e) => e.stopPropagation()}
-              className={`absolute top-2 right-2 z-20 p-2 rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-white/20 hover:bg-white/30 backdrop-blur-sm' : 'bg-notion-sidebar/80 hover:bg-blue-500 group'}`}
+            <div
+              ref={editingTodo?.id === task.id ? actionMenuRef : undefined}
+              className="absolute top-2 right-2 z-20"
             >
-              <Edit2 className={`w-4 h-4 ${isCurrent ? 'text-white' : 'text-gray-600 group-hover:text-white'}`} />
-            </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (!isDraggingRef.current) {
+                    setEditingTodo(prev => (prev?.id === task.id ? null : task))
+                  }
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                className={`p-2 rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-white/20 hover:bg-white/30 backdrop-blur-sm' : 'bg-notion-sidebar/80 hover:bg-blue-500 group'}`}
+              >
+                <Edit2 className={`w-4 h-4 ${isCurrent ? 'text-white' : 'text-gray-600 group-hover:text-white'}`} />
+              </button>
+              {editingTodo?.id === task.id && (
+                <div
+                  className="absolute top-full right-0 mt-1 min-w-[180px] rounded-lg border border-white/10 bg-[#252525] shadow-xl py-1 z-30"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {renamingTodoId === task.id ? (
+                    <div className="px-3 py-2 space-y-2">
+                      <input
+                        ref={renameInputRef}
+                        type="text"
+                        value={renameInputValue}
+                        onChange={(e) => setRenameInputValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveRename(task)
+                          if (e.key === 'Escape') setRenamingTodoId(null)
+                        }}
+                        className="w-full px-2 py-1.5 text-sm text-white bg-white/10 border border-white/20 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
+                        placeholder="제목"
+                      />
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          disabled={isSavingRename || !renameInputValue.trim()}
+                          onClick={() => handleSaveRename(task)}
+                          className="flex-1 py-1.5 text-xs font-medium text-white bg-primary-500 hover:bg-primary-600 disabled:opacity-50 rounded transition-colors"
+                        >
+                          {isSavingRename ? '저장 중…' : '저장'}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isSavingRename}
+                          onClick={() => setRenamingTodoId(null)}
+                          className="flex-1 py-1.5 text-xs font-medium text-gray-300 hover:bg-white/10 rounded transition-colors"
+                        >
+                          취소
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRenamingTodoId(task.id)
+                          setRenameInputValue(task.title)
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-white hover:bg-white/10 transition-colors"
+                      >
+                        <Pencil className="w-4 h-4 text-gray-400" />
+                        이름 변경
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isDeleting}
+                        onClick={() => handleDelete(task)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 className="w-4 h-4 text-gray-400" />
+                        {isDeleting ? '삭제 중…' : '삭제'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           )}
           {isPast ? (
             <div className="flex items-center gap-2 text-notion-muted">
@@ -192,8 +330,8 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
               {task.description && <div className={`text-sm mb-3 ${isCurrent ? 'text-white/90' : 'text-gray-400'}`}>{task.description}</div>}
               {isCurrent && (
                 <div className="mt-4 mr-4">
-                  <div className="relative h-2 bg-white/10 rounded-full overflow-hidden mb-2">
-                    <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-1000" style={{ width: `${progress}%` }} />
+                  <div className="relative h-2 bg-slate-700/60 rounded-full overflow-hidden mb-2">
+                    <div className="absolute inset-y-0 left-0 bg-slate-500 rounded-full transition-all duration-1000" style={{ width: `${progress}%` }} />
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-white/60">🔥 진행 중</span>
@@ -206,7 +344,7 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
         </div>
       </motion.div>
     )
-  }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview])
+  }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renamingTodoId, renameInputValue, isSavingRename, isDeleting, handleSaveRename, handleDelete])
 
   const getMinutesDiff = (startPixel: number, endPixel: number) => ((endPixel - startPixel) / 100) * 60
 
@@ -299,7 +437,7 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
           })}
         </div>
 
-        {(showPastTime ? todayTodos : todayTodos.filter(task => timeToPixels(task.startTime!) > currentTimePosition)).map(renderTaskBlock)}
+        {(showPastTime ? todayTodos : todayTodos.filter(task => timeToPixels(task.endTime!) > currentTimePosition)).map(renderTaskBlock)}
 
         <div className="absolute left-0 right-0 z-50 transition-all duration-1000 ease-linear" style={{ top: `${currentTimePosition}px` }}>
           <div className="relative h-0.5 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.6)]">
@@ -310,8 +448,7 @@ export function VerticalTimeline({ onOpenQuickSchedule }: VerticalTimelineProps 
 
         <div className="absolute left-0 right-0 top-0 bg-gray-900/10 pointer-events-none transition-all duration-1000" style={{ height: `${currentTimePosition}px`, zIndex: 2 }} />
       </div>
-
-      <EditTodoPanel todo={editingTodo} onClose={() => setEditingTodo(null)} />
+      {/* 일정 액션: 이름 변경/삭제는 카드 드롭다운 메뉴로만 사용. EditTodoPanel 모달 사용 안 함 */}
     </div>
   )
 }

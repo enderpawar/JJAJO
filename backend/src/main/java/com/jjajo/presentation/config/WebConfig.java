@@ -19,7 +19,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "https://*.*"                 // (필요 시) 커스텀 도메인 - 실제 운영 시에는 구체적인 도메인으로 제한 권장
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
+                .allowedHeaders("Content-Type", "Authorization", "Accept", "X-Gemini-API-Key")
                 .exposedHeaders("X-Gemini-API-Key")
                 .allowCredentials(true);
     }

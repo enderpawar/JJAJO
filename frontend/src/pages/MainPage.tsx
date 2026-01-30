@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '@/components/layout/Header'
+import MagicBar from '@/components/layout/MagicBar'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import DayDetailPanel from '@/components/calendar/DayDetailPanel'
-import { GoalModal } from '@/components/goals/GoalModal'
 import { QuickScheduleModal } from '@/components/calendar/QuickScheduleModal'
 import { DopamineFeedback } from '@/components/feedback/DopamineFeedback'
 import { TopTimeline } from '@/components/calendar/TopTimeline'
@@ -19,7 +19,6 @@ import type { Goal } from '@/types/goal'
 export default function MainPage() {
   const navigate = useNavigate()
   const [checkingAuth, setCheckingAuth] = useState(true)
-  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false)
   const [isQuickScheduleOpen, setIsQuickScheduleOpen] = useState(false)
   const [quickScheduleInitial, setQuickScheduleInitial] = useState<{time?: string, date?: string}>({})
   const [showMonthlyCalendar, setShowMonthlyCalendar] = useState(false) // 월간 캘린더 모달
@@ -66,9 +65,12 @@ export default function MainPage() {
           hypothesisId: 'B',
         })
         if (goalsRes.ok) {
-          const data = await goalsRes.json()
-          const list = Array.isArray(data) ? data.map((g: Record<string, unknown>) => normalizeGoalFromApi(g)) : []
-          setGoals(list as Goal[])
+          const ct = goalsRes.headers.get('content-type') ?? ''
+          if (ct.includes('application/json')) {
+            const data = await goalsRes.json()
+            const list = Array.isArray(data) ? data.map((g: Record<string, unknown>) => normalizeGoalFromApi(g)) : []
+            setGoals(list as Goal[])
+          }
         }
         // 회원별 일정 목록 로드 (원격 DB)
         try {
@@ -77,8 +79,11 @@ export default function MainPage() {
         } catch {
           // 일정 조회 실패 시 빈 목록 유지
         }
-      } catch {
-        // 네트워크 에러 등은 일단 진입 허용
+      } catch (err) {
+        // ERR_CONNECTION_REFUSED 등: 백엔드(8080)가 꺼져 있음. 진입은 허용하되 로그인/데이터는 불가
+        if (err instanceof TypeError && (err.message === 'Failed to fetch' || err.message.includes('fetch'))) {
+          console.warn('백엔드에 연결할 수 없습니다. 백엔드를 실행한 뒤 새로고침하세요. (예: 포트 8080)')
+        }
       } finally {
         setCheckingAuth(false)
       }
@@ -120,7 +125,12 @@ export default function MainPage() {
       {/* 🎨 TopTimeline: 주간 히트맵 */}
       <TopTimeline />
       
-      <Header />
+      <Header onOpenMonthlyCalendar={() => setShowMonthlyCalendar(true)} />
+
+      {/* 매직 바: 한 줄 자연어로 일정 추가 (Gemini Function Calling) */}
+      <div className="shrink-0 border-b border-notion-border bg-notion-card/50">
+        <MagicBar />
+      </div>
       
       {/* 🎯 Focus View (Vertical Gravity Timeline) - 기본 화면 (z-0으로 헤더 아래 레이어) */}
       {!showMonthlyCalendar && (
@@ -172,40 +182,30 @@ export default function MainPage() {
               {/* 우측: 액션 버튼 */}
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setIsGoalModalOpen(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-primary-500 to-purple-500 text-white rounded-lg 
-                             hover:from-primary-600 hover:to-purple-600 transition-all duration-200 
-                             text-sm font-medium shadow-sm flex items-center gap-2"
-                >
-                  <Target className="w-4 h-4" />
-                  목표 추가
-                </button>
-                
-                <button
                   onClick={() => setShowMonthlyCalendar(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-notion-hover rounded-lg transition-colors"
                   title="닫기 (ESC)"
                 >
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="w-5 h-5 text-notion-muted" />
                 </button>
               </div>
             </div>
             
             {/* 모달 컨텐츠 - ADHD 친화적 디자인 */}
-            <div className="flex-1 overflow-auto bg-gray-50">
+            <div className="flex-1 overflow-auto bg-notion-bg">
               {/* 🎯 단일 초점: 캘린더 중심 레이아웃 */}
               <div className="max-w-[1600px] mx-auto p-8">
                 <div className="grid grid-cols-12 gap-8">
                   {/* 중앙: 캘린더 - 주요 초점 영역 (황금 비율: 약 61.8%) */}
                   <div className="col-span-8">
-                    <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+                    <div className="bg-notion-sidebar rounded-2xl shadow-none p-8 border border-notion-border">
                       <CalendarGrid />
                     </div>
                   </div>
                   
                   {/* 우측: 선택된 날짜 정보 (보조 영역: 약 38.2%) */}
                   <div className="col-span-4">
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 sticky top-8">
+                    <div className="bg-notion-sidebar rounded-2xl shadow-none border border-notion-border sticky top-8">
                       <DayDetailPanel />
                     </div>
                   </div>
@@ -216,9 +216,6 @@ export default function MainPage() {
         </div>
       )}
 
-      {/* 목표 생성 모달 */}
-      <GoalModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} />
-      
       {/* 빠른 일정 추가 모달 */}
       <QuickScheduleModal 
         isOpen={isQuickScheduleOpen} 

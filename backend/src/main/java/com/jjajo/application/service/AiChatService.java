@@ -1,5 +1,6 @@
 package com.jjajo.application.service;
 
+import com.jjajo.application.port.in.ParseScheduleUseCase;
 import com.jjajo.application.port.in.ProcessAiChatUseCase;
 import com.jjajo.domain.model.ScheduleRequest;
 import com.jjajo.infrastructure.gemini.GeminiChatAdapter;
@@ -22,8 +23,8 @@ import java.util.regex.Pattern;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AiChatService implements ProcessAiChatUseCase {
-    
+public class AiChatService implements ProcessAiChatUseCase, ParseScheduleUseCase {
+
     private final GeminiChatAdapter geminiChatAdapter;
     
     /**
@@ -97,7 +98,14 @@ public class AiChatService implements ProcessAiChatUseCase {
                     .build();
         }
     }
-    
+
+    @Override
+    public AiChatResponse.ScheduleData parseSchedule(String command, String apiKey) {
+        log.info("매직 바 일정 파싱 요청: {}", command);
+        ScheduleRequest schedule = geminiChatAdapter.parseScheduleWithFunctionCalling(command, apiKey);
+        return AiChatResponse.ScheduleData.from(schedule);
+    }
+
     /**
      * 강화된 프롬프트 생성
      */

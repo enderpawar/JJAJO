@@ -125,10 +125,11 @@
 
 /* 🎯 Vertical Timeline 스타일 (Notion 버전) */
 
-/* 1. 현재 태스크 강조 (Notion 스타일 - 미묘한 강조) */
+/* 1. 현재 태스크 강조 (진행 중 - 다크 테마 조화) */
 .task-card-active {
-  background: rgba(56, 139, 253, 0.1) !important;
-  border: 1px solid rgba(56, 139, 253, 0.4) !important;
+  background: #2a2d33 !important;
+  border: 1px solid rgba(71, 85, 105, 0.4) !important;
+  border-left: 4px solid rgba(148, 163, 184, 0.5) !important;
   box-shadow: none !important;
 }
 

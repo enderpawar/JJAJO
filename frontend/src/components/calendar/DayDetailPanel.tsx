@@ -15,8 +15,13 @@ export default function DayDetailPanel() {
       await deleteSchedule(todo.id)
       deleteTodo(todo.id)
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (msg.includes('찾을 수 없습니다')) {
+        deleteTodo(todo.id)
+        return
+      }
       console.error('일정 삭제 실패:', e)
-      alert(`일정 삭제 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
+      alert(`일정 삭제 실패: ${msg}`)
     }
   }
   const dateStr = formatDate(selectedDate)
@@ -64,7 +69,7 @@ export default function DayDetailPanel() {
             {formatDateWithDay(selectedDate)}
           </h3>
         </div>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-notion-muted">
           {todos.length}개의 일정
         </p>
       </div>
@@ -90,7 +95,7 @@ export default function DayDetailPanel() {
               className={cn(
                 'p-4 rounded-lg border transition-all duration-200',
                 todo.createdBy === 'ai' 
-                  ? 'border-purple-200 bg-purple-50' 
+                  ? 'border-purple-500/30 bg-purple-500/10' 
                   : 'border-notion-border bg-notion-sidebar'
               )}
             >
@@ -109,7 +114,7 @@ export default function DayDetailPanel() {
                       </button>
                       <button 
                         onClick={() => handleDeleteTodo(todo)}
-                        className="p-1 hover:bg-red-50 rounded transition-colors"
+                        className="p-1 hover:bg-red-500/20 rounded transition-colors"
                       >
                         <Trash2 className="w-3 h-3 text-red-500" />
                       </button>
@@ -133,16 +138,16 @@ export default function DayDetailPanel() {
                     
                     <span className={cn(
                       'px-2 py-0.5 rounded-full text-xs',
-                      todo.status === 'completed' && 'bg-green-100 text-green-700',
-                      todo.status === 'in-progress' && 'bg-blue-100 text-blue-700',
+                      todo.status === 'completed' && 'bg-green-500/20 text-green-400',
+                      todo.status === 'in-progress' && 'bg-blue-500/20 text-blue-400',
                       todo.status === 'pending' && 'bg-notion-sidebar text-notion-muted',
-                      todo.status === 'cancelled' && 'bg-red-100 text-red-700'
+                      todo.status === 'cancelled' && 'bg-red-500/20 text-red-400'
                     )}>
                       {getStatusLabel(todo.status)}
                     </span>
                     
                     {todo.createdBy === 'ai' && (
-                      <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                      <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
                         AI
                       </span>
                     )}
