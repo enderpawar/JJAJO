@@ -1,6 +1,6 @@
 # 짜조 
 
-> 클릭한번으로 일정을 캔버스에 시각화하는 Action-oriented AI Agent
+> 클릭한번으로 일정을 타임라인에 시각화하는 Action-oriented AI Agent
 
 ## 🎯 프로젝트 개요
 
