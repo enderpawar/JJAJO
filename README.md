@@ -1,4 +1,4 @@
-# 짜조 
+# JJAJO
 
 > 클릭한번으로 일정을 타임라인에 시각화하는 Action-oriented AI Agent
 
