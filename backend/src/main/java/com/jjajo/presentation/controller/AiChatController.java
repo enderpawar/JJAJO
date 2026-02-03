@@ -1,9 +1,12 @@
 package com.jjajo.presentation.controller;
 
+import com.jjajo.application.port.in.EditScheduleUseCase;
 import com.jjajo.application.port.in.ParseScheduleUseCase;
 import com.jjajo.application.port.in.ProcessAiChatUseCase;
 import com.jjajo.presentation.dto.AiChatRequest;
 import com.jjajo.presentation.dto.AiChatResponse;
+import com.jjajo.presentation.dto.EditScheduleRequest;
+import com.jjajo.presentation.dto.EditScheduleResponse;
 import com.jjajo.presentation.dto.ParseScheduleRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +27,7 @@ public class AiChatController {
 
     private final ProcessAiChatUseCase processAiChatUseCase;
     private final ParseScheduleUseCase parseScheduleUseCase;
+    private final EditScheduleUseCase editScheduleUseCase;
 
     /**
      * AI와 채팅하여 일정 정보 추출
@@ -58,6 +62,31 @@ public class AiChatController {
             return ResponseEntity.ok(schedule);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    /**
+     * 매직 바 대화 모드: 자연어로 일정 수정/삭제 (Gemini Function Calling)
+     * 예: "공부 시간 1시간 늘리고 뒤에 있는 일정 다 취소해줘"
+     */
+    @PostMapping("/edit-schedule")
+    public ResponseEntity<?> editSchedule(
+            @Valid @RequestBody EditScheduleRequest request,
+            @RequestHeader("X-Gemini-API-Key") String apiKey) {
+
+        log.info("대화형 일정 수정 요청: {}", request.getCommand());
+
+        try {
+            EditScheduleResponse response = editScheduleUseCase.editSchedule(
+                    request.getCommand(),
+                    request.getTodos(),
+                    apiKey);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            log.warn("대화형 일정 수정 실패", e);
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage() != null ? e.getMessage() : "일정 수정을 처리하지 못했어요."));
         }
     }
 }

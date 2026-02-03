@@ -1,13 +1,16 @@
 import { useState, useCallback } from 'react'
 import { Wand2, Loader2, Check, Sparkles } from 'lucide-react'
-import { parseAndAddSchedule } from '@/services/magicBarService'
+import { editScheduleByNaturalLanguage } from '@/services/magicBarService'
 
-const PLACEHOLDER = '한 줄로 일정 추가 (예: 내일 오후 3시부터 2시간 동안 팀 프로젝트 회의)'
+/** 모드 전환 없이 추가·수정·삭제 모두 가능한 통합 placeholder */
+const PLACEHOLDER =
+  '일정 추가·수정·삭제 (예: 내일 오후 3시 회의 / 공부 1시간 늘려줘 / 첫 번째 일정 취소해줘)'
 
 export default function MagicBar() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [editMode, setEditMode] = useState(false)
 
   const submit = useCallback(async () => {
     const trimmed = input.trim()
@@ -16,12 +19,15 @@ export default function MagicBar() {
     setLoading(true)
     setMessage(null)
 
-    const result = await parseAndAddSchedule(trimmed)
+    // 모드 전환 없이 항상 통합 API(추가·수정·삭제) 호출
+    const result = await editScheduleByNaturalLanguage(trimmed)
 
     setLoading(false)
     if (result.success) {
       setInput('')
-      setMessage({ type: 'success', text: `"${result.todo.title}" 추가됨` })
+      if ('appliedCount' in result) {
+        setMessage({ type: 'success', text: `${result.appliedCount}개 일정 적용됨` })
+      }
       setTimeout(() => setMessage(null), 3000)
     } else {
       setMessage({ type: 'error', text: result.message })
@@ -50,13 +56,22 @@ export default function MagicBar() {
           focus-within:border-primary-500/50 focus-within:shadow-[0_0_0_2px_rgba(255,107,0,0.15)]
         `}
       >
-        {/* 아이콘 영역: 부드러운 강조 */}
-        <div
-          className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-primary-500/10 text-primary-500"
-          aria-hidden
+        {/* 마법봉: 클릭 시 대화 모드 토글 */}
+        <button
+          type="button"
+          onClick={() => setEditMode((prev) => !prev)}
+          className={`
+            flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200
+            ${editMode
+              ? 'bg-primary-500/20 text-primary-500 ring-2 ring-primary-500/40'
+              : 'bg-primary-500/10 text-primary-500 hover:bg-primary-500/15'
+            }
+          `}
+          aria-pressed={editMode}
+          aria-label={editMode ? '대화형 수정 모드 (끄려면 클릭)' : '대화형 수정 모드 (켜려면 클릭)'}
         >
           <Wand2 className="w-5 h-5" strokeWidth={1.8} />
-        </div>
+        </button>
 
         <input
           type="text"
@@ -66,7 +81,7 @@ export default function MagicBar() {
           placeholder={PLACEHOLDER}
           disabled={loading}
           className="flex-1 min-w-0 py-3 pr-2 bg-transparent text-notion-text placeholder:text-notion-muted/80 text-sm outline-none disabled:opacity-60 placeholder:transition-opacity focus:placeholder:opacity-60"
-          aria-label="한 줄로 일정 추가"
+          aria-label="일정 추가·수정·삭제"
         />
 
         <button
@@ -88,7 +103,7 @@ export default function MagicBar() {
           ) : (
             <Sparkles className="w-4 h-4" aria-hidden />
           )}
-          <span className="hidden sm:inline">{loading ? '처리 중' : '추가'}</span>
+          <span className="hidden sm:inline">{loading ? '처리 중' : editMode ? '적용' : '추가'}</span>
         </button>
       </div>
 

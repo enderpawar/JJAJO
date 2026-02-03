@@ -21,6 +21,7 @@ interface CalendarStore {
   setViewMode: (mode: ViewMode) => void
   setTodos: (todos: Todo[]) => void
   addTodo: (todo: Todo) => void
+  addTodos: (todos: Todo[]) => void
   updateTodo: (id: string, updates: Partial<Todo>) => void
   deleteTodo: (id: string) => void
   clearAllTodos: () => void
@@ -49,7 +50,11 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   addTodo: (todo) => set((state) => ({
     todos: [...state.todos, todo],
   })),
-  
+
+  addTodos: (newTodos) => set((state) => ({
+    todos: [...state.todos, ...newTodos],
+  })),
+
   updateTodo: (id, updates) => set((state) => ({
     todos: state.todos.map((todo) =>
       todo.id === id ? { ...todo, ...updates, updatedAt: new Date().toISOString() } : todo

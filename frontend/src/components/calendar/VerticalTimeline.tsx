@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { updateSchedule, deleteSchedule, createSchedule } from '@/services/scheduleService'
 import { Clock, Edit2, Pencil, Trash2 } from 'lucide-react'
@@ -41,6 +42,8 @@ export function VerticalTimeline() {
   const [renameInputValue, setRenameInputValue] = useState('')
   const [isSavingRename, setIsSavingRename] = useState(false)
   const actionMenuRef = useRef<HTMLDivElement | null>(null)
+  const editButtonRef = useRef<HTMLButtonElement | null>(null)
+  const [menuAnchorRect, setMenuAnchorRect] = useState<{ top: number; left: number; width: number; buttonTop: number } | null>(null)
   const renameInputRef = useRef<HTMLInputElement | null>(null)
   const isDraggingRef = useRef(false)
   const draggingTaskIdRef = useRef<string | null>(null)
@@ -52,13 +55,30 @@ export function VerticalTimeline() {
     if (!editingTodo) return
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node
-      if (actionMenuRef.current && !actionMenuRef.current.contains(target)) {
+      const inButton = editButtonRef.current?.contains(target)
+      const inDropdown = actionMenuRef.current?.contains(target)
+      if (!inButton && !inDropdown) {
         setEditingTodo(null)
         setRenamingTodoId(null)
+        setMenuAnchorRect(null)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [editingTodo])
+
+  useEffect(() => {
+    if (editingTodo && editButtonRef.current) {
+      const rect = editButtonRef.current.getBoundingClientRect()
+      setMenuAnchorRect({
+        top: rect.bottom,
+        left: rect.right,
+        width: rect.width,
+        buttonTop: rect.top,
+      })
+    } else {
+      setMenuAnchorRect(null)
+    }
   }, [editingTodo])
 
   useEffect(() => {
@@ -71,20 +91,22 @@ export function VerticalTimeline() {
   const handleSaveRename = useCallback(async (task: Todo) => {
     const title = renameInputValue.trim()
     if (!title) return
-    setIsSavingRename(true)
+    const previousTitle = task.title
+    // 낙관적 반영: 제목을 바로 UI에 반영하고 입력창 닫기
+    updateTodo(task.id, { title, updatedAt: new Date().toISOString() })
+    setRenamingTodoId(null)
+    setEditingTodo(null)
+    setIsSavingRename(false)
+
+    if (task.id.startsWith('opt-')) return
+
     try {
       const updated = await updateSchedule(task.id, { title })
-      updateTodo(task.id, {
-        ...updated,
-        updatedAt: updated.updatedAt ?? new Date().toISOString(),
-      })
-      setRenamingTodoId(null)
-      setEditingTodo(null)
+      updateTodo(task.id, { updatedAt: updated.updatedAt ?? new Date().toISOString() })
     } catch (e) {
       console.error('이름 변경 실패:', e)
+      updateTodo(task.id, { title: previousTitle })
       alert(`이름 변경 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
-    } finally {
-      setIsSavingRename(false)
     }
   }, [renameInputValue, updateTodo])
 
@@ -362,11 +384,9 @@ export function VerticalTimeline() {
         {isPast && <div className="absolute inset-0 bg-gray-300" />}
         <div className={`relative z-10 ${isPast ? 'p-2' : 'p-4'}`}>
           {!isPast && (
-            <div
-              ref={editingTodo?.id === task.id ? actionMenuRef : undefined}
-              className="absolute top-2 right-2 z-20"
-            >
+            <div className="absolute top-2 right-2 z-20">
               <button
+                ref={editingTodo?.id === task.id ? editButtonRef : undefined}
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation()
@@ -379,69 +399,6 @@ export function VerticalTimeline() {
               >
                 <Edit2 className={`w-4 h-4 ${isCurrent ? 'text-white' : 'text-gray-600 group-hover:text-white'}`} />
               </button>
-              {editingTodo?.id === task.id && (
-                <div
-                  className="absolute top-full right-0 mt-1 min-w-[180px] rounded-lg border border-white/10 bg-[#252525] shadow-xl py-1 z-30"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {renamingTodoId === task.id ? (
-                    <div className="px-3 py-2 space-y-2">
-                      <input
-                        ref={renameInputRef}
-                        type="text"
-                        value={renameInputValue}
-                        onChange={(e) => setRenameInputValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSaveRename(task)
-                          if (e.key === 'Escape') setRenamingTodoId(null)
-                        }}
-                        className="w-full px-2 py-1.5 text-sm text-white bg-white/10 border border-white/20 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
-                        placeholder="제목"
-                      />
-                      <div className="flex gap-1">
-                        <button
-                          type="button"
-                          disabled={isSavingRename || !renameInputValue.trim()}
-                          onClick={() => handleSaveRename(task)}
-                          className="flex-1 py-1.5 text-xs font-medium text-white bg-primary-500 hover:bg-primary-600 disabled:opacity-50 rounded transition-colors"
-                        >
-                          {isSavingRename ? '저장 중…' : '저장'}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isSavingRename}
-                          onClick={() => setRenamingTodoId(null)}
-                          className="flex-1 py-1.5 text-xs font-medium text-gray-300 hover:bg-white/10 rounded transition-colors"
-                        >
-                          취소
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRenamingTodoId(task.id)
-                          setRenameInputValue(task.title)
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-white hover:bg-white/10 transition-colors"
-                      >
-                        <Pencil className="w-4 h-4 text-gray-400" />
-                        이름 변경
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(task)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-white hover:bg-white/10 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4 text-gray-400" />
-                        삭제
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
             </div>
           )}
           {isPast ? (
@@ -554,7 +511,79 @@ export function VerticalTimeline() {
 
         <div className="absolute left-0 right-0 top-0 bg-gray-900/10 pointer-events-none transition-all duration-1000" style={{ height: `${currentTimePosition}px`, zIndex: 2 }} />
       </div>
-      {/* 일정 액션: 이름 변경/삭제는 카드 드롭다운 메뉴로만 사용. EditTodoPanel 모달 사용 안 함 */}
+      {/* 일정 액션 드롭다운: Portal로 body에 렌더링하여 카드 overflow에 잘리지 않음 */}
+      {editingTodo && menuAnchorRect && createPortal(
+        <div
+          ref={actionMenuRef}
+          className="min-w-[180px] rounded-lg border border-white/10 bg-[#252525] shadow-xl py-1 z-[9999]"
+          style={{
+            position: 'fixed',
+            ...(menuAnchorRect.top + 150 > window.innerHeight - 20
+              ? { bottom: window.innerHeight - menuAnchorRect.buttonTop + 4 }
+              : { top: menuAnchorRect.top + 4 }),
+            right: window.innerWidth - menuAnchorRect.left,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {renamingTodoId === editingTodo.id ? (
+            <div className="px-3 py-2 space-y-2">
+              <input
+                ref={renameInputRef}
+                type="text"
+                value={renameInputValue}
+                onChange={(e) => setRenameInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveRename(editingTodo)
+                  if (e.key === 'Escape') setRenamingTodoId(null)
+                }}
+                className="w-full px-2 py-1.5 text-sm text-white bg-white/10 border border-white/20 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
+                placeholder="제목"
+              />
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  disabled={isSavingRename || !renameInputValue.trim()}
+                  onClick={() => handleSaveRename(editingTodo)}
+                  className="flex-1 py-1.5 text-xs font-medium text-white bg-primary-500 hover:bg-primary-600 disabled:opacity-50 rounded transition-colors"
+                >
+                  {isSavingRename ? '저장 중…' : '저장'}
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingRename}
+                  onClick={() => setRenamingTodoId(null)}
+                  className="flex-1 py-1.5 text-xs font-medium text-gray-300 hover:bg-white/10 rounded transition-colors"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setRenamingTodoId(editingTodo.id)
+                  setRenameInputValue(editingTodo.title)
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-white hover:bg-white/10 transition-colors"
+              >
+                <Pencil className="w-4 h-4 text-gray-400" />
+                이름 변경
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDelete(editingTodo)}
+                className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-white hover:bg-white/10 transition-colors"
+              >
+                <Trash2 className="w-4 h-4 text-gray-400" />
+                삭제
+              </button>
+            </>
+          )}
+        </div>,
+        document.body
+      )}
     </div>
   )
 }

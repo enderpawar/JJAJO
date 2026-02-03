@@ -1,12 +1,54 @@
+import { format, addDays, subDays } from 'date-fns'
 import { useApiKeyStore } from '@/stores/apiKeyStore'
+
+/** 타임라인 필터와 맞추기 위해 날짜를 yyyy-MM-dd, 시간을 HH:mm으로 정규화 */
+function normalizeDateStr(s: string | undefined): string {
+  if (!s || typeof s !== 'string') return format(new Date(), 'yyyy-MM-dd')
+  const parts = s.trim().split(/[-/]/).map((p) => p.padStart(2, '0'))
+  if (parts.length >= 3) return `${parts[0]}-${parts[1]}-${parts[2]}`
+  return s
+}
+function normalizeTimeStr(s: string | undefined): string {
+  if (!s || typeof s !== 'string') return '09:00'
+  const parts = s.trim().split(':').map((p) => p.padStart(2, '0'))
+  if (parts.length >= 2) return `${parts[0]}:${parts[1]}`
+  return s.length === 4 ? `0${s}` : s
+}
 import { useCalendarStore } from '@/stores/calendarStore'
-import { createSchedule } from '@/services/scheduleService'
+import { createSchedule, updateSchedule, deleteSchedule } from '@/services/scheduleService'
 import { getApiBase } from '@/utils/api'
 import type { Todo } from '@/types/calendar'
 
 function getParseScheduleUrl(): string {
   const base = getApiBase()
   return base ? `${base}/api/v1/ai/parse-schedule` : '/api/v1/ai/parse-schedule'
+}
+
+function getEditScheduleUrl(): string {
+  const base = getApiBase()
+  return base ? `${base}/api/v1/ai/edit-schedule` : '/api/v1/ai/edit-schedule'
+}
+
+/** API 응답 연산 (백엔드 필드명) */
+interface EditOperationResponse {
+  type: string
+  scheduleId?: string
+  updatePayload?: {
+    title?: string
+    date?: string
+    startTime?: string
+    endTime?: string
+    description?: string
+    status?: string
+    priority?: string
+  }
+  addPayload?: {
+    title?: string
+    date?: string
+    startTime?: string
+    endTime?: string
+    description?: string
+  }
 }
 
 export interface ParsedSchedule {
@@ -73,7 +115,7 @@ export async function parseAndAddSchedule(command: string): Promise<{ success: t
     try {
       const saved = await createSchedule({
         title: schedule.title,
-        description: schedule.description ?? '한 줄 명령으로 추가한 일정',
+        description: schedule.description ?? '',
         date: schedule.date,
         startTime: schedule.startTime ?? undefined,
         endTime: schedule.endTime ?? undefined,
@@ -87,7 +129,7 @@ export async function parseAndAddSchedule(command: string): Promise<{ success: t
       const newTodo: Todo = {
         id: `magic-${Date.now()}`,
         title: schedule.title,
-        description: schedule.description ?? '한 줄 명령으로 추가한 일정',
+        description: schedule.description ?? '',
         date: schedule.date,
         startTime: schedule.startTime,
         endTime: schedule.endTime,
@@ -100,6 +142,185 @@ export async function parseAndAddSchedule(command: string): Promise<{ success: t
       addTodo(newTodo)
       return { success: true, todo: newTodo }
     }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : '네트워크 오류가 났어요.'
+    return { success: false, message }
+  }
+}
+
+const CONTEXT_DAYS = 7
+const MAX_TODOS_CONTEXT = 50
+
+/**
+ * 대화형 일정 수정: 자연어 명령을 보내 연산 목록을 받아 스토어와 API에 반영
+ */
+export async function editScheduleByNaturalLanguage(
+  command: string
+): Promise<{ success: true; appliedCount: number } | { success: false; message: string }> {
+  const { apiKey } = useApiKeyStore.getState()
+  if (!apiKey?.trim()) {
+    return { success: false, message: '설정에서 Gemini API 키를 먼저 입력해주세요.' }
+  }
+
+  const trimmed = command.trim()
+  if (!trimmed) {
+    return { success: false, message: '수정 명령을 입력해주세요.' }
+  }
+
+  const { todos, selectedDate, deleteTodo, updateTodo } = useCalendarStore.getState()
+  const fromDate = subDays(selectedDate, CONTEXT_DAYS)
+  const toDate = addDays(selectedDate, CONTEXT_DAYS)
+
+  const inRange = todos.filter((t) => {
+    if (!t.date) return false
+    return t.date >= format(fromDate, 'yyyy-MM-dd') && t.date <= format(toDate, 'yyyy-MM-dd')
+  })
+
+  const sorted = [...inRange].sort((a, b) => {
+    const d = (a.date || '').localeCompare(b.date || '')
+    if (d !== 0) return d
+    return (a.startTime || '').localeCompare(b.startTime || '')
+  })
+
+  const contextTodos = sorted.slice(0, MAX_TODOS_CONTEXT).map((t) => ({
+    id: t.id,
+    title: t.title,
+    date: t.date,
+    startTime: t.startTime ?? undefined,
+    endTime: t.endTime ?? undefined,
+  }))
+
+  try {
+    const response = await fetch(getEditScheduleUrl(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Gemini-API-Key': apiKey,
+      },
+      body: JSON.stringify({ command: trimmed, todos: contextTodos }),
+      credentials: 'include',
+    })
+
+    if (!response.ok) {
+      const errText = await response.text()
+      let message = '명령을 이해하지 못했어요.'
+      if (response.status === 404) {
+        message = '일정 수정 API를 찾을 수 없어요. 백엔드(Spring)를 재시작한 뒤 다시 시도해 주세요.'
+      } else if (response.status === 401) {
+        message = '로그인이 필요해요.'
+      } else {
+        try {
+          const errJson = JSON.parse(errText)
+          if (errJson.message) message = errJson.message
+        } catch {
+          // keep default message
+        }
+      }
+      return { success: false, message }
+    }
+
+    const contentType = response.headers.get('content-type') ?? ''
+    if (!contentType.includes('application/json')) {
+      return { success: false, message: '서버 응답 형식이 올바르지 않아요. 로그인 후 다시 시도해주세요.' }
+    }
+
+    let data: { operations?: EditOperationResponse[]; message?: string }
+    try {
+      data = await response.json()
+    } catch {
+      return { success: false, message: '서버 응답을 읽지 못했어요.' }
+    }
+
+    const operations = data.operations ?? []
+    if (operations.length === 0) {
+      return {
+        success: false,
+        message: data.message ?? '해당하는 일정이 없거나 변경할 내용이 없습니다.',
+      }
+    }
+
+    const adds = operations.filter((o) => String(o.type).toLowerCase() === 'add')
+    const deletes = operations.filter((o) => String(o.type).toLowerCase() === 'delete')
+    const updates = operations.filter((o) => String(o.type).toLowerCase() === 'update')
+
+    for (const op of deletes) {
+      const id = op.scheduleId
+      if (!id) continue
+      deleteTodo(id)
+      try {
+        await deleteSchedule(id)
+      } catch {
+        // 스토어는 이미 반영
+      }
+    }
+
+    for (const op of updates) {
+      const id = op.scheduleId
+      const payload = op.updatePayload
+      if (!id) continue
+      const updatesOnly: Partial<Todo> = {}
+      // API가 null/빈 값을 보내면 '기존 값 유지'. 기본값(09:00)으로 덮어쓰지 않음.
+      if (payload?.title != null && payload.title !== '') updatesOnly.title = payload.title
+      if (payload?.date != null && payload.date !== '') updatesOnly.date = normalizeDateStr(payload.date)
+      if (payload?.startTime != null && payload.startTime !== '') updatesOnly.startTime = normalizeTimeStr(payload.startTime)
+      if (payload?.endTime != null && payload.endTime !== '') updatesOnly.endTime = normalizeTimeStr(payload.endTime)
+      if (payload?.description != null && payload.description !== '') updatesOnly.description = payload.description
+      if (payload?.status != null && payload.status !== '') updatesOnly.status = payload.status as Todo['status']
+      if (payload?.priority != null && payload.priority !== '') updatesOnly.priority = payload.priority as Todo['priority']
+      if (Object.keys(updatesOnly).length === 0) continue
+      updateTodo(id, updatesOnly)
+      try {
+        await updateSchedule(id, updatesOnly)
+      } catch {
+        // 스토어는 이미 반영
+      }
+    }
+
+    const dateNorm = (p: typeof adds[0]['addPayload']) => normalizeDateStr(p?.date)
+    const startNorm = (p: typeof adds[0]['addPayload']) => normalizeTimeStr(p?.startTime)
+    const endNorm = (p: typeof adds[0]['addPayload']) => normalizeTimeStr(p?.endTime)
+
+    const addedTodos: Todo[] = []
+    for (const op of adds) {
+      const payload = op.addPayload
+      if (!payload?.title || !payload?.date || !payload?.startTime || !payload?.endTime) continue
+      const date = dateNorm(payload)
+      const startTime = startNorm(payload)
+      const endTime = endNorm(payload)
+      try {
+        const saved = await createSchedule({
+          title: payload.title,
+          description: payload.description ?? '',
+          date,
+          startTime,
+          endTime,
+          status: 'pending',
+          priority: 'medium',
+          createdBy: 'ai',
+        })
+        addedTodos.push({ ...saved, date: normalizeDateStr(saved.date), startTime: saved.startTime ? normalizeTimeStr(saved.startTime) : startTime, endTime: saved.endTime ? normalizeTimeStr(saved.endTime) : endTime })
+      } catch {
+        addedTodos.push({
+          id: `magic-add-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          title: payload.title,
+          description: payload.description,
+          date,
+          startTime,
+          endTime,
+          status: 'pending',
+          priority: 'medium',
+          createdBy: 'ai',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      }
+    }
+    if (addedTodos.length > 0) {
+      useCalendarStore.getState().addTodos(addedTodos)
+    }
+
+    const appliedCount = adds.length + deletes.length + updates.length
+    return { success: true, appliedCount }
   } catch (e) {
     const message = e instanceof Error ? e.message : '네트워크 오류가 났어요.'
     return { success: false, message }

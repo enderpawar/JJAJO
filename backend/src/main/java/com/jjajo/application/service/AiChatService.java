@@ -1,11 +1,14 @@
 package com.jjajo.application.service;
 
+import com.jjajo.application.port.in.EditScheduleUseCase;
 import com.jjajo.application.port.in.ParseScheduleUseCase;
 import com.jjajo.application.port.in.ProcessAiChatUseCase;
 import com.jjajo.domain.model.ScheduleRequest;
 import com.jjajo.infrastructure.gemini.GeminiChatAdapter;
 import com.jjajo.presentation.dto.AiChatRequest;
 import com.jjajo.presentation.dto.AiChatResponse;
+import com.jjajo.presentation.dto.EditScheduleResponse;
+import com.jjajo.presentation.dto.ScheduleItemForEdit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -23,7 +27,7 @@ import java.util.regex.Pattern;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AiChatService implements ProcessAiChatUseCase, ParseScheduleUseCase {
+public class AiChatService implements ProcessAiChatUseCase, ParseScheduleUseCase, EditScheduleUseCase {
 
     private final GeminiChatAdapter geminiChatAdapter;
     
@@ -104,6 +108,19 @@ public class AiChatService implements ProcessAiChatUseCase, ParseScheduleUseCase
         log.info("매직 바 일정 파싱 요청: {}", command);
         ScheduleRequest schedule = geminiChatAdapter.parseScheduleWithFunctionCalling(command, apiKey);
         return AiChatResponse.ScheduleData.from(schedule);
+    }
+
+    @Override
+    public EditScheduleResponse editSchedule(String command, List<ScheduleItemForEdit> todos, String apiKey) {
+        log.info("대화형 일정 수정 요청: {}", command);
+        var operations = geminiChatAdapter.editScheduleWithFunctionCalling(command, todos, apiKey);
+        String message = operations.isEmpty()
+                ? "해당하는 일정이 없거나 변경할 내용이 없습니다."
+                : null;
+        return EditScheduleResponse.builder()
+                .operations(operations)
+                .message(message)
+                .build();
     }
 
     /**
