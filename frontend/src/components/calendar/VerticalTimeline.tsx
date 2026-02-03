@@ -43,6 +43,8 @@ export function VerticalTimeline() {
   const actionMenuRef = useRef<HTMLDivElement | null>(null)
   const renameInputRef = useRef<HTMLInputElement | null>(null)
   const isDraggingRef = useRef(false)
+  const draggingTaskIdRef = useRef<string | null>(null)
+  const pendingReplaceRef = useRef<{ tempId: string; created: Todo } | null>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
   const hasAutoScrolled = useRef(false)
 
@@ -231,8 +233,12 @@ export function VerticalTimeline() {
         createdBy: 'user',
       })
         .then((created) => {
-          deleteTodo(tempId)
-          addTodo(created)
+          if (isDraggingRef.current && draggingTaskIdRef.current === tempId) {
+            pendingReplaceRef.current = { tempId, created }
+          } else {
+            deleteTodo(tempId)
+            addTodo(created)
+          }
         })
         .catch((err) => {
           deleteTodo(tempId)
@@ -297,7 +303,10 @@ export function VerticalTimeline() {
         dragElastic={0}
         dragMomentum={false}
         whileDrag={{ scale: 1.05, zIndex: 100, cursor: 'grabbing' }}
-        onDragStart={() => { isDraggingRef.current = true }}
+        onDragStart={() => {
+          isDraggingRef.current = true
+          draggingTaskIdRef.current = task.id
+        }}
         onDrag={(_, info) => {
           const newStartPixel = Math.max(0, Math.min(timelineHeight - (endPixel - startPixel), startPixel + info.offset.y))
           setDragPreview({
@@ -310,15 +319,29 @@ export function VerticalTimeline() {
           setDragPreview(null)
           let newStartPixel = Math.max(0, Math.min(timelineHeight - (endPixel - startPixel), startPixel + info.offset.y))
           const newEndPixel = newStartPixel + (endPixel - startPixel)
-          if (newStartPixel < 0 || newEndPixel > timelineHeight) {
-            setTimeout(() => { isDraggingRef.current = false }, 100)
-            return
-          }
           const newStart = pixelToTime(newStartPixel)
           const newEnd = pixelToTime(newEndPixel)
+
+          if (pendingReplaceRef.current && pendingReplaceRef.current.tempId === task.id) {
+            const { created } = pendingReplaceRef.current
+            const tempIdToRemove = task.id
+            pendingReplaceRef.current = null
+            updateTodo(tempIdToRemove, { startTime: newStart, endTime: newEnd })
+            setTimeout(() => {
+              deleteTodo(tempIdToRemove)
+              addTodo({ ...created, startTime: newStart, endTime: newEnd })
+              updateSchedule(created.id, { startTime: newStart, endTime: newEnd }).catch(() => {})
+            }, 0)
+            setTimeout(() => { isDraggingRef.current = false; draggingTaskIdRef.current = null }, 100)
+            return
+          }
+          if (newStartPixel < 0 || newEndPixel > timelineHeight) {
+            setTimeout(() => { isDraggingRef.current = false; draggingTaskIdRef.current = null }, 100)
+            return
+          }
           updateTodo(task.id, { startTime: newStart, endTime: newEnd })
           updateSchedule(task.id, { startTime: newStart, endTime: newEnd }).catch(() => {})
-          setTimeout(() => { isDraggingRef.current = false }, 100)
+          setTimeout(() => { isDraggingRef.current = false; draggingTaskIdRef.current = null }, 100)
         }}
       >
         {dragPreview && dragPreview.taskId === task.id && (
