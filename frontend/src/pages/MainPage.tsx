@@ -1,11 +1,16 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { Calendar, Clock } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import AiTodosSidebar from '@/components/calendar/AiTodosSidebar'
 import DayDetailPanel from '@/components/calendar/DayDetailPanel'
+import DayPlannerView from '@/components/calendar/DayPlannerView'
 import { useCalendarStore } from '@/stores/calendarStore'
 
+type DisplayMode = 'calendar' | 'planner'
+
 export default function MainPage() {
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('planner')
   // 테스트용 더미 데이터
   useEffect(() => {
     const { todos, addTodo } = useCalendarStore.getState()
@@ -87,15 +92,45 @@ export default function MainPage() {
       <Header />
       
       <main className="flex-1 max-w-screen-2xl w-full mx-auto p-6">
-        <div className="flex gap-6 h-[calc(100vh-120px)]">
+        {/* View mode toggle */}
+        <div className="mb-4 flex gap-2">
+          <button
+            onClick={() => setDisplayMode('calendar')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              displayMode === 'calendar'
+                ? 'bg-primary-500 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>캘린더 뷰</span>
+          </button>
+          <button
+            onClick={() => setDisplayMode('planner')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              displayMode === 'planner'
+                ? 'bg-primary-500 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>플래너 뷰</span>
+          </button>
+        </div>
+        
+        <div className="flex gap-6 h-[calc(100vh-180px)]">
           {/* 좌측: AI 일정 사이드바 */}
           <AiTodosSidebar />
           
-          {/* 중앙: 캘린더 그리드 */}
-          <CalendarGrid />
+          {/* 중앙: 캘린더 그리드 또는 플래너 뷰 */}
+          {displayMode === 'calendar' ? (
+            <CalendarGrid />
+          ) : (
+            <DayPlannerView />
+          )}
           
-          {/* 우측: 일일 일정 상세 */}
-          <DayDetailPanel />
+          {/* 우측: 일일 일정 상세 (캘린더 뷰일 때만) */}
+          {displayMode === 'calendar' && <DayDetailPanel />}
         </div>
       </main>
     </div>
