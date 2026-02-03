@@ -1,4 +1,4 @@
-import { Sparkles, Key, Settings, LogOut } from 'lucide-react'
+import { Sparkles, Key, Settings } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useApiKeyStore } from '@/stores/apiKeyStore'
 

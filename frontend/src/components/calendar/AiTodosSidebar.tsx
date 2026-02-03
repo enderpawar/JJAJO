@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { Sparkles, Plus, Clock, CheckCircle2, Circle } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
-import { cn } from '@/utils/cn'
 import type { Todo } from '@/types/calendar'
 import AddTodoModal from './AddTodoModal'
 
 export default function AiTodosSidebar() {
-  const { getAiTodos, selectedDate, setSelectedDate } = useCalendarStore()
+  const { getAiTodos, setSelectedDate } = useCalendarStore()
   const aiTodos = getAiTodos()
   const [isModalOpen, setIsModalOpen] = useState(false)
   
