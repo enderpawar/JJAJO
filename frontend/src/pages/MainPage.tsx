@@ -9,6 +9,12 @@ import { useCalendarStore } from '@/stores/calendarStore'
 
 type DisplayMode = 'calendar' | 'planner'
 
+// Layout constants
+const HEADER_HEIGHT = 60 // Header component height in px
+const MAIN_PADDING = 24 // Top and bottom padding in main (6 * 4px)
+const VIEW_TOGGLE_HEIGHT = 48 // Height of view toggle buttons section in px
+const TOTAL_OFFSET = HEADER_HEIGHT + MAIN_PADDING + VIEW_TOGGLE_HEIGHT
+
 export default function MainPage() {
   const [displayMode, setDisplayMode] = useState<DisplayMode>('planner')
   // 테스트용 더미 데이터
@@ -118,7 +124,7 @@ export default function MainPage() {
           </button>
         </div>
         
-        <div className="flex gap-6 h-[calc(100vh-180px)]">
+        <div className="flex gap-6" style={{ height: `calc(100vh - ${TOTAL_OFFSET}px)` }}>
           {/* 좌측: AI 일정 사이드바 */}
           <AiTodosSidebar />
           

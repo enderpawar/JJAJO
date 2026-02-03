@@ -74,16 +74,27 @@ className={cn(
 - Disabled state on action buttons
 
 ### 4. Operation Timing
-Each operation has a 100ms cooldown period:
+Each operation has a ${PENDING_OPERATION_DELAY}ms cooldown period:
 
 ```typescript
+const PENDING_OPERATION_DELAY = 100 // milliseconds
+
 addTodo(newTodo)
 setTimeout(() => {
   markComplete(newId)
-}, 100)
+}, PENDING_OPERATION_DELAY)
 ```
 
 This ensures the state update propagates before allowing further edits.
+
+### 5. Robust ID Generation
+Uses `crypto.randomUUID()` for collision-resistant unique IDs:
+
+```typescript
+const newId = crypto.randomUUID() // e.g., "123e4567-e89b-12d3-a456-426614174000"
+```
+
+This prevents ID collisions even when creating multiple schedules in rapid succession.
 
 ## Files Modified
 

@@ -8,6 +8,7 @@ import type { Todo } from '@/types/calendar'
 // Time slot configuration
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 const SLOT_HEIGHT = 60 // pixels per hour
+const PENDING_OPERATION_DELAY = 100 // milliseconds to wait for state synchronization
 
 export default function DayPlannerView() {
   const { selectedDate, getTodosByDate, addTodo, updateTodo, deleteTodo } = useCalendarStore()
@@ -45,7 +46,8 @@ export default function DayPlannerView() {
     const startTime = `${String(currentHour).padStart(2, '0')}:00`
     const endTime = `${String(currentHour + 1).padStart(2, '0')}:00`
     
-    const newId = `todo-${Date.now()}`
+    // Use crypto.randomUUID for robust unique ID generation
+    const newId = crypto.randomUUID()
     
     // Mark as pending immediately
     markPending(newId)
@@ -63,13 +65,13 @@ export default function DayPlannerView() {
       updatedAt: new Date().toISOString(),
     }
     
-    // Add todo with a slight delay to simulate async operation
+    // Add todo to store
     addTodo(newTodo)
     
-    // Mark as complete after a short delay to prevent immediate editing
+    // Wait for state synchronization before allowing edits
     setTimeout(() => {
       markComplete(newId)
-    }, 100)
+    }, PENDING_OPERATION_DELAY)
   }
   
   // Handle title edit
@@ -91,7 +93,7 @@ export default function DayPlannerView() {
     if (editingId && editingTitle.trim()) {
       markPending(editingId)
       updateTodo(editingId, { title: editingTitle.trim() })
-      setTimeout(() => markComplete(editingId), 100)
+      setTimeout(() => markComplete(editingId), PENDING_OPERATION_DELAY)
     }
     setEditingId(null)
     setEditingTitle('')
@@ -155,11 +157,11 @@ export default function DayPlannerView() {
     
     updateTodo(todoId, { startTime, endTime })
     
-    // Mark as complete after short delay
+    // Wait for state synchronization before allowing further edits
     setTimeout(() => {
       markComplete(todoId)
       setDraggingId(null)
-    }, 100)
+    }, PENDING_OPERATION_DELAY)
   }
   
   const handleDragEnd = () => {
