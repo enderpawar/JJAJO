@@ -34,7 +34,6 @@ export function GoalsAndBackwardsPlanSection() {
   const updateGoal = useGoalStore((state) => state.updateGoal)
   const deleteGoal = useGoalStore((state) => state.deleteGoal)
   const userSettings = useSettingsStore((state) => state.settings)
-  const getActiveGoals = useGoalStore((state) => state.getActiveGoals)
 
   const {
     isOpen: planModalOpen,

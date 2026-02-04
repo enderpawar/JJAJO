@@ -1,5 +1,7 @@
 import { format, addDays, subDays } from 'date-fns'
 import { useApiKeyStore } from '@/stores/apiKeyStore'
+import { useSettingsStore } from '@/stores/settingsStore'
+import { suggestSchedulePlacement, timeToMinutes, minutesToTime } from '@/utils/scheduleUtils'
 
 /** 타임라인 필터와 맞추기 위해 날짜를 yyyy-MM-dd, 시간을 HH:mm으로 정규화 */
 function normalizeDateStr(s: string | undefined): string {
@@ -182,7 +184,8 @@ export async function editScheduleByNaturalLanguage(
     return (a.startTime || '').localeCompare(b.startTime || '')
   })
 
-  const contextTodos = sorted.slice(0, MAX_TODOS_CONTEXT).map((t) => ({
+  const contextTodos = sorted.slice(0, MAX_TODOS_CONTEXT).map((t, idx) => ({
+    order: idx + 1,
     id: t.id,
     title: t.title,
     date: t.date,
@@ -243,10 +246,15 @@ export async function editScheduleByNaturalLanguage(
     const deletes = operations.filter((o) => String(o.type).toLowerCase() === 'delete')
     const updates = operations.filter((o) => String(o.type).toLowerCase() === 'update')
 
+    let appliedDeletes = 0
+    let appliedUpdates = 0
+    let appliedAdds = 0
+
     for (const op of deletes) {
       const id = op.scheduleId
       if (!id) continue
       deleteTodo(id)
+      appliedDeletes += 1
       try {
         await deleteSchedule(id)
       } catch {
@@ -269,6 +277,7 @@ export async function editScheduleByNaturalLanguage(
       if (payload?.priority != null && payload.priority !== '') updatesOnly.priority = payload.priority as Todo['priority']
       if (Object.keys(updatesOnly).length === 0) continue
       updateTodo(id, updatesOnly)
+      appliedUpdates += 1
       try {
         await updateSchedule(id, updatesOnly)
       } catch {
@@ -283,10 +292,46 @@ export async function editScheduleByNaturalLanguage(
     const addedTodos: Todo[] = []
     for (const op of adds) {
       const payload = op.addPayload
-      if (!payload?.title || !payload?.date || !payload?.startTime || !payload?.endTime) continue
-      const date = dateNorm(payload)
-      const startTime = startNorm(payload)
-      const endTime = endNorm(payload)
+      if (!payload?.title) continue
+      const date = payload?.date ? dateNorm(payload) : format(selectedDate, 'yyyy-MM-dd')
+
+      // A) 시간 미지정이면 선호 시간대+빈 슬롯으로 자동 보완
+      let startTime = payload?.startTime ? startNorm(payload) : undefined
+      let endTime = payload?.endTime ? endNorm(payload) : undefined
+
+      if (!startTime || !endTime) {
+        const { settings } = useSettingsStore.getState()
+        const existingForSuggest = useCalendarStore.getState().todos
+        const DEFAULT_DURATION_MINUTES = 60
+
+        const durationMinutes = (() => {
+          if (startTime && endTime) return Math.max(10, timeToMinutes(endTime) - timeToMinutes(startTime))
+          return DEFAULT_DURATION_MINUTES
+        })()
+
+        const suggestion = suggestSchedulePlacement(
+          date,
+          durationMinutes,
+          existingForSuggest,
+          settings.timeSlotPreferences,
+          false
+        )
+
+        if (suggestion.suggestion) {
+          startTime = suggestion.suggestion.startTime
+          endTime = suggestion.suggestion.endTime
+        } else if (startTime && !endTime) {
+          endTime = minutesToTime(timeToMinutes(startTime) + durationMinutes)
+        } else if (!startTime && endTime) {
+          startTime = minutesToTime(Math.max(0, timeToMinutes(endTime) - durationMinutes))
+        } else {
+          // 최후의 기본값
+          startTime = '09:00'
+          endTime = '10:00'
+        }
+      }
+
+      if (!startTime || !endTime) continue
       try {
         const saved = await createSchedule({
           title: payload.title,
@@ -299,6 +344,7 @@ export async function editScheduleByNaturalLanguage(
           createdBy: 'ai',
         })
         addedTodos.push({ ...saved, date: normalizeDateStr(saved.date), startTime: saved.startTime ? normalizeTimeStr(saved.startTime) : startTime, endTime: saved.endTime ? normalizeTimeStr(saved.endTime) : endTime })
+        appliedAdds += 1
       } catch {
         addedTodos.push({
           id: `magic-add-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -313,13 +359,15 @@ export async function editScheduleByNaturalLanguage(
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
+        appliedAdds += 1
       }
     }
     if (addedTodos.length > 0) {
       useCalendarStore.getState().addTodos(addedTodos)
     }
 
-    const appliedCount = adds.length + deletes.length + updates.length
+    // C) 실제 적용된(스토어 반영된) 건수만 카운트
+    const appliedCount = appliedAdds + appliedDeletes + appliedUpdates
     return { success: true, appliedCount }
   } catch (e) {
     const message = e instanceof Error ? e.message : '네트워크 오류가 났어요.'

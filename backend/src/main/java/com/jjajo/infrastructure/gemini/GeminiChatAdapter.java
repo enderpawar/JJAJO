@@ -318,7 +318,8 @@ public class GeminiChatAdapter {
             String today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
             StringBuilder scheduleList = new StringBuilder();
             for (ScheduleItemForEdit t : todos) {
-                scheduleList.append(String.format("  id=%s title=%s date=%s startTime=%s endTime=%s%n",
+                scheduleList.append(String.format("  #%s id=%s title=%s date=%s startTime=%s endTime=%s%n",
+                        t.getOrder() != null ? t.getOrder() : "",
                         t.getId(), t.getTitle() != null ? t.getTitle() : "",
                         t.getDate() != null ? t.getDate() : "",
                         t.getStartTime() != null ? t.getStartTime() : "",
@@ -328,6 +329,7 @@ public class GeminiChatAdapter {
             String prompt = String.format("""
                 오늘 날짜는 %s 입니다.
                 아래는 사용자의 현재 일정 목록입니다. 기존 일정 수정/삭제 시 반드시 이 목록에 있는 id만 사용하세요.
+                - 사용자가 "첫 번째/두 번째/세 번째"처럼 말하면, 아래 목록의 #번호(순서)를 기준으로 해당 id를 찾아 사용하세요.
                 일정 목록:
                 %s
                 사용자 명령: %s
@@ -356,6 +358,10 @@ public class GeminiChatAdapter {
                 "end_time", Map.of(
                     "type", "string",
                     "description", "종료 시간 HH:mm. add일 때 필수, update일 때 선택"
+                ),
+                "duration_minutes", Map.of(
+                    "type", "integer",
+                    "description", "add에서만 사용 가능. end_time을 못 정하면 소요시간(분)으로 넣으세요. 예: 2시간=120"
                 ),
                 "title", Map.of(
                     "type", "string",
@@ -463,7 +469,8 @@ public class GeminiChatAdapter {
                     String date = getString(edit, "date");
                     String startTime = getString(edit, "start_time");
                     String endTime = getString(edit, "end_time");
-                    if (title == null || date == null || startTime == null || endTime == null) continue;
+                    // start/end는 누락될 수 있음(프론트에서 자동 보완). title/date는 최소 필요.
+                    if (title == null || date == null) continue;
                     ScheduleUpdateRequest addPayload = ScheduleUpdateRequest.builder()
                             .title(title)
                             .date(date)

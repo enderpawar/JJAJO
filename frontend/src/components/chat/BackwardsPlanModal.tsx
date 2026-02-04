@@ -17,7 +17,7 @@ interface BackwardsPlanModalProps {
   result?: BackwardsPlanResult
   onClose: () => void
   onSubmit: () => void
-  onFormChange: (updates: Partial<{ goalText: string; preferredDailyHours: number | '' }>) => void
+  onFormChange: (updates: Partial<{ preferredDailyHours: number | ''; totalHours: number | '' }>) => void
   onApply?: () => void
 }
 
