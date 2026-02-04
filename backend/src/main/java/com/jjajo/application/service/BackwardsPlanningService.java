@@ -10,6 +10,7 @@ import com.jjajo.presentation.dto.BackwardsPlanRequest;
 import com.jjajo.presentation.dto.BackwardsPlanResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -46,6 +47,9 @@ public class BackwardsPlanningService {
     private final GeminiChatAdapter geminiChatAdapter;
     private final GoalSchedulingService goalSchedulingService;
     private final ObjectMapper objectMapper;
+
+    @Value("${agent.log.path:}")
+    private String agentLogPath;
 
     /**
      * 역계산 계획 생성
@@ -625,8 +629,19 @@ public class BackwardsPlanningService {
         try {
             String payload = String.format("{\"sessionId\":\"debug-session\",\"runId\":\"pre-fix\",\"hypothesisId\":\"%s\",\"location\":\"%s\",\"message\":\"%s\",\"data\":%s,\"timestamp\":%d}%n",
                     hypothesisId, location, message, dataJson, System.currentTimeMillis());
-            Files.writeString(Path.of("c:\\Users\\jinwoo\\OneDrive\\바탕 화면\\프로젝트\\JJAJO\\.cursor\\debug.log"),
-                    payload, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+
+            if (!StringUtils.hasText(agentLogPath)) {
+                log.debug("agentLog skipped (no path configured): hypothesisId={}, location={}, message={}, data={}",
+                        hypothesisId, location, message, dataJson);
+                return;
+            }
+
+            Path path = Path.of(agentLogPath);
+            Path parent = path.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.writeString(path, payload, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (Exception ignored) {
         }
     }

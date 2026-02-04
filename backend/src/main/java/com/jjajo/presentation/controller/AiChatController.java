@@ -14,6 +14,7 @@ import com.jjajo.presentation.dto.BackwardsPlanResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,6 +36,9 @@ public class AiChatController {
     private final ParseScheduleUseCase parseScheduleUseCase;
     private final EditScheduleUseCase editScheduleUseCase;
     private final BackwardsPlanningService backwardsPlanningService;
+
+    @Value("${agent.log.path:}")
+    private String agentLogPath;
 
     /**
      * AI와 채팅하여 일정 정보 추출
@@ -132,8 +136,19 @@ public class AiChatController {
         try {
             String payload = String.format("{\"sessionId\":\"debug-session\",\"runId\":\"pre-fix\",\"hypothesisId\":\"%s\",\"location\":\"%s\",\"message\":\"%s\",\"data\":%s,\"timestamp\":%d}%n",
                     hypothesisId, location, message, dataJson, System.currentTimeMillis());
-            Files.writeString(Path.of("c:\\Users\\jinwoo\\OneDrive\\바탕 화면\\프로젝트\\JJAJO\\.cursor\\debug.log"),
-                    payload, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+
+            if (agentLogPath == null || agentLogPath.isBlank()) {
+                log.debug("agentLog skipped (no path configured): hypothesisId={}, location={}, message={}, data={}",
+                        hypothesisId, location, message, dataJson);
+                return;
+            }
+
+            Path path = Path.of(agentLogPath);
+            Path parent = path.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.writeString(path, payload, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (Exception ignored) {
         }
     }
