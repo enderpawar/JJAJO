@@ -23,10 +23,11 @@ function timeToMinutes(timeStr: string): number {
   return h * 60 + m
 }
 
-/** 분 → HH:mm */
+/** 분 → HH:mm (24:00 = 당일 종료 허용) */
 function minutesToTimeStr(totalMinutes: number): string {
   const h = Math.floor(totalMinutes / 60)
   const m = Math.round(totalMinutes % 60)
+  if (h >= 24 && m === 0) return '24:00'
   const hours = Math.min(23, Math.max(0, h))
   const minutes = Math.min(59, Math.max(0, m))
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
@@ -145,7 +146,7 @@ export function VerticalTimeline() {
     let minutes = Math.round(totalMinutes % 60)
     minutes = Math.round(minutes / 10) * 10
     if (minutes === 60) { hours += 1; minutes = 0 }
-    if (hours >= 24) { hours = 23; minutes = 50 }
+    if (hours >= 24) return '24:00'
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
   }, [])
 
@@ -483,15 +484,19 @@ export function VerticalTimeline() {
       >
         {/* 그리드 레이어: 클릭은 부모(타임라인 컨테이너)로 전달되도록 pointer-events-none */}
         <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
-          {Array.from({ length: 24 }, (_, i) => {
+          {Array.from({ length: 25 }, (_, i) => {
             if (!showPastTime && i < Math.floor(currentTimePosition / 100)) return null
+            const is24 = i === 24
+            const topPx = i * 100
             return (
               <div key={i}>
-                <div className="absolute left-0 right-0 border-t border-[#373737]" style={{ top: `${i * 100}px` }}>
-                  <div className="absolute left-4 -top-3 text-xs text-white/40 bg-[#191919] px-2" style={{ zIndex: 5 }}>{String(i).padStart(2, '0')}:00</div>
+                <div className="absolute left-0 right-0 border-t border-[#373737]" style={{ top: `${topPx}px` }}>
+                  <div className="absolute left-4 -top-3 text-xs text-white/40 bg-[#191919] px-2" style={{ zIndex: 5 }}>
+                    {is24 ? '24:00' : `${String(i).padStart(2, '0')}:00`}
+                  </div>
                 </div>
-                {i < 23 && (
-                  <div className="absolute left-0 right-0 border-t border-dashed border-[#373737]/50" style={{ top: `${i * 100 + 50}px` }}>
+                {!is24 && (
+                  <div className="absolute left-0 right-0 border-t border-dashed border-[#373737]/50" style={{ top: `${topPx + 50}px` }}>
                     <div className="absolute left-4 -top-2 text-[10px] text-white/20 bg-[#191919] px-1.5" style={{ zIndex: 5 }}>{String(i).padStart(2, '0')}:30</div>
                   </div>
                 )}
