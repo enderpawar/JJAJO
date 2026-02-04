@@ -70,7 +70,7 @@ export default function DayDetailPanel() {
           </h3>
         </div>
         <p className="text-sm text-notion-muted">
-          {todos.length}개의 일정
+          <span className={todos.length > 0 ? 'text-primary-400 font-medium' : ''}>{todos.length}개</span>의 일정
         </p>
       </div>
       
@@ -78,10 +78,10 @@ export default function DayDetailPanel() {
       <div className="flex-1 overflow-y-auto space-y-3 mb-4">
         {todos.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-notion-hover rounded-full flex items-center justify-center mx-auto mb-3">
-              <Calendar className="w-8 h-8 text-notion-muted" />
+            <div className="w-16 h-16 bg-primary-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Calendar className="w-8 h-8 text-primary-500/80" />
             </div>
-            <p className="text-sm text-notion-muted">
+            <p className="text-sm font-medium text-notion-text">
               등록된 일정이 없습니다
             </p>
             <p className="text-xs text-notion-muted mt-1">
@@ -95,7 +95,7 @@ export default function DayDetailPanel() {
               className={cn(
                 'p-4 rounded-lg border transition-all duration-200',
                 todo.createdBy === 'ai' 
-                  ? 'border-purple-500/30 bg-purple-500/10' 
+                  ? 'border-primary-500/30 bg-primary-500/10' 
                   : 'border-notion-border bg-notion-sidebar'
               )}
             >
@@ -139,7 +139,7 @@ export default function DayDetailPanel() {
                     <span className={cn(
                       'px-2 py-0.5 rounded-full text-xs',
                       todo.status === 'completed' && 'bg-green-500/20 text-green-400',
-                      todo.status === 'in-progress' && 'bg-blue-500/20 text-blue-400',
+                      todo.status === 'in-progress' && 'bg-primary-500/20 text-primary-400',
                       todo.status === 'pending' && 'bg-notion-sidebar text-notion-muted',
                       todo.status === 'cancelled' && 'bg-red-500/20 text-red-400'
                     )}>
@@ -147,7 +147,7 @@ export default function DayDetailPanel() {
                     </span>
                     
                     {todo.createdBy === 'ai' && (
-                      <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
+                      <span className="px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-400">
                         AI
                       </span>
                     )}

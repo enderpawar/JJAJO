@@ -122,19 +122,22 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
           aria-modal="true"
           onClick={(e) => e.target === e.currentTarget && setIsSettingsOpen(false)}
         >
-          <div className="bg-notion-card rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="bg-notion-sidebar rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* 헤더 */}
-            <div className="sticky top-0 bg-notion-card border-b border-notion-border px-6 py-4 flex items-center justify-between">
+            <div className="sticky top-0 bg-notion-sidebar border-b border-notion-border px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Settings className="w-5 h-5 text-notion-text-primary" />
-                <h2 className="text-lg font-semibold text-notion-text-primary">설정</h2>
+                <Settings className="w-5 h-5 text-notion-text" />
+                <h2 className="text-lg font-semibold text-notion-text">설정</h2>
               </div>
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(false)}
                 className="p-1.5 hover:bg-notion-hover rounded-notion transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5 text-notion-text-secondary" />
+                <X className="w-5 h-5 text-notion-muted" />
               </button>
             </div>
             

@@ -8,11 +8,14 @@ export interface TimeSlotPreference {
   enabled: boolean
 }
 
+export type WeekdayCode = 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN'
+
 export interface UserSettings {
   timeSlotPreferences: TimeSlotPreference[]
   workStartTime: string // "09:00"
   workEndTime: string // "18:00"
   breakDuration: number // minutes
+  daysOff: WeekdayCode[]
 }
 
 export const DEFAULT_TIME_SLOTS: TimeSlotPreference[] = [
@@ -51,4 +54,16 @@ export const TIME_SLOT_LABELS: Record<TimeSlotPeriod, string> = {
   morning: '오전 (06:00-12:00)',
   afternoon: '오후 (12:00-18:00)',
   evening: '저녁 (18:00-24:00)',
+}
+
+export const DEFAULT_DAYS_OFF: WeekdayCode[] = ['SAT', 'SUN']
+
+export const WEEKDAY_LABELS: Record<WeekdayCode, string> = {
+  MON: '월',
+  TUE: '화',
+  WED: '수',
+  THU: '목',
+  FRI: '금',
+  SAT: '토',
+  SUN: '일',
 }

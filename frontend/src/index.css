@@ -319,6 +319,29 @@ input[type="range"]::-moz-range-thumb:hover {
 
 /* Notion 스타일 컴포넌트 클래스 (필요 시 사용) */
 @layer components {
+  /* 공통 UI (프로젝트 전반에서 사용) */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-notion px-3 py-2 text-sm font-semibold
+      bg-primary-500 text-white border border-primary-500/30
+      hover:bg-primary-600 hover:border-primary-500/40
+      transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-notion px-3 py-2 text-sm font-semibold
+      bg-notion-hover text-notion-text border border-notion-border
+      hover:bg-notion-sidebar
+      transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .input-field {
+    @apply w-full rounded-notion px-3 py-2 text-sm
+      bg-notion-bg text-notion-text border border-notion-border
+      placeholder:text-notion-muted
+      focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500/40
+      disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
   .btn-notion {
     background-color: #202020;
     color: #FFFFFF;

@@ -1,6 +1,7 @@
 package com.jjajo.domain.repository;
 
 import com.jjajo.domain.entity.GoalEntity;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,6 +26,7 @@ public interface GoalRepository extends JpaRepository<GoalEntity, String> {
      * 사용자별 목표 조회
      * 메서드 네이밍 규칙으로 자동 쿼리 생성
      */
+    @EntityGraph(attributePaths = {"milestones"})
     List<GoalEntity> findByUserId(String userId);
     
     /**

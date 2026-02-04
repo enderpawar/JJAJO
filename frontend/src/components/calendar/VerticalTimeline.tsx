@@ -367,11 +367,11 @@ export function VerticalTimeline() {
         }}
       >
         {dragPreview && dragPreview.taskId === task.id && (
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-md flex flex-col items-center justify-center z-30 rounded-xl px-4 py-2">
-            <span className="text-3xl font-black text-white animate-pulse">{dragPreview.startTime}</span>
-            <span className="text-2xl text-white/70">~</span>
-            <span className="text-3xl font-black text-white animate-pulse">{dragPreview.endTime}</span>
-            <div className="px-3 py-1 bg-primary-500 rounded-full text-white text-xs font-bold mt-2">📍 10분 단위</div>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-md flex flex-row flex-wrap items-center justify-center gap-x-2 gap-y-1 z-30 rounded-xl px-3 py-2">
+            <span className="text-2xl font-black text-white animate-pulse whitespace-nowrap">{dragPreview.startTime}</span>
+            <span className="text-xl text-white/70">~</span>
+            <span className="text-2xl font-black text-white animate-pulse whitespace-nowrap">{dragPreview.endTime}</span>
+            <span className="px-2.5 py-1 bg-primary-500 rounded-full text-white text-xs font-bold">📍 10분</span>
           </div>
         )}
         {isCurrent && (

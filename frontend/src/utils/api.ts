@@ -1,12 +1,12 @@
 /**
  * 백엔드 API 베이스 URL (쿠키 기반 인증 시 같은 오리진으로 요청해야 쿠키 전송됨)
- * - 개발: VITE_BACKEND_ORIGIN 또는 http://localhost:8080
- * - 프로덕션: 빈 문자열이면 상대 경로(/api) 사용 (같은 도메인 프록시 가정)
+ * - 개발: 빈 문자열 → 상대 경로 사용, Vite 프록시가 /api를 8080으로 전달 (POST 등 메서드 보존)
+ * - 프로덕션: 빈 문자열이면 상대 경로 사용 (같은 도메인 프록시 가정)
+ * - VITE_BACKEND_ORIGIN이 있으면 해당 오리진으로 직접 요청 (CORS 사용)
  */
 export function getApiBase(): string {
   const origin = import.meta.env.VITE_BACKEND_ORIGIN
   if (origin && typeof origin === 'string') return String(origin).replace(/\/$/, '')
-  if (import.meta.env.DEV) return 'http://localhost:8080'
   return ''
 }
 
