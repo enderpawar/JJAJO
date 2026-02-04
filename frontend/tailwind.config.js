@@ -23,6 +23,7 @@ export default {
         notion: {
           bg: '#191919',       // 메인 배경 (완전 어두운 회색)
           sidebar: '#202020',  // 사이드바/카드 배경
+          hover: '#2a2a2a',    // 호버 배경
           border: '#373737',   // 얇은 테두리
           text: '#FFFFFF',     // 메인 텍스트
           muted: '#9B9B9B',    // 보조 텍스트

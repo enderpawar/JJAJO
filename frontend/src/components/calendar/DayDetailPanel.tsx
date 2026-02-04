@@ -15,8 +15,13 @@ export default function DayDetailPanel() {
       await deleteSchedule(todo.id)
       deleteTodo(todo.id)
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (msg.includes('찾을 수 없습니다')) {
+        deleteTodo(todo.id)
+        return
+      }
       console.error('일정 삭제 실패:', e)
-      alert(`일정 삭제 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
+      alert(`일정 삭제 실패: ${msg}`)
     }
   }
   const dateStr = formatDate(selectedDate)
@@ -64,8 +69,8 @@ export default function DayDetailPanel() {
             {formatDateWithDay(selectedDate)}
           </h3>
         </div>
-        <p className="text-sm text-gray-500">
-          {todos.length}개의 일정
+        <p className="text-sm text-notion-muted">
+          <span className={todos.length > 0 ? 'text-primary-400 font-medium' : ''}>{todos.length}개</span>의 일정
         </p>
       </div>
       
@@ -73,10 +78,10 @@ export default function DayDetailPanel() {
       <div className="flex-1 overflow-y-auto space-y-3 mb-4">
         {todos.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-notion-hover rounded-full flex items-center justify-center mx-auto mb-3">
-              <Calendar className="w-8 h-8 text-notion-muted" />
+            <div className="w-16 h-16 bg-primary-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Calendar className="w-8 h-8 text-primary-500/80" />
             </div>
-            <p className="text-sm text-notion-muted">
+            <p className="text-sm font-medium text-notion-text">
               등록된 일정이 없습니다
             </p>
             <p className="text-xs text-notion-muted mt-1">
@@ -90,7 +95,7 @@ export default function DayDetailPanel() {
               className={cn(
                 'p-4 rounded-lg border transition-all duration-200',
                 todo.createdBy === 'ai' 
-                  ? 'border-purple-200 bg-purple-50' 
+                  ? 'border-primary-500/30 bg-primary-500/10' 
                   : 'border-notion-border bg-notion-sidebar'
               )}
             >
@@ -109,7 +114,7 @@ export default function DayDetailPanel() {
                       </button>
                       <button 
                         onClick={() => handleDeleteTodo(todo)}
-                        className="p-1 hover:bg-red-50 rounded transition-colors"
+                        className="p-1 hover:bg-red-500/20 rounded transition-colors"
                       >
                         <Trash2 className="w-3 h-3 text-red-500" />
                       </button>
@@ -133,16 +138,16 @@ export default function DayDetailPanel() {
                     
                     <span className={cn(
                       'px-2 py-0.5 rounded-full text-xs',
-                      todo.status === 'completed' && 'bg-green-100 text-green-700',
-                      todo.status === 'in-progress' && 'bg-blue-100 text-blue-700',
+                      todo.status === 'completed' && 'bg-green-500/20 text-green-400',
+                      todo.status === 'in-progress' && 'bg-primary-500/20 text-primary-400',
                       todo.status === 'pending' && 'bg-notion-sidebar text-notion-muted',
-                      todo.status === 'cancelled' && 'bg-red-100 text-red-700'
+                      todo.status === 'cancelled' && 'bg-red-500/20 text-red-400'
                     )}>
                       {getStatusLabel(todo.status)}
                     </span>
                     
                     {todo.createdBy === 'ai' && (
-                      <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                      <span className="px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-400">
                         AI
                       </span>
                     )}

@@ -6,7 +6,16 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.jjajo.presentation.dto.EditOperationDto;
+import com.jjajo.presentation.dto.ScheduleItemForEdit;
+import com.jjajo.presentation.dto.ScheduleUpdateRequest;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,7 +30,7 @@ public class GeminiChatAdapter {
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
     
     private final WebClient webClient;
-    
+
     public GeminiChatAdapter() {
         this.webClient = WebClient.builder()
                 .baseUrl(GEMINI_API_URL)
@@ -59,7 +68,7 @@ public class GeminiChatAdapter {
             
             Map response = webClient.post()
                     .uri(uriBuilder -> uriBuilder
-                            .path("/models/gemini-2.0-flash-exp:generateContent")
+                            .path("/models/gemini-2.0-flash:generateContent")
                             .queryParam("key", apiKey)
                             .build())
                     .bodyValue(requestBody)
@@ -117,7 +126,7 @@ public class GeminiChatAdapter {
             
             Map response = webClient.post()
                     .uri(uriBuilder -> uriBuilder
-                            .path("/models/gemini-2.0-flash-exp:generateContent")
+                            .path("/models/gemini-2.0-flash:generateContent")
                             .queryParam("key", apiKey)
                             .build())
                     .bodyValue(requestBody)
@@ -154,5 +163,356 @@ public class GeminiChatAdapter {
             log.error("Gemini API 웹 검색 채팅 실패", e);
             throw new RuntimeException("AI 웹 검색 채팅 처리 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 자연어 한 줄 명령을 Gemini Function Calling으로 파싱하여 일정 정보 추출
+     * 예: "내일 오후 3시부터 2시간 동안 팀 프로젝트 회의 추가해줘" → title, date, startTime, endTime
+     */
+    public com.jjajo.domain.model.ScheduleRequest parseScheduleWithFunctionCalling(String userCommand, String apiKey) {
+        try {
+            log.debug("매직 바 일정 파싱 시작: {}", userCommand);
+
+            String today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
+            String prompt = String.format("""
+                오늘 날짜는 %s 입니다. 사용자가 아래 한 줄로 일정 추가를 요청했습니다. add_schedule 함수를 호출하여 제목, 날짜(YYYY-MM-DD), 시작시간(HH:mm), 소요시간(분)을 추출하세요.
+                시간은 24시간 형식으로 넣으세요. (오후 3시 → 15:00)
+                사용자 입력: %s
+                """, today, userCommand);
+
+            Map<String, Object> addScheduleParams = new LinkedHashMap<>();
+            addScheduleParams.put("type", "object");
+            addScheduleParams.put("properties", Map.of(
+                "title", Map.of(
+                    "type", "string",
+                    "description", "일정 제목 (예: 팀 프로젝트 회의)"
+                ),
+                "date", Map.of(
+                    "type", "string",
+                    "description", "날짜 YYYY-MM-DD 형식. 오늘=" + today + ", 내일/모레 등은 이 날짜 기준으로 계산"
+                ),
+                "start_time", Map.of(
+                    "type", "string",
+                    "description", "시작 시간 HH:mm 24시간 형식 (예: 15:00)"
+                ),
+                "duration_minutes", Map.of(
+                    "type", "integer",
+                    "description", "소요 시간(분). 2시간이면 120, 30분이면 30"
+                )
+            ));
+            addScheduleParams.put("required", List.of("title", "date", "start_time", "duration_minutes"));
+
+            Map<String, Object> requestBody = new LinkedHashMap<>();
+            requestBody.put("contents", List.of(
+                Map.of("role", "user", "parts", List.of(Map.of("text", prompt)))
+            ));
+            requestBody.put("tools", List.of(
+                Map.of("functionDeclarations", List.of(
+                    Map.of(
+                        "name", "add_schedule",
+                        "description", "캘린더에 일정을 추가합니다. 사용자의 자연어에서 제목, 날짜, 시작시간, 소요시간(분)을 추출합니다.",
+                        "parameters", addScheduleParams
+                    )
+                ))
+            ));
+            requestBody.put("generationConfig", Map.of(
+                "temperature", 0.1,
+                "maxOutputTokens", 256
+            ));
+            requestBody.put("toolConfig", Map.of(
+                "functionCallingConfig", Map.of(
+                    "mode", "ANY",
+                    "allowedFunctionNames", List.of("add_schedule")
+                )
+            ));
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = webClient.post()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/models/gemini-2.0-flash:generateContent")
+                            .queryParam("key", apiKey)
+                            .build())
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block(TIMEOUT);
+
+            if (response == null || !response.containsKey("candidates")) {
+                log.warn("매직 바 파싱: 응답에 candidates 없음");
+                throw new IllegalArgumentException("일정을 파악하지 못했어요. 예: 내일 오후 3시부터 2시간 동안 팀 회의");
+            }
+
+            List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.get("candidates");
+            if (candidates.isEmpty()) {
+                throw new IllegalArgumentException("일정을 파악하지 못했어요. 날짜·시간·제목을 포함해 다시 입력해주세요.");
+            }
+
+            Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
+            List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
+            if (parts == null || parts.isEmpty()) {
+                throw new IllegalArgumentException("일정을 파악하지 못했어요.");
+            }
+
+            Map<String, Object> functionCall = null;
+            for (Map<String, Object> part : parts) {
+                if (part.containsKey("functionCall")) {
+                    functionCall = (Map<String, Object>) part.get("functionCall");
+                    break;
+                }
+            }
+            if (functionCall == null || !"add_schedule".equals(functionCall.get("name"))) {
+                throw new IllegalArgumentException("일정 추가 형식을 인식하지 못했어요. 예: 내일 오후 3시부터 2시간 동안 팀 회의");
+            }
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> args = (Map<String, Object>) functionCall.get("args");
+            if (args == null) {
+                throw new IllegalArgumentException("일정 정보를 추출하지 못했어요.");
+            }
+
+            String title = args.get("title") != null ? args.get("title").toString().trim() : null;
+            String dateStr = args.get("date") != null ? args.get("date").toString().trim() : null;
+            String startTimeStr = args.get("start_time") != null ? args.get("start_time").toString().trim() : null;
+            Number durationNum = args.get("duration_minutes") != null ? (Number) args.get("duration_minutes") : 60;
+
+            if (title == null || title.isEmpty() || dateStr == null || dateStr.isEmpty() || startTimeStr == null || startTimeStr.isEmpty()) {
+                throw new IllegalArgumentException("제목, 날짜, 시작 시간을 모두 포함해 주세요.");
+            }
+
+            int durationMinutes = durationNum != null ? durationNum.intValue() : 60;
+            if (durationMinutes <= 0) durationMinutes = 60;
+
+            String normalizedStart = startTimeStr.contains(":") ? startTimeStr : startTimeStr + ":00";
+            if (normalizedStart.length() == 4) normalizedStart = "0" + normalizedStart;
+            String startTimeParsed = normalizedStart.length() >= 5 ? normalizedStart.substring(0, 5) : (normalizedStart + ":00").substring(0, 5);
+            LocalTime startTime = LocalTime.parse(startTimeParsed, DateTimeFormatter.ISO_LOCAL_TIME);
+            String endTimeStr = startTime.plusMinutes(durationMinutes).format(DateTimeFormatter.ISO_LOCAL_TIME).substring(0, 5);
+            String startTimeOut = startTime.format(DateTimeFormatter.ISO_LOCAL_TIME).substring(0, 5);
+
+            log.debug("매직 바 파싱 결과: title={}, date={}, start={}, end={}", title, dateStr, startTimeOut, endTimeStr);
+
+            return com.jjajo.domain.model.ScheduleRequest.builder()
+                    .title(title)
+                    .description("한 줄 명령으로 추가한 일정")
+                    .date(dateStr)
+                    .startTime(startTimeOut)
+                    .endTime(endTimeStr)
+                    .priority("medium")
+                    .build();
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("매직 바 일정 파싱 실패", e);
+            throw new RuntimeException("일정을 이해하지 못했어요. 예: 내일 오후 3시부터 2시간 동안 팀 프로젝트 회의", e);
+        }
+    }
+
+    /**
+     * 자연어 명령으로 기존 일정 수정/삭제 연산 추출 (Gemini Function Calling)
+     * 예: "공부 시간 1시간 늘리고 뒤에 있는 일정 다 취소해줘" → edits[]
+     */
+    public List<EditOperationDto> editScheduleWithFunctionCalling(String userCommand, List<ScheduleItemForEdit> todos, String apiKey) {
+        try {
+            log.debug("대화형 일정 수정 파싱 시작: {}", userCommand);
+
+            String today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
+            StringBuilder scheduleList = new StringBuilder();
+            for (ScheduleItemForEdit t : todos) {
+                scheduleList.append(String.format("  #%s id=%s title=%s date=%s startTime=%s endTime=%s%n",
+                        t.getOrder() != null ? t.getOrder() : "",
+                        t.getId(), t.getTitle() != null ? t.getTitle() : "",
+                        t.getDate() != null ? t.getDate() : "",
+                        t.getStartTime() != null ? t.getStartTime() : "",
+                        t.getEndTime() != null ? t.getEndTime() : ""));
+            }
+
+            String prompt = String.format("""
+                오늘 날짜는 %s 입니다.
+                아래는 사용자의 현재 일정 목록입니다. 기존 일정 수정/삭제 시 반드시 이 목록에 있는 id만 사용하세요.
+                - 사용자가 "첫 번째/두 번째/세 번째"처럼 말하면, 아래 목록의 #번호(순서)를 기준으로 해당 id를 찾아 사용하세요.
+                일정 목록:
+                %s
+                사용자 명령: %s
+                위 명령에 따라 apply_schedule_edits 함수를 호출하여 edits 배열을 반환하세요.
+                - 새 일정을 만드는 요청(예: "5시간 공부, 10분 휴식 반복으로 짜줘", "오늘 9시부터 1시간 회의 추가")이면 operation을 "add"로 하고, title, date, start_time, end_time을 각 블록마다 넣으세요. schedule_id는 넣지 마세요. 여러 블록이면 edits에 add를 여러 개 반환하세요.
+                - 기존 일정을 바꾸려면 operation "update", 지우려면 "delete"를 쓰고, schedule_id는 위 목록의 id만 사용하세요.
+                - "N시간으로 줄여줘" / "N시간 늘려줘"처럼 소요시간을 바꾸는 경우: update 시 반드시 해당 일정의 기존 start_time을 그대로 넣고, end_time만 시작+소요시간으로 계산해 넣으세요. (예: 14:00~18:00 일정을 3시간으로 줄여줘 → start_time=14:00, end_time=17:00)
+                - 시간은 HH:mm 24시간 형식, 날짜는 YYYY-MM-DD입니다.
+                """, today, scheduleList, userCommand);
+
+            Map<String, Object> editItemSchema = new LinkedHashMap<>();
+            editItemSchema.put("type", "object");
+            editItemSchema.put("properties", Map.of(
+                "operation", Map.of(
+                    "type", "string",
+                    "description", "add(새 일정 추가) | update(기존 수정) | delete(기존 삭제)"
+                ),
+                "schedule_id", Map.of(
+                    "type", "string",
+                    "description", "기존 일정 id. update/delete일 때만 필수(위 목록의 id). add일 때는 비우거나 넣지 마세요."
+                ),
+                "start_time", Map.of(
+                    "type", "string",
+                    "description", "시작 시간 HH:mm. add일 때 필수, update일 때 선택"
+                ),
+                "end_time", Map.of(
+                    "type", "string",
+                    "description", "종료 시간 HH:mm. add일 때 필수, update일 때 선택"
+                ),
+                "duration_minutes", Map.of(
+                    "type", "integer",
+                    "description", "add에서만 사용 가능. end_time을 못 정하면 소요시간(분)으로 넣으세요. 예: 2시간=120"
+                ),
+                "title", Map.of(
+                    "type", "string",
+                    "description", "제목. add일 때 필수, update일 때 선택"
+                ),
+                "date", Map.of(
+                    "type", "string",
+                    "description", "날짜 YYYY-MM-DD. add일 때 필수, update일 때 선택"
+                )
+            ));
+            editItemSchema.put("required", List.of("operation"));
+
+            Map<String, Object> applyEditsParams = new LinkedHashMap<>();
+            applyEditsParams.put("type", "object");
+            applyEditsParams.put("properties", Map.of(
+                "edits", Map.of(
+                    "type", "array",
+                    "description", "추가/수정/삭제 연산 목록. 새 일정 여러 개면 add를 여러 개 넣으세요.",
+                    "items", editItemSchema
+                )
+            ));
+            applyEditsParams.put("required", List.of("edits"));
+
+            Map<String, Object> requestBody = new LinkedHashMap<>();
+            requestBody.put("contents", List.of(
+                Map.of("role", "user", "parts", List.of(Map.of("text", prompt)))
+            ));
+            requestBody.put("tools", List.of(
+                Map.of("functionDeclarations", List.of(
+                    Map.of(
+                        "name", "apply_schedule_edits",
+                        "description", "캘린더에 새 일정을 추가하거나, 기존 일정을 수정/삭제합니다. 새로 만드는 블록은 add, 기존 id를 바꾸는 것은 update/delete로 반환하세요.",
+                        "parameters", applyEditsParams
+                    )
+                ))
+            ));
+            requestBody.put("generationConfig", Map.of(
+                "temperature", 0.1,
+                "maxOutputTokens", 2048
+            ));
+            requestBody.put("toolConfig", Map.of(
+                "functionCallingConfig", Map.of(
+                    "mode", "ANY",
+                    "allowedFunctionNames", List.of("apply_schedule_edits")
+                )
+            ));
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = webClient.post()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/models/gemini-2.0-flash:generateContent")
+                            .queryParam("key", apiKey)
+                            .build())
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block(TIMEOUT);
+
+            if (response == null || !response.containsKey("candidates")) {
+                log.warn("대화형 수정 파싱: 응답에 candidates 없음");
+                throw new IllegalArgumentException("명령을 파악하지 못했어요. 예: 공부 시간 1시간 늘리고 뒤에 있는 일정 다 취소해줘");
+            }
+
+            List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.get("candidates");
+            if (candidates.isEmpty()) {
+                throw new IllegalArgumentException("명령을 파악하지 못했어요.");
+            }
+
+            Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
+            List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
+            if (parts == null || parts.isEmpty()) {
+                throw new IllegalArgumentException("명령을 파악하지 못했어요.");
+            }
+
+            Map<String, Object> functionCall = null;
+            for (Map<String, Object> part : parts) {
+                if (part.containsKey("functionCall")) {
+                    functionCall = (Map<String, Object>) part.get("functionCall");
+                    break;
+                }
+            }
+            if (functionCall == null || !"apply_schedule_edits".equals(functionCall.get("name"))) {
+                throw new IllegalArgumentException("수정 명령 형식을 인식하지 못했어요.");
+            }
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> args = (Map<String, Object>) functionCall.get("args");
+            if (args == null) {
+                return List.of();
+            }
+
+            List<Map<String, Object>> editsRaw = (List<Map<String, Object>>) args.get("edits");
+            if (editsRaw == null || editsRaw.isEmpty()) {
+                return List.of();
+            }
+
+            List<EditOperationDto> operations = new ArrayList<>();
+            for (Map<String, Object> edit : editsRaw) {
+                String opRaw = edit.get("op") != null ? edit.get("op").toString() : edit.get("operation") != null ? edit.get("operation").toString() : null;
+                String op = (opRaw != null && !opRaw.isEmpty()) ? opRaw.trim().toLowerCase() : "update";
+                String scheduleId = getString(edit, "schedule_id");
+
+                if (EditOperationDto.TYPE_ADD.equalsIgnoreCase(op)) {
+                    String title = getString(edit, "title");
+                    String date = getString(edit, "date");
+                    String startTime = getString(edit, "start_time");
+                    String endTime = getString(edit, "end_time");
+                    // start/end는 누락될 수 있음(프론트에서 자동 보완). title/date는 최소 필요.
+                    if (title == null || date == null) continue;
+                    ScheduleUpdateRequest addPayload = ScheduleUpdateRequest.builder()
+                            .title(title)
+                            .date(date)
+                            .startTime(startTime)
+                            .endTime(endTime)
+                            .build();
+                    operations.add(EditOperationDto.builder()
+                            .type(EditOperationDto.TYPE_ADD)
+                            .scheduleId(null)
+                            .addPayload(addPayload)
+                            .build());
+                } else {
+                    if (scheduleId == null || scheduleId.isEmpty()) continue;
+                    ScheduleUpdateRequest updatePayload = null;
+                    if (EditOperationDto.TYPE_UPDATE.equalsIgnoreCase(op)) {
+                        updatePayload = ScheduleUpdateRequest.builder()
+                                .title(getString(edit, "title"))
+                                .date(getString(edit, "date"))
+                                .startTime(getString(edit, "start_time"))
+                                .endTime(getString(edit, "end_time"))
+                                .build();
+                    }
+                    operations.add(EditOperationDto.builder()
+                            .type(EditOperationDto.TYPE_UPDATE.equalsIgnoreCase(op) ? EditOperationDto.TYPE_UPDATE : EditOperationDto.TYPE_DELETE)
+                            .scheduleId(scheduleId)
+                            .updatePayload(updatePayload)
+                            .build());
+                }
+            }
+
+            log.debug("대화형 수정 파싱 결과: {} 건", operations.size());
+            return operations;
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("대화형 일정 수정 파싱 실패", e);
+            throw new RuntimeException("명령을 이해하지 못했어요. 예: 공부 시간 1시간 늘리고 뒤에 있는 일정 다 취소해줘", e);
+        }
+    }
+
+    private static String getString(Map<String, Object> map, String key) {
+        Object v = map.get(key);
+        return v != null ? v.toString().trim() : null;
     }
 }

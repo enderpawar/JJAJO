@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, Settings, X, Moon, Sun, Copy } from 'lucide-react'
+import { Sparkles, Settings, X, Moon, Sun, Copy, Calendar } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { TimeSlotSettings } from '@/components/settings/TimeSlotSettings'
@@ -7,7 +7,11 @@ import { ApiKeySettings } from '@/components/settings/ApiKeySettings'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
-export default function Header() {
+interface HeaderProps {
+  onOpenMonthlyCalendar?: () => void
+}
+
+export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
   const { copyTodosFromPreviousDay, selectedDate } = useCalendarStore()
   const { theme, toggleTheme, initTheme } = useSettingsStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -72,6 +76,19 @@ export default function Header() {
               <span className="hidden sm:inline">어제 일정</span>
             </button>
 
+            {/* 월간 캘린더 */}
+            {onOpenMonthlyCalendar && (
+              <button
+                type="button"
+                onClick={onOpenMonthlyCalendar}
+                className="flex items-center gap-2 px-3 py-1.5 hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer"
+                title="월간 일정 보기"
+              >
+                <Calendar className="w-4 h-4" />
+                <span className="hidden sm:inline">월간</span>
+              </button>
+            )}
+
             {/* 다크모드 토글 (Notion은 항상 다크모드이므로 숨김 처리 가능) */}
             <button
               onClick={toggleTheme}
@@ -105,19 +122,22 @@ export default function Header() {
           aria-modal="true"
           onClick={(e) => e.target === e.currentTarget && setIsSettingsOpen(false)}
         >
-          <div className="bg-notion-card rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="bg-notion-sidebar rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* 헤더 */}
-            <div className="sticky top-0 bg-notion-card border-b border-notion-border px-6 py-4 flex items-center justify-between">
+            <div className="sticky top-0 bg-notion-sidebar border-b border-notion-border px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Settings className="w-5 h-5 text-notion-text-primary" />
-                <h2 className="text-lg font-semibold text-notion-text-primary">설정</h2>
+                <Settings className="w-5 h-5 text-notion-text" />
+                <h2 className="text-lg font-semibold text-notion-text">설정</h2>
               </div>
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(false)}
                 className="p-1.5 hover:bg-notion-hover rounded-notion transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5 text-notion-text-secondary" />
+                <X className="w-5 h-5 text-notion-muted" />
               </button>
             </div>
             

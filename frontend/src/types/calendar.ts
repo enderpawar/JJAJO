@@ -29,3 +29,10 @@ export interface CalendarDay {
 }
 
 export type ViewMode = 'month' | 'week'
+
+/** 대화형 일정 수정 API 응답 연산 1건 */
+export interface EditScheduleOperation {
+  type: 'update' | 'delete'
+  id: string
+  updates?: Partial<Todo>
+}

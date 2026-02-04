@@ -58,14 +58,14 @@ export default function CalendarGrid() {
         </button>
       </div>
       
-      {/* 요일 헤더 */}
+      {/* 요일 헤더 - 다크 테마에 맞춘 부드러운 톤 */}
       <div className="grid grid-cols-7 gap-2 mb-2 flex-shrink-0">
         {weekDays.map((day, index) => (
           <div
             key={day}
             className={cn(
               'text-center text-xs font-semibold py-1',
-              index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-notion-muted'
+              index === 0 ? 'text-red-400' : index === 6 ? 'text-primary-400' : 'text-notion-muted'
             )}
           >
             {day}
@@ -90,8 +90,8 @@ export default function CalendarGrid() {
                 'w-full h-full p-1.5 rounded-lg transition-all duration-200',
                 'hover:bg-notion-hover relative flex flex-col items-center justify-center',
                 isCurrentMonthDay ? 'text-notion-text' : 'text-notion-muted',
-                isTodayDate && 'bg-primary-50 border-2 border-primary-500',
-                isSelected && !isTodayDate && 'bg-primary-100 border-2 border-primary-400',
+                isTodayDate && 'bg-primary-500/20 border-2 border-primary-500',
+                isSelected && !isTodayDate && 'bg-primary-500/10 border-2 border-primary-400',
                 !isSelected && !isTodayDate && 'border border-notion-border'
               )}
             >
@@ -103,10 +103,7 @@ export default function CalendarGrid() {
                   {dateTodos.slice(0, 3).map((todo, index) => (
                     <div
                       key={`${todo.id}-${index}`}
-                      className={cn(
-                        'w-1 h-1 rounded-full',
-                        todo.createdBy === 'ai' ? 'bg-purple-500' : 'bg-blue-500'
-                      )}
+                      className="w-1 h-1 rounded-full bg-primary-500"
                     />
                   ))}
                   {dateTodos.length > 3 && (
@@ -128,7 +125,7 @@ export default function CalendarGrid() {
             'w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-sm',
             todos.length === 0
               ? 'bg-notion-sidebar text-notion-muted cursor-not-allowed'
-              : 'bg-red-50 text-red-600 hover:bg-red-100'
+              : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
           )}
         >
           <Trash2 className="w-4 h-4" />
@@ -138,18 +135,18 @@ export default function CalendarGrid() {
       
       {/* 확인 다이얼로그 */}
       {showConfirmDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-notion-sidebar rounded-2xl p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-notion-sidebar rounded-2xl p-6 max-w-md w-full mx-4 border border-notion-border">
             <div className="flex items-start gap-4 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
+              <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6 text-red-400" />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-notion-text mb-2">
                   모든 일정을 삭제하시겠습니까?
                 </h3>
                 <p className="text-sm text-notion-muted">
-                  총 <span className="font-semibold text-red-600">{todos.length}개</span>의 일정이 삭제됩니다.
+                  총 <span className="font-semibold text-red-400">{todos.length}개</span>의 일정이 삭제됩니다.
                   이 작업은 되돌릴 수 없습니다.
                 </p>
               </div>

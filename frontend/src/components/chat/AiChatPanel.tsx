@@ -17,8 +17,8 @@ import QuickReplyButtons from './QuickReplyButtons'
 
 export default function AiChatPanel() {
   const { currentSession, isLoading, addMessage, removeMessage, clearMessages, setLoading, initSession } = useChatStore()
-  const { addGoal } = useGoalStore()
-  const { addTodo } = useCalendarStore()
+  const addGoal = useGoalStore((state) => state.addGoal)
+  const addTodo = useCalendarStore((state) => state.addTodo)
   const [inputValue, setInputValue] = useState('')
   const [conversationId, setConversationId] = useState<string>()
   const [_isCreatingGoal, setIsCreatingGoal] = useState(false)
@@ -66,7 +66,7 @@ export default function AiChatPanel() {
       icon: text.includes('⚡') ? 'zap' : text.includes('🌅') ? 'clock' : text.includes('📅') ? 'calendar' : undefined
     }))
   }
-  
+
   // Quick Reply 선택 핸들러
   const handleQuickReplySelect = async (value: string) => {
     if (isLoading) return
@@ -678,7 +678,8 @@ export default function AiChatPanel() {
   const messages = currentSession?.messages || []
   
   return (
-    <div className="bg-white rounded-2xl shadow-lg flex flex-col h-[600px]">
+    <>
+      <div className="bg-white rounded-2xl shadow-lg flex flex-col h-[600px]">
       {/* 헤더 */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center gap-3">
@@ -877,6 +878,7 @@ export default function AiChatPanel() {
           💡 Tip: 일정은 "내일 오후 3시 운동", 목표는 "토익 800점 달성하고 싶어"로 요청하세요
         </p>
       </div>
-    </div>
+      </div>
+    </>
   )
 }

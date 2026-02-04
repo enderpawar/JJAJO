@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { UserSettings, TimeSlotPreference, DEFAULT_TIME_SLOTS } from '@/types/settings'
+import { UserSettings, TimeSlotPreference, DEFAULT_TIME_SLOTS, DEFAULT_DAYS_OFF, WeekdayCode } from '@/types/settings'
 
 interface SettingsStore {
   settings: UserSettings
@@ -8,6 +8,7 @@ interface SettingsStore {
   updateTimeSlotPreferences: (preferences: TimeSlotPreference[]) => void
   updateWorkHours: (startTime: string, endTime: string) => void
   updateBreakDuration: (minutes: number) => void
+  updateDaysOff: (days: WeekdayCode[]) => void
   toggleTheme: () => void
   initTheme: () => void
   resetToDefaults: () => void
@@ -18,6 +19,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   workStartTime: '09:00',
   workEndTime: '18:00',
   breakDuration: 15,
+  daysOff: DEFAULT_DAYS_OFF,
 }
 
 // 시스템 다크모드 설정 감지
@@ -73,6 +75,14 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             breakDuration: minutes,
+          },
+        })),
+
+      updateDaysOff: (days) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            daysOff: [...days],
           },
         })),
 
