@@ -1,13 +1,23 @@
+/** 배포 시 env 없을 때 사용할 백엔드 오리진 (Cloudflare Pages + Render 기준) */
+const FALLBACK_BACKEND_ORIGIN = 'https://jjajo-backend.onrender.com'
+
 /**
  * 백엔드 API 베이스 URL (쿠키 기반 인증 시 같은 오리진으로 요청해야 쿠키 전송됨)
- * - 개발: 빈 문자열 → 상대 경로 사용, Vite 프록시가 /api를 8080으로 전달 (POST 등 메서드 보존)
- * - 프로덕션: 빈 문자열이면 상대 경로 사용 (같은 도메인 프록시 가정)
- * - VITE_BACKEND_ORIGIN이 있으면 해당 오리진으로 직접 요청 (CORS 사용)
+ * - 항상 오리진만 반환(경로 제거). 경로가 포함된 env 시 registrationId 오인으로 404 방지.
+ * - 개발: VITE_BACKEND_ORIGIN 없으면 '' → Vite 프록시 사용
+ * - 프로덕션: 없으면 FALLBACK_BACKEND_ORIGIN 사용 (배포 환경 로그인 정상화)
  */
 export function getApiBase(): string {
-  const origin = import.meta.env.VITE_BACKEND_ORIGIN
-  if (origin && typeof origin === 'string') return String(origin).replace(/\/$/, '')
-  return ''
+  const raw = import.meta.env.VITE_BACKEND_ORIGIN
+  if (!raw || typeof raw !== 'string') {
+    return import.meta.env.DEV ? '' : FALLBACK_BACKEND_ORIGIN
+  }
+  try {
+    const u = new URL(raw.replace(/\/$/, ''))
+    return u.origin
+  } catch {
+    return import.meta.env.DEV ? '' : FALLBACK_BACKEND_ORIGIN
+  }
 }
 
 /** 백엔드 목표 응답(대문자 enum)을 프론트 Goal 타입(소문자)으로 정규화 */

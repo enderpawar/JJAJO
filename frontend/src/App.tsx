@@ -1,16 +1,40 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import AuthPage from './pages/AuthPage'
 import MainPage from './pages/MainPage'
+import { getApiBase } from './utils/api'
+
+/** /oauth2/authorization/google 로 들어온 경우(상대 경로로 로그인 시도 시) 백엔드로 리다이렉트 */
+function OAuthRedirect() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  useEffect(() => {
+    if (location.pathname === '/oauth2/authorization/google') {
+      const base = getApiBase()
+      if (base) {
+        window.location.href = `${base}/oauth2/authorization/google`
+        return
+      }
+      navigate('/', { replace: true })
+    }
+  }, [location.pathname, navigate])
+  return null
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/oauth2/authorization/google" element={<OAuthRedirect />} />
+      <Route path="/" element={<AuthPage />} />
+      <Route path="/app" element={<MainPage />} />
+    </Routes>
+  )
+}
 
 function App() {
   return (
     <Router>
-      <Routes>
-        {/* 1. 진입점: 회원가입/로그인 화면 */}
-        <Route path="/" element={<AuthPage />} />
-        {/* 2. 플래너 메인 화면 */}
-        <Route path="/app" element={<MainPage />} />
-      </Routes>
+      <AppRoutes />
     </Router>
   )
 }
