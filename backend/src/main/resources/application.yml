@@ -5,6 +5,9 @@ server:
 spring:
   application:
     name: jjajo-backend
+  mvc:
+    # 404 시 NoHandlerFoundException 발생 → 커스텀 처리(브라우저는 프론트로 리다이렉트)
+    throw-exception-if-no-handler-found: true
   
   # Spring AI - Google Gemini 설정
   ai:
