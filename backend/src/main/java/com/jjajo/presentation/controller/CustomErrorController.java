@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.jjajo.presentation.config.FrontendOriginNormalizer;
 
 import java.util.Map;
 
@@ -40,9 +41,7 @@ public class CustomErrorController implements ErrorController {
         boolean isBrowser = !path.startsWith("/api") && !accept.contains(MediaType.APPLICATION_JSON_VALUE);
 
         if (status == 404 && isBrowser) {
-            String target = (frontendOrigin != null && !frontendOrigin.isEmpty())
-                ? frontendOrigin.replaceAll("/$", "") + "/"
-                : "http://localhost:5173/";
+            String target = FrontendOriginNormalizer.toAbsoluteUrl(frontendOrigin) + "/";
             // #region agent log
             try {
                 String backendHost = request.getServerName() != null ? request.getServerName().toLowerCase() : "";

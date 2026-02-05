@@ -114,7 +114,7 @@ public class SecurityConfig {
     @Bean
     public AuthenticationSuccessHandler redirectToFrontendSuccessHandler() {
         return (request, response, authentication) -> {
-            String target = frontendOrigin != null ? frontendOrigin : "http://localhost:5173";
+            String target = FrontendOriginNormalizer.toAbsoluteUrl(frontendOrigin);
             if (!target.endsWith("/")) {
                 target = target + "/";
             }
@@ -275,7 +275,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowCredentials(true);
-        configuration.setAllowedOrigins(List.of(frontendOrigin));
+        configuration.setAllowedOrigins(List.of(FrontendOriginNormalizer.toAbsoluteUrl(frontendOrigin)));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "X-Gemini-API-Key"));
 

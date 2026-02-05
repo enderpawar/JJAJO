@@ -2,6 +2,7 @@ package com.jjajo.presentation.controller;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import com.jjajo.presentation.config.FrontendOriginNormalizer;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,8 +26,9 @@ public class OAuthDebugController {
     @GetMapping("/frontend-origin")
     public ResponseEntity<Map<String, String>> frontendOrigin() {
         Map<String, String> body = new HashMap<>();
-        body.put("frontend_origin", frontendOrigin != null ? frontendOrigin : "(null)");
-        body.put("hint", "OAuth 성공 후 이 URL로 리다이렉트됩니다. 백엔드 URL과 같으면 ERR_TOO_MANY_REDIRECTS 발생. Render 환경변수 FRONTEND_ORIGIN을 실제 프론트엔드 URL로 설정하세요.");
+        body.put("frontend_origin_raw", frontendOrigin != null ? frontendOrigin : "(null)");
+        body.put("frontend_origin_normalized", FrontendOriginNormalizer.toAbsoluteUrl(frontendOrigin));
+        body.put("hint", "스킴 없이(예: jjajo.pages.dev) 넣어도 내부에서 https:// 로 변환됩니다. 반드시 전체 URL(https://jjajo.pages.dev)으로 넣는 것을 권장합니다.");
         return ResponseEntity.ok(body);
     }
 

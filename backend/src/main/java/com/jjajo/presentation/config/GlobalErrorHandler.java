@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.jjajo.presentation.config.FrontendOriginNormalizer;
 
 import java.util.Map;
 
@@ -40,9 +41,7 @@ public class GlobalErrorHandler {
                 .body(Map.of("error", "Not Found", "path", path));
         }
 
-        String target = (frontendOrigin != null && !frontendOrigin.isEmpty())
-            ? frontendOrigin.replaceAll("/$", "") + "/"
-            : "http://localhost:5173/";
+        String target = FrontendOriginNormalizer.toAbsoluteUrl(frontendOrigin) + "/";
         // #region agent log
         try {
             String backendHost = request.getServerName() != null ? request.getServerName().toLowerCase() : "";

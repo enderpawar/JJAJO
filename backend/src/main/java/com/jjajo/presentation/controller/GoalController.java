@@ -6,6 +6,7 @@ import com.jjajo.domain.entity.MilestoneEntity;
 import com.jjajo.domain.model.Goal;
 import com.jjajo.domain.model.Milestone;
 import com.jjajo.domain.repository.GoalRepository;
+import com.jjajo.presentation.config.FrontendOriginNormalizer;
 import com.jjajo.presentation.config.SecurityConfig;
 import com.jjajo.presentation.dto.GoalCreationRequest;
 import com.jjajo.presentation.dto.GoalCreationResponse;
@@ -52,7 +53,7 @@ public class GoalController {
     public void optionsGoals(HttpServletResponse response) {
         response.setStatus(HttpServletResponse.SC_OK);
         if (frontendOrigin != null && !frontendOrigin.isEmpty()) {
-            response.setHeader("Access-Control-Allow-Origin", frontendOrigin);
+            response.setHeader("Access-Control-Allow-Origin", FrontendOriginNormalizer.toAbsoluteUrl(frontendOrigin));
         }
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Requested-With, Accept, Origin, X-Gemini-API-Key");
