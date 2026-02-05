@@ -27,6 +27,8 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -42,6 +44,8 @@ import java.util.UUID;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     private final UserRepository userRepository;
     /** prod에서는 빈이 없음(@Profile("!prod")). 없을 때도 기동되도록 Optional로 주입 */
@@ -114,6 +118,20 @@ public class SecurityConfig {
             if (!target.endsWith("/")) {
                 target = target + "/";
             }
+            // #region agent log
+            try {
+                String backendHost = request.getServerName() != null ? request.getServerName().toLowerCase() : "";
+                log.info("[REDIRECT] OAuth success redirect target={} backendHost={} frontendOriginConfig={}", target, backendHost, frontendOrigin);
+                java.net.URI targetUri = java.net.URI.create(target);
+                String targetHost = targetUri.getHost() != null ? targetUri.getHost().toLowerCase() : "";
+                if (targetHost.equals(backendHost)) {
+                    log.error("[REDIRECT] LOOP PREVENT: redirect target is backend itself ({}), redirecting to localhost", target);
+                    target = "http://localhost:5173/";
+                }
+            } catch (Exception e) {
+                log.warn("[REDIRECT] Could not check redirect target", e);
+            }
+            // #endregion
             response.sendRedirect(target);
         };
     }

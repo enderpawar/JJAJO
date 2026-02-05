@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -19,6 +21,8 @@ import java.util.Map;
  */
 @Controller
 public class CustomErrorController implements ErrorController {
+
+    private static final Logger log = LoggerFactory.getLogger(CustomErrorController.class);
 
     @Value("${app.frontend-origin:http://localhost:5173}")
     private String frontendOrigin;
@@ -39,6 +43,18 @@ public class CustomErrorController implements ErrorController {
             String target = (frontendOrigin != null && !frontendOrigin.isEmpty())
                 ? frontendOrigin.replaceAll("/$", "") + "/"
                 : "http://localhost:5173/";
+            // #region agent log
+            try {
+                String backendHost = request.getServerName() != null ? request.getServerName().toLowerCase() : "";
+                java.net.URI targetUri = java.net.URI.create(target);
+                String targetHost = targetUri.getHost() != null ? targetUri.getHost().toLowerCase() : "";
+                if (targetHost.equals(backendHost)) {
+                    log.error("[REDIRECT] LOOP PREVENT: /error 404 redirect target is backend itself ({}), using localhost", target);
+                    target = "http://localhost:5173/";
+                }
+            } catch (Exception ignored) { }
+            log.info("[REDIRECT] /error 404->frontend path={} redirectTarget={} frontendOriginConfig={}", path, target, frontendOrigin);
+            // #endregion
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(target)).build();
         }
 
