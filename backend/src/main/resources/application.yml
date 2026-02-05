@@ -1,6 +1,8 @@
 server:
-  # 프록시(Render 등) 뒤에서 redirect_uri가 https로 생성되도록 X-Forwarded-Proto/Host 적용
   forward-headers-strategy: framework
+  error:
+    whitelabel:
+      enabled: false
 
 spring:
   application:
