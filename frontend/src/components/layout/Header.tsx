@@ -20,9 +20,6 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
   const handleGoogleLogin = () => {
     const base = getApiBase()
     const url = base ? `${base}/oauth2/authorization/google` : '/oauth2/authorization/google'
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'Header.tsx:handleGoogleLogin', message: 'Google login redirect', data: { backendBase: base || '(empty)', fullUrl: url }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H3' }) }).catch(() => {})
-    // #endregion
     window.location.href = url
   }
 

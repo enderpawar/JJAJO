@@ -9,10 +9,6 @@ export default function AuthPage() {
 
   // 앱 진입 시 로그인 상태 확인 (백엔드 오리진으로 요청해 쿠키 전송)
   useEffect(() => {
-    // #region agent log
-    const base0 = getApiBase()
-    fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AuthPage.tsx:useEffect', message: 'AuthPage mounted', data: { href: typeof window !== 'undefined' ? window.location.href : '', referrer: typeof document !== 'undefined' ? document.referrer || '(none)' : '', getApiBase: base0 || '(empty)' }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H2' }) }).catch(() => {})
-    // #endregion
     const checkLogin = async () => {
       try {
         const base = getApiBase()
@@ -20,9 +16,6 @@ export default function AuthPage() {
         const res = await fetch(url, {
           credentials: 'include',
         })
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AuthPage.tsx:checkLogin', message: 'checkLogin response', data: { url, status: res.status, ok: res.ok }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H4' }) }).catch(() => {})
-        // #endregion
         if (res.ok) {
           // 이미 로그인된 상태이면 바로 플래너로 이동
           navigate('/app', { replace: true })
@@ -41,9 +34,6 @@ export default function AuthPage() {
   const handleGoogleLogin = () => {
     const base = getApiBase()
     const url = base ? `${base}/oauth2/authorization/google` : '/oauth2/authorization/google'
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'AuthPage.tsx:handleGoogleLogin', message: 'Google login redirect', data: { backendBase: base || '(empty)', fullUrl: url }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'H3' }) }).catch(() => {})
-    // #endregion
     window.location.href = url
   }
 
