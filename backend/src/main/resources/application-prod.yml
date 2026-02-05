@@ -1,5 +1,15 @@
 # 프로덕션: 원격 PostgreSQL (Neon, Supabase, Railway 등)
 # 환경 변수 예: SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD
+
+# 크로스 오리진(프론트 jjajo.pages.dev → 백엔드 onrender.com)에서 세션 쿠키 전달을 위해
+# SameSite=None, Secure 필수 (HTTPS 환경)
+server:
+  servlet:
+    session:
+      cookie:
+        same-site: none
+        secure: true
+
 spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/jjajo}
