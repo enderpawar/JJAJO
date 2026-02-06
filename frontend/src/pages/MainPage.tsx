@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import Header from '@/components/layout/Header'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import DayDetailPanel from '@/components/calendar/DayDetailPanel'
-import { GoalModal } from '@/components/goals/GoalModal'
-import { QuickScheduleModal } from '@/components/calendar/QuickScheduleModal'
+import { AddGoalModal } from '@/components/goals/AddGoalModal'
+import AddTodoModal from '@/components/calendar/AddTodoModal'
 import { DopamineFeedback } from '@/components/feedback/DopamineFeedback'
 import { TopTimeline } from '@/components/calendar/TopTimeline'
 import { VerticalTimeline } from '@/components/calendar/VerticalTimeline'
@@ -12,6 +12,7 @@ import { Target, Calendar as CalendarIcon, X } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useGoalStore } from '@/stores/goalStore'
 import { getSchedules } from '@/services/scheduleService'
+import { goalService } from '@/services/goalService'
 import { getApiBase, normalizeGoalFromApi } from '@/utils/api'
 import type { Goal } from '@/types/goal'
 
@@ -22,7 +23,7 @@ export default function MainPage() {
   const [isQuickScheduleOpen, setIsQuickScheduleOpen] = useState(false)
   const [quickScheduleInitial, setQuickScheduleInitial] = useState<{time?: string, date?: string}>({})
   const [showMonthlyCalendar, setShowMonthlyCalendar] = useState(false) // 월간 캘린더 모달
-  const { goals, setGoals } = useGoalStore()
+  const { goals, setGoals, addGoal, deleteGoal } = useGoalStore()
   const { todos, setTodos } = useCalendarStore()
 
   // 플래너 진입 시 인증 확인 + 회원별 목표 로드
@@ -65,6 +66,34 @@ export default function MainPage() {
   const handleOpenQuickSchedule = (clickedTime: string, date: string) => {
     setQuickScheduleInitial({ time: clickedTime, date })
     setIsQuickScheduleOpen(true)
+  }
+
+  const handleAddGoalFromMain = async (title: string, deadline: string, description?: string) => {
+    const tempId = `opt-goal-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    const optimisticGoal: Goal = {
+      id: tempId,
+      title,
+      deadline,
+      description: description?.trim() || undefined,
+      priority: 'medium',
+      status: 'not_started',
+      milestones: [],
+      category: 'other',
+      estimatedHours: 0,
+      completedHours: 0,
+    }
+    addGoal(optimisticGoal)
+    setIsGoalModalOpen(false)
+    goalService
+      .createGoal({ title, deadline, description })
+      .then((created) => {
+        deleteGoal(tempId)
+        addGoal(normalizeGoalFromApi(created as unknown as Record<string, unknown>) as Goal)
+      })
+      .catch((err) => {
+        deleteGoal(tempId)
+        alert(err instanceof Error ? err.message : '목표 등록에 실패했습니다.')
+      })
   }
   
   // ESC 키로 월간 캘린더 모달 닫기
@@ -192,17 +221,27 @@ export default function MainPage() {
       )}
 
       {/* 목표 생성 모달 */}
-      <GoalModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} />
-      
+      <AddGoalModal
+        isOpen={isGoalModalOpen}
+        onClose={() => setIsGoalModalOpen(false)}
+        mode="create"
+        onSubmit={handleAddGoalFromMain}
+      />
+
       {/* 빠른 일정 추가 모달 */}
-      <QuickScheduleModal 
-        isOpen={isQuickScheduleOpen} 
+      <AddTodoModal
+        isOpen={isQuickScheduleOpen}
         onClose={() => {
           setIsQuickScheduleOpen(false)
           setQuickScheduleInitial({})
         }}
-        initialDate={quickScheduleInitial.date}
-        initialStartTime={quickScheduleInitial.time}
+        defaultDate={
+          quickScheduleInitial.date
+            ? quickScheduleInitial.time
+              ? new Date(`${quickScheduleInitial.date}T${quickScheduleInitial.time}:00`)
+              : new Date(quickScheduleInitial.date + 'T12:00:00')
+            : undefined
+        }
       />
     </div>
   )
