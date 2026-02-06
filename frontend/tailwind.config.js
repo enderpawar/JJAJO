@@ -8,22 +8,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#FFF7ED',
-          100: '#FFEDD5',
-          200: '#FED7AA',
-          300: '#FDBA74',
-          400: '#FB923C',
-          500: '#FF6B00',  // 브랜드 오렌지
-          600: '#EA580C',
-          700: '#C2410C',
-          800: '#9A3412',
-          900: '#7C2D12',
-        },
         notion: {
           bg: '#191919',       // 메인 배경 (완전 어두운 회색)
           sidebar: '#202020',  // 사이드바/카드 배경
-          hover: '#2a2a2a',    // 호버 배경
           border: '#373737',   // 얇은 테두리
           text: '#FFFFFF',     // 메인 텍스트
           muted: '#9B9B9B',    // 보조 텍스트

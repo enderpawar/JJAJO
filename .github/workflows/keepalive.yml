@@ -1,0 +1,29 @@
+# Render 백엔드 Keep-Alive (콜드 스타트 방지)
+# 14분마다 백엔드 루트를 호출해 슬립(15분 무활동 시)을 막습니다.
+# 스케줄은 default branch(main) 기준으로만 동작합니다.
+
+name: Backend Keep-Alive
+
+on:
+  schedule:
+    # 매시 0, 14, 28, 42분 (UTC) — 14분 간격
+    - cron: "*/14 * * * *"
+  workflow_dispatch: {}
+
+env:
+  BACKEND_ORIGIN: "https://jjajo-backend.onrender.com"
+
+jobs:
+  ping:
+    name: Ping backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Keep-alive request
+        run: |
+          url="${BACKEND_ORIGIN}/"
+          echo "Pinging $url ..."
+          # -f 사용 안 함: 슬립 해제 중 502 등이 나와도 요청 자체로 깨우기만 하면 됨
+          # Render 콜드 스타트 시 최대 ~60초 걸릴 수 있음
+          curl -sS --max-time 90 --connect-timeout 15 -o /dev/null -w "HTTP %{http_code}\n" "$url" || true
+        continue-on-error: true

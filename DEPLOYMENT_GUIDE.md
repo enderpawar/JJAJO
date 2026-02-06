@@ -34,6 +34,7 @@
 | `scripts/verify-build.ps1` | 배포 전 로컬 빌드 검증 (Windows, 저장소 루트에서 실행) |
 | `scripts/verify-build.sh` | 배포 전 로컬 빌드 검증 (Mac/Linux) |
 | `.github/workflows/build.yml` | push/PR 시 백엔드·프론트 빌드 검증 (CI) |
+| `.github/workflows/keepalive.yml` | Render 백엔드 14분마다 Keep-Alive (콜드 스타트 방지) |
 
 ---
 
@@ -110,6 +111,13 @@
 4. 배포 후 제공되는 URL(예: `https://jjajo-backend.onrender.com`)을 **백엔드 URL**로 사용.
 
 **2단계 완료 후**: 백엔드 URL을 메모해 두세요. → **3단계** OAuth 리다이렉트 URI, **4단계** `VITE_BACKEND_ORIGIN`에 사용합니다.
+
+**Render 무료 플랜 + 콜드 스타트 방지**  
+Render 무료 플랜은 15분 무활동 시 서비스가 슬립되어, 로그인 시 "SERVICE WAKING UP" 화면이 뜰 수 있습니다.  
+저장소에 포함된 **`.github/workflows/keepalive.yml`** 이 **14분마다** 백엔드 루트(`BACKEND_ORIGIN`)를 호출해 슬립을 막습니다.  
+- 스케줄은 **default branch(보통 `main`)에 푸시된 뒤**부터 동작합니다.  
+- 백엔드 URL을 바꾼 경우 워크플로의 `env.BACKEND_ORIGIN`을 같은 값으로 수정하세요.  
+- 수동 실행: GitHub → **Actions** → **Backend Keep-Alive** → **Run workflow**.
 
 ---
 
