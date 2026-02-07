@@ -390,7 +390,7 @@ export function VerticalTimeline() {
     return (
       <motion.div
         {...(isEditingThisTask && { 'data-editing-card': 'true' })}
-        key={`${task.id}-${task.startTime}-${task.endTime}`}
+        key={`${task.clientKey ?? task.id}-${task.startTime}-${task.endTime}`}
         className={`
           task-card group absolute left-0 right-0 mx-4 cursor-pointer active:cursor-grabbing overflow-hidden touch-none
           ${isEditingThisTask ? 'rounded-2xl border-2 border-primary-400 shadow-[0_0_0_1px_rgba(56,189,248,0.4)]' : 'rounded-lg'}
@@ -533,7 +533,7 @@ export function VerticalTimeline() {
         {isPast && <div className="absolute inset-0 bg-gray-300" />}
         <div className={`relative z-10 ${isPast ? 'p-2' : 'p-4'}`}>
           {!isPast && (
-            <div className="absolute top-2 right-2 bottom-2 z-20 flex items-center gap-1">
+            <div className="absolute top-2 right-2 z-20 flex items-center gap-1">
               {isEditingThisTask && (
                 <button
                   ref={editButtonRef}
@@ -544,10 +544,10 @@ export function VerticalTimeline() {
                     handleDelete(task)
                   }}
                   onPointerDown={(e) => e.stopPropagation()}
-                  className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-red-500/40 hover:bg-red-500/60 backdrop-blur-sm' : 'bg-red-500/30 hover:bg-red-500/50 group'}`}
+                  className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-red-500/40 hover:bg-red-500/60 backdrop-blur-sm' : 'bg-red-500/30 hover:bg-red-500/50 group'}`}
                   title="삭제"
                 >
-                  <Trash2 className={`w-4 h-4 ${isCurrent ? 'text-white' : 'text-red-400 group-hover:text-white'}`} />
+                  <Trash2 className={`w-3.5 h-3.5 ${isCurrent ? 'text-white' : 'text-red-400 group-hover:text-white'}`} />
                 </button>
               )}
               <button
@@ -559,10 +559,10 @@ export function VerticalTimeline() {
                   }
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
-                className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-white/20 hover:bg-white/30 backdrop-blur-sm' : 'bg-notion-sidebar/80 hover:bg-blue-500 group'}`}
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-white/20 hover:bg-white/30 backdrop-blur-sm' : 'bg-notion-sidebar/80 hover:bg-blue-500 group'}`}
                 title={isEditingThisTask ? '편집 모드 해제' : task.title === '새 일정' ? '클릭하여 이름 입력' : '편집'}
               >
-                <Edit2 className={`w-4 h-4 ${isCurrent ? 'text-white' : 'text-gray-600 group-hover:text-white'}`} />
+                <Edit2 className={`w-3.5 h-3.5 ${isCurrent ? 'text-white' : 'text-gray-600 group-hover:text-white'}`} />
               </button>
             </div>
           )}

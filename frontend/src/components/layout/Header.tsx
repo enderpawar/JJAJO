@@ -5,6 +5,8 @@ import { useSettingsStore } from '@/stores/settingsStore'
 import { TimeSlotSettings } from '@/components/settings/TimeSlotSettings'
 import { ApiKeySettings } from '@/components/settings/ApiKeySettings'
 import { getApiBase } from '@/utils/api'
+import { createSchedule } from '@/services/scheduleService'
+import { useToastStore } from '@/stores/toastStore'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
@@ -13,9 +15,11 @@ interface HeaderProps {
 }
 
 export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
-  const { copyTodosFromPreviousDay, selectedDate, setSelectedDate } = useCalendarStore()
+  const { copyTodosFromPreviousDay, addTodos, selectedDate, setSelectedDate } = useCalendarStore()
+  const { addToast } = useToastStore()
   const { theme, toggleTheme, initTheme } = useSettingsStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isCopying, setIsCopying] = useState(false)
 
   const handleGoogleLogin = () => {
     const base = getApiBase()
@@ -38,12 +42,53 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
     }
   }, [isSettingsOpen])
 
-  const handleCopyPreviousDay = () => {
-    const count = copyTodosFromPreviousDay()
-    if (count > 0) {
-      alert(`어제 일정 ${count}개를 ${format(selectedDate, 'M월 d일', { locale: ko })}로 가져왔습니다!`)
-    } else {
+  const handleCopyPreviousDay = async () => {
+    if (isCopying) return
+    const { toCopy, excluded } = copyTodosFromPreviousDay()
+    if (toCopy.length === 0 && excluded.length === 0) {
       alert('어제 일정이 없습니다.')
+      return
+    }
+    excluded.forEach(({ title, startTime, endTime }) => {
+      addToast(`${startTime}~${endTime}에 있는 「${title}」이 중복되어 제외했습니다!`)
+    })
+    if (toCopy.length === 0) return
+
+    const optimisticIds = new Set(toCopy.map((t) => t.id))
+    addTodos(toCopy)
+    setIsCopying(true)
+
+    try {
+      const created = await Promise.all(
+        toCopy.map((t) =>
+          createSchedule({
+            title: t.title,
+            description: t.description ?? '',
+            date: t.date,
+            startTime: t.startTime ?? '',
+            endTime: t.endTime ?? '',
+            status: t.status,
+            priority: t.priority,
+            createdBy: t.createdBy,
+          })
+        )
+      )
+      const { todos, setTodos } = useCalendarStore.getState()
+      setTodos(
+        todos.map((t) => {
+          const idx = toCopy.findIndex((c) => c.id === t.id)
+          if (idx >= 0) return { ...created[idx], clientKey: t.id }
+          return t
+        })
+      )
+      alert(`어제 일정 ${created.length}개를 ${format(selectedDate, 'M월 d일', { locale: ko })}로 가져왔습니다!`)
+    } catch (e) {
+      const { todos, setTodos } = useCalendarStore.getState()
+      setTodos(todos.filter((t) => !optimisticIds.has(t.id)))
+      const message = e instanceof Error ? e.message : '일정 저장 실패'
+      alert(`저장 중 오류: ${message}`)
+    } finally {
+      setIsCopying(false)
     }
   }
 
@@ -70,20 +115,19 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
             <h1 className="text-base font-semibold text-notion-text-primary">짜조</h1>
           </button>
           
-          {/* 우측 메뉴 - 터치 타겟 44px */}
+          {/* 우측 메뉴 - 어제 일정 복사 | 월간 | 설정 */}
           <div className="flex items-center gap-1 sm:gap-2">
-            {/* Google 로그인 */}
+            {/* 어제 일정 복사하기 - 월간 캘린더 왼쪽 */}
             <button
               type="button"
-              onClick={handleGoogleLogin}
-              className="touch-target flex items-center justify-center gap-2 px-3 sm:px-4 min-w-[44px] hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer"
-              title="Google 계정으로 로그인"
+              onClick={handleCopyPreviousDay}
+              disabled={isCopying}
+              className="touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              title={isCopying ? '복사 중…' : `선택한 날짜(${format(selectedDate, 'M월 d일', { locale: ko })})로 어제 일정 복사`}
             >
-              <LogIn className="w-4 h-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Google 로그인</span>
+              <Copy className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline">{isCopying ? '복사 중…' : '어제 일정 복사'}</span>
             </button>
-            {/* 구분선: 로그인 vs 보조 액션 */}
-            <div className="w-px h-5 bg-notion-border hidden sm:block" aria-hidden />
             {/* 월간 캘린더 */}
             {onOpenMonthlyCalendar && (
               <button
@@ -154,17 +198,18 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
             {/* 컨텐츠 */}
             <div className="p-6 space-y-8">
               <div className="border-b border-notion-border pb-6">
-                <h3 className="text-sm font-semibold text-notion-text mb-2">일정</h3>
+                <h3 className="text-sm font-semibold text-notion-text mb-2">계정</h3>
                 <button
                   type="button"
-                  onClick={() => { handleCopyPreviousDay(); setIsSettingsOpen(false); }}
+                  onClick={handleGoogleLogin}
                   className="touch-target w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-notion-hover hover:bg-notion-border text-notion-text text-sm font-medium transition-colors"
+                  title="Google 계정으로 로그인"
                 >
-                  <Copy className="w-4 h-4" />
-                  어제 일정 가져오기
+                  <LogIn className="w-4 h-4" />
+                  Google 로그인
                 </button>
                 <p className="text-xs text-notion-muted mt-2">
-                  선택한 날짜({format(selectedDate, 'M월 d일', { locale: ko })})로 어제 일정을 복사합니다.
+                  Google 계정으로 로그인하면 일정을 동기화할 수 있습니다.
                 </p>
               </div>
               <TimeSlotSettings />

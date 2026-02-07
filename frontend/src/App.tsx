@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import AuthPage from './pages/AuthPage'
 import MainPage from './pages/MainPage'
+import { ToastContainer } from './components/layout/Toast'
 import { getApiBase } from './utils/api'
 
 /** /oauth2/authorization/google 로 들어온 경우(상대 경로로 로그인 시도 시) 백엔드로 리다이렉트 */
@@ -35,6 +36,7 @@ function App() {
   return (
     <Router>
       <AppRoutes />
+      <ToastContainer />
     </Router>
   )
 }
