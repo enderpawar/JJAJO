@@ -560,7 +560,7 @@ export function VerticalTimeline() {
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
                 className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-white/20 hover:bg-white/30 backdrop-blur-sm' : 'bg-notion-sidebar/80 hover:bg-blue-500 group'}`}
-                title={isEditingThisTask ? '편집 모드 해제' : '편집'}
+                title={isEditingThisTask ? '편집 모드 해제' : task.title === '새 일정' ? '클릭하여 이름 입력' : '편집'}
               >
                 <Edit2 className={`w-4 h-4 ${isCurrent ? 'text-white' : 'text-gray-600 group-hover:text-white'}`} />
               </button>
@@ -601,7 +601,12 @@ export function VerticalTimeline() {
                   placeholder="제목"
                 />
               ) : (
-                <div className={`text-lg font-semibold mb-2 leading-tight pr-12 ${isCurrent ? 'text-white text-2xl drop-shadow-lg' : 'text-white'}`}>{task.title}</div>
+                <>
+                  <div className={`text-lg font-semibold mb-2 leading-tight pr-12 ${isCurrent ? 'text-white text-2xl drop-shadow-lg' : 'text-white'}`}>{task.title}</div>
+                  {task.title === '새 일정' && (
+                    <div className="text-xs text-notion-muted">연필 아이콘을 눌러 제목을 입력하세요</div>
+                  )}
+                </>
               )}
               {task.description && <div className={`text-sm mb-3 ${isCurrent ? 'text-white/90' : 'text-gray-400'}`}>{task.description}</div>}
               {isCurrent && (
@@ -658,8 +663,10 @@ export function VerticalTimeline() {
           >
             <Clock className="w-5 h-5 text-primary-600 animate-pulse" />
             <div className="text-left ml-3">
-              <div className="text-sm font-bold text-notion-text">📜 이전 기록: {timeLabel} ({pastTodos.length}개 일정)</div>
-              <div className="text-xs text-primary-600 font-medium">00:00 ~ {format(currentTime, 'HH:mm')} · 👆 클릭하여 펼치기</div>
+              <div className="text-sm font-bold text-notion-text">
+                📜 이전 기록: {timeLabel} ({pastTodos.length === 0 ? '일정 없음' : `${pastTodos.length}개 일정`})
+              </div>
+              <div className="text-xs text-primary-600 font-medium">00:00 ~ {format(currentTime, 'HH:mm')} · 👆 클릭하여 이전 시간대 보기</div>
             </div>
           </div>
         )
@@ -672,6 +679,7 @@ export function VerticalTimeline() {
           marginTop: !showPastTime ? `-${currentTimePosition - 100}px` : '0px',
         }}
         onDoubleClick={handleDoubleClickEmpty}
+        title="빈 칸을 더블클릭하면 일정을 추가할 수 있어요"
       >
         {/* 그리드 레이어: 클릭은 부모(타임라인 컨테이너)로 전달되도록 pointer-events-none */}
         <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>

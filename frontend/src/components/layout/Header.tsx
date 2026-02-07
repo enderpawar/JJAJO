@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, Settings, X, Moon, Sun, Copy, Calendar } from 'lucide-react'
+import { Sparkles, Settings, X, Moon, Sun, Copy, Calendar, LogIn } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { TimeSlotSettings } from '@/components/settings/TimeSlotSettings'
@@ -13,7 +13,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
-  const { copyTodosFromPreviousDay, selectedDate } = useCalendarStore()
+  const { copyTodosFromPreviousDay, selectedDate, setSelectedDate } = useCalendarStore()
   const { theme, toggleTheme, initTheme } = useSettingsStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
@@ -46,33 +46,44 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
       alert('어제 일정이 없습니다.')
     }
   }
-  
+
+  const handleLogoClick = () => {
+    setSelectedDate(new Date())
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
     <header className="relative z-30 bg-notion-card border-b border-notion-border shadow-none" style={{ isolation: 'isolate' }}>
       <div className="max-w-screen-2xl mx-auto px-6 py-3 h-20">
         <div className="flex items-center justify-between h-[60px]">
-          {/* 로고 - Notion 스타일 미니멀 */}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-notion-text-primary rounded-notion flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-notion-bg" />
+          {/* 로고 - 클릭 시 오늘 날짜로 이동 + 상단 스크롤 */}
+          <button
+            type="button"
+            onClick={handleLogoClick}
+            className="flex items-center gap-3 rounded-notion hover:bg-notion-hover transition-colors px-1 py-1 -mx-1 min-h-[44px]"
+            title="오늘로 이동"
+            aria-label="짜조 로고, 오늘로 이동"
+          >
+            <div className="w-8 h-8 bg-primary-500 rounded-notion flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <div>
-              <h1 className="text-base font-semibold text-notion-text-primary">짜조</h1>
-            </div>
-          </div>
+            <h1 className="text-base font-semibold text-notion-text-primary">짜조</h1>
+          </button>
           
-          {/* 우측 메뉴 - 터치 타겟 44px (크로스플랫폼) */}
-          <div className="flex items-center gap-1">
+          {/* 우측 메뉴 - 터치 타겟 44px */}
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* Google 로그인 */}
             <button
               type="button"
               onClick={handleGoogleLogin}
-              className="touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer"
+              className="touch-target flex items-center justify-center gap-2 px-3 sm:px-4 min-w-[44px] hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer"
               title="Google 계정으로 로그인"
             >
-              <Sparkles className="w-4 h-4" />
+              <LogIn className="w-4 h-4 flex-shrink-0" />
               <span className="hidden sm:inline">Google 로그인</span>
             </button>
+            {/* 구분선: 로그인 vs 보조 액션 */}
+            <div className="w-px h-5 bg-notion-border hidden sm:block" aria-hidden />
             {/* 월간 캘린더 */}
             {onOpenMonthlyCalendar && (
               <button
@@ -99,13 +110,15 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
               )}
             </button>
 
+            {/* 설정 - sm 이상에서 라벨 표시 */}
             <button
               type="button"
               onClick={() => setIsSettingsOpen(true)}
-              className="touch-target flex items-center justify-center p-2 min-w-[44px] hover:bg-notion-hover rounded-notion transition-colors cursor-pointer"
+              className="touch-target flex items-center justify-center gap-2 p-2 sm:px-3 min-w-[44px] hover:bg-notion-hover rounded-notion transition-colors cursor-pointer"
               title="설정"
             >
-              <Settings className="w-4 h-4 text-notion-text-secondary hover:text-notion-text-primary" />
+              <Settings className="w-4 h-4 text-notion-text-secondary hover:text-notion-text-primary flex-shrink-0" />
+              <span className="hidden sm:inline text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary">설정</span>
             </button>
           </div>
         </div>
