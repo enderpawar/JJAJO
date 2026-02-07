@@ -28,6 +28,16 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
     initTheme()
   }, [initTheme])
 
+  // 설정 모달 열릴 때 body 스크롤 잠금 (크로스플랫폼)
+  useEffect(() => {
+    if (!isSettingsOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [isSettingsOpen])
+
   const handleCopyPreviousDay = () => {
     const count = copyTodosFromPreviousDay()
     if (count > 0) {
@@ -39,8 +49,8 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
   
   return (
     <header className="relative z-30 bg-notion-card border-b border-notion-border shadow-none" style={{ isolation: 'isolate' }}>
-      <div className="max-w-screen-2xl mx-auto px-6 py-3">
-        <div className="flex items-center justify-between">
+      <div className="max-w-screen-2xl mx-auto px-6 py-3 h-20">
+        <div className="flex items-center justify-between h-[60px]">
           {/* 로고 - Notion 스타일 미니멀 */}
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-notion-text-primary rounded-notion flex items-center justify-center">
@@ -51,35 +61,24 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
             </div>
           </div>
           
-          {/* 우측 메뉴 - Notion 플랫 버튼 스타일 */}
+          {/* 우측 메뉴 - 터치 타겟 44px (크로스플랫폼) */}
           <div className="flex items-center gap-1">
             {/* Google 로그인 */}
             <button
               type="button"
               onClick={handleGoogleLogin}
-              className="flex items-center gap-2 px-3 py-1.5 hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer"
+              className="touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer"
               title="Google 계정으로 로그인"
             >
               <Sparkles className="w-4 h-4" />
               <span className="hidden sm:inline">Google 로그인</span>
             </button>
-            {/* 어제 일정 가져오기 */}
-            <button
-              type="button"
-              onClick={handleCopyPreviousDay}
-              className="flex items-center gap-2 px-3 py-1.5 hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer"
-              title="어제 일정 가져오기"
-            >
-              <Copy className="w-4 h-4" />
-              <span className="hidden sm:inline">어제 일정</span>
-            </button>
-
             {/* 월간 캘린더 */}
             {onOpenMonthlyCalendar && (
               <button
                 type="button"
                 onClick={onOpenMonthlyCalendar}
-                className="flex items-center gap-2 px-3 py-1.5 hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer"
+                className="touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer"
                 title="월간 일정 보기"
               >
                 <Calendar className="w-4 h-4" />
@@ -90,7 +89,7 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
             {/* 다크모드 토글 (Notion은 항상 다크모드이므로 숨김 처리 가능) */}
             <button
               onClick={toggleTheme}
-              className="hidden p-2 hover:bg-notion-hover rounded-notion transition-colors"
+              className="hidden touch-target p-2 hover:bg-notion-hover rounded-notion transition-colors"
               title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
             >
               {theme === 'dark' ? (
@@ -103,7 +102,7 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
             <button
               type="button"
               onClick={() => setIsSettingsOpen(true)}
-              className="p-2 hover:bg-notion-hover rounded-notion transition-colors cursor-pointer"
+              className="touch-target flex items-center justify-center p-2 min-w-[44px] hover:bg-notion-hover rounded-notion transition-colors cursor-pointer"
               title="설정"
             >
               <Settings className="w-4 h-4 text-notion-text-secondary hover:text-notion-text-primary" />
@@ -133,7 +132,7 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(false)}
-                className="p-1.5 hover:bg-notion-hover rounded-notion transition-colors cursor-pointer"
+                className="touch-target flex items-center justify-center p-2 min-w-[44px] hover:bg-notion-hover rounded-notion transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5 text-notion-muted" />
               </button>
@@ -141,6 +140,20 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
             
             {/* 컨텐츠 */}
             <div className="p-6 space-y-8">
+              <div className="border-b border-notion-border pb-6">
+                <h3 className="text-sm font-semibold text-notion-text mb-2">일정</h3>
+                <button
+                  type="button"
+                  onClick={() => { handleCopyPreviousDay(); setIsSettingsOpen(false); }}
+                  className="touch-target w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-notion-hover hover:bg-notion-border text-notion-text text-sm font-medium transition-colors"
+                >
+                  <Copy className="w-4 h-4" />
+                  어제 일정 가져오기
+                </button>
+                <p className="text-xs text-notion-muted mt-2">
+                  선택한 날짜({format(selectedDate, 'M월 d일', { locale: ko })})로 어제 일정을 복사합니다.
+                </p>
+              </div>
               <TimeSlotSettings />
               <div className="border-t border-notion-border pt-6">
                 <ApiKeySettings />

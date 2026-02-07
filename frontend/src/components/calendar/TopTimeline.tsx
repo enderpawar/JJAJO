@@ -5,11 +5,7 @@ import { ko } from 'date-fns/locale'
 
 /**
  * 🎨 TopTimeline: Weekly Heatmap Bar
- * 
- * Concept: "Simplicity within Complexity"
- * - 7개의 Column으로 구성된 주간 히트맵
- * - 텍스트 대신 컬러 게이지로 일정 밀도 표현
- * - 10vh 고정 높이
+ * - 7개 날짜 카드가 한 줄에 들어가며, 영역 높이 안에서만 표시되도록 고정 높이 사용
  */
 export function TopTimeline() {
   const { todos, selectedDate } = useCalendarStore()
@@ -59,60 +55,55 @@ export function TopTimeline() {
   }
   
   return (
-    <div className="h-[10vh] min-h-[80px] bg-transparent border-b border-[#373737]">
-      <div className="container mx-auto px-6 h-full flex items-center justify-center">
-        {/* 7개의 히트맵 컬럼 - ADHD 친화적: 오늘 중심 */}
-        <div className="flex gap-3 h-full py-4 max-w-4xl w-full">
+    <section className="h-[130px] min-h-[130px] overflow-hidden box-border flex flex-col bg-transparent border-b border-[#373737] py-3">
+      <div className="flex-1 min-h-0 flex flex-col items-center px-3 sm:px-6">
+        {/* 카드 행: flex-1 제거, 고정 높이 72px만 사용 → 버튼이 100px로 늘어나지 않음 */}
+        <div className="flex gap-1 md:gap-3 w-full max-w-4xl h-[72px] shrink-0 overflow-x-auto snap-x snap-mandatory md:overflow-visible md:snap-none scrollbar-none">
           {weekDays.map((date, index) => {
             const density = getDensity(date)
             const heatmapColor = getHeatmapColor(density)
             const today = isToday(date)
             const selected = isSelected(date)
             const todoCount = todos.filter(t => t.date === format(date, 'yyyy-MM-dd')).length
-            
+            const dayLabel = format(date, 'EEE', { locale: ko })
+            const titleText = todoCount > 0 ? `${dayLabel} ${date.getDate()}일 · ${todoCount}개 일정` : `${dayLabel} ${date.getDate()}일`
+
             return (
               <button
                 key={index}
+                type="button"
                 onClick={() => handleDayClick(date)}
+                title={titleText}
                 className={`
+                  touch-target flex-none snap-center min-w-[44px] md:min-w-0 w-full h-full max-h-full min-h-0
+                  flex flex-col items-center justify-center gap-0.5
                   transition-all duration-300 cursor-pointer rounded-lg
-                  relative overflow-hidden
-                  ${today 
-                    ? 'flex-[2]' 
-                    : 'flex-1 hover:brightness-110'}
-                  ${selected ? 'bg-primary-500/25 ring-2 ring-primary-500/50' : today ? 'bg-transparent hover:bg-white/5' : heatmapColor}
+                  relative
+                  md:flex-1 ${today ? 'md:flex-[2]' : ''} hover:brightness-110
+                  ${selected ? 'bg-primary-500/25 ring-2 ring-inset ring-primary-500/50' : today ? 'bg-transparent hover:bg-white/5' : heatmapColor}
                 `}
               >
-                {/* 날짜 레이블 */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-                  <div className={`text-xs font-medium ${today ? 'text-white' : 'text-white/90'}`}>
-                    {format(date, 'EEE', { locale: ko })}
-                  </div>
-                  <div className={`font-bold ${today ? 'text-white text-3xl' : 'text-white/95 text-xl'}`}>
-                    {format(date, 'd')}
-                  </div>
-                  
-                  {/* 일정 개수 - 오늘만 명확하게 표시 */}
-                  {todoCount > 0 && (
-                    <div className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      today 
-                        ? 'bg-notion-text/20 text-white' 
-                        : 'bg-notion-text/10 text-white'
-                    }`}>
-                      {todoCount}개
-                    </div>
-                  )}
-                </div>
-                
-                {/* 오늘 펄스 효과 */}
+                <span className={`text-[10px] md:text-xs font-medium shrink-0 ${today ? 'text-white' : 'text-white/90'}`}>
+                  {dayLabel}
+                </span>
+                <span className={`font-bold shrink-0 leading-tight ${today ? 'text-white text-lg md:text-2xl' : 'text-white/95 text-sm md:text-lg'}`}>
+                  {format(date, 'd')}
+                </span>
+                {todoCount > 0 && (
+                  <span className={`hidden md:inline-flex shrink-0 items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                    today ? 'bg-notion-text/20 text-white' : 'bg-notion-text/10 text-white'
+                  }`}>
+                    {todoCount}개
+                  </span>
+                )}
                 {today && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary-500 rounded-full animate-pulse" />
+                  <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 md:w-2 md:h-2 bg-primary-500 rounded-full animate-pulse" />
                 )}
               </button>
             )
           })}
         </div>
       </div>
-    </div>
+    </section>
   )
 }

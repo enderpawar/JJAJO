@@ -1,8 +1,7 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
-import { createPortal } from 'react-dom'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { updateSchedule, deleteSchedule, createSchedule } from '@/services/scheduleService'
-import { Clock, Edit2, Pencil, Trash2 } from 'lucide-react'
+import { Clock, Edit2, Trash2, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { motion } from 'framer-motion'
 import type { Todo } from '../../types/calendar'
@@ -39,55 +38,19 @@ export function VerticalTimeline() {
   const [showPastTime, setShowPastTime] = useState(false)
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null)
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
-  const [renamingTodoId, setRenamingTodoId] = useState<string | null>(null)
   const [renameInputValue, setRenameInputValue] = useState('')
-  const [isSavingRename, setIsSavingRename] = useState(false)
-  const actionMenuRef = useRef<HTMLDivElement | null>(null)
   const editButtonRef = useRef<HTMLButtonElement | null>(null)
-  const [menuAnchorRect, setMenuAnchorRect] = useState<{ top: number; left: number; width: number; buttonTop: number } | null>(null)
-  const renameInputRef = useRef<HTMLInputElement | null>(null)
+  const titleInputRef = useRef<HTMLInputElement | null>(null)
   const isDraggingRef = useRef(false)
   const draggingTaskIdRef = useRef<string | null>(null)
   const pendingReplaceRef = useRef<{ tempId: string; created: Todo } | null>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
   const hasAutoScrolled = useRef(false)
-
   useEffect(() => {
-    if (!editingTodo) return
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node
-      const inButton = editButtonRef.current?.contains(target)
-      const inDropdown = actionMenuRef.current?.contains(target)
-      if (!inButton && !inDropdown) {
-        setEditingTodo(null)
-        setRenamingTodoId(null)
-        setMenuAnchorRect(null)
-      }
+    if (editingTodo) {
+      setRenameInputValue(editingTodo.title ?? '')
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [editingTodo])
-
-  useEffect(() => {
-    if (editingTodo && editButtonRef.current) {
-      const rect = editButtonRef.current.getBoundingClientRect()
-      setMenuAnchorRect({
-        top: rect.bottom,
-        left: rect.right,
-        width: rect.width,
-        buttonTop: rect.top,
-      })
-    } else {
-      setMenuAnchorRect(null)
-    }
-  }, [editingTodo])
-
-  useEffect(() => {
-    if (renamingTodoId) {
-      setRenameInputValue(editingTodo?.title ?? '')
-      requestAnimationFrame(() => renameInputRef.current?.focus())
-    }
-  }, [renamingTodoId, editingTodo?.title])
+  }, [editingTodo?.id])
 
   const handleSaveRename = useCallback(async (task: Todo) => {
     const title = renameInputValue.trim()
@@ -95,9 +58,7 @@ export function VerticalTimeline() {
     const previousTitle = task.title
     // 낙관적 반영: 제목을 바로 UI에 반영하고 입력창 닫기
     updateTodo(task.id, { title, updatedAt: new Date().toISOString() })
-    setRenamingTodoId(null)
     setEditingTodo(null)
-    setIsSavingRename(false)
 
     if (task.id.startsWith('opt-')) return
 
@@ -129,6 +90,21 @@ export function VerticalTimeline() {
       alert(`일정 삭제 실패: ${msg}`)
     })
   }, [deleteTodo, addTodo])
+
+  useEffect(() => {
+    if (!editingTodo) return
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Element
+      if (target.closest?.('[data-editing-card]')) return
+      if (renameInputValue.trim() && renameInputValue.trim() !== editingTodo.title) {
+        handleSaveRename(editingTodo)
+      } else {
+        setEditingTodo(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside, true)
+    return () => document.removeEventListener('mousedown', handleClickOutside, true)
+  }, [editingTodo, renameInputValue, handleSaveRename])
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000)
@@ -288,10 +264,116 @@ export function VerticalTimeline() {
     format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd'),
   [selectedDate])
 
+  const startResize = useCallback(
+    (initialClientY: number, task: Todo, edge: 'start' | 'end') => {
+      if (!task.startTime || !task.endTime) return
+
+      const initialStartPixel = timeToPixels(task.startTime)
+      const initialEndPixel = timeToPixels(task.endTime)
+      const MIN_BLOCK_HEIGHT = 40
+
+      const handleMove = (ev: MouseEvent | TouchEvent) => {
+        const clientY =
+          ev instanceof MouseEvent ? ev.clientY : ev.touches[0]?.clientY ?? initialClientY
+        const deltaY = clientY - initialClientY
+
+        let newStartPixel = initialStartPixel
+        let newEndPixel = initialEndPixel
+
+        if (edge === 'start') {
+          newStartPixel = Math.min(
+            initialEndPixel - MIN_BLOCK_HEIGHT,
+            Math.max(0, initialStartPixel + deltaY)
+          )
+        } else {
+          newEndPixel = Math.max(
+            initialStartPixel + MIN_BLOCK_HEIGHT,
+            Math.min(timelineHeight, initialEndPixel + deltaY)
+          )
+        }
+
+        setDragPreview({
+          taskId: task.id,
+          startTime: pixelToTime(newStartPixel),
+          endTime: pixelToTime(newEndPixel),
+        })
+      }
+
+      const handleUp = (ev: MouseEvent | TouchEvent) => {
+        window.removeEventListener('mousemove', handleMove as any)
+        window.removeEventListener('mouseup', handleUp as any)
+        window.removeEventListener('touchmove', handleMove as any)
+        window.removeEventListener('touchend', handleUp as any)
+
+        const clientY =
+          ev instanceof MouseEvent ? ev.clientY : (ev as TouchEvent).changedTouches[0]?.clientY ?? initialClientY
+        const deltaY = clientY - initialClientY
+
+        let newStartPixel = initialStartPixel
+        let newEndPixel = initialEndPixel
+
+        if (edge === 'start') {
+          newStartPixel = Math.min(
+            initialEndPixel - MIN_BLOCK_HEIGHT,
+            Math.max(0, initialStartPixel + deltaY)
+          )
+        } else {
+          newEndPixel = Math.max(
+            initialStartPixel + MIN_BLOCK_HEIGHT,
+            Math.min(timelineHeight, initialEndPixel + deltaY)
+          )
+        }
+
+        const newStart = pixelToTime(newStartPixel)
+        const newEnd = pixelToTime(newEndPixel)
+
+        setDragPreview(null)
+
+        if (pendingReplaceRef.current && pendingReplaceRef.current.tempId === task.id) {
+          const { created } = pendingReplaceRef.current
+          const tempIdToRemove = task.id
+          pendingReplaceRef.current = null
+
+          updateTodo(tempIdToRemove, { startTime: newStart, endTime: newEnd })
+          setTimeout(() => {
+            deleteTodo(tempIdToRemove)
+            addTodo({ ...created, startTime: newStart, endTime: newEnd })
+            updateSchedule(created.id, { startTime: newStart, endTime: newEnd }).catch(() => {})
+          }, 0)
+          return
+        }
+
+        updateTodo(task.id, { startTime: newStart, endTime: newEnd })
+        if (!task.id.startsWith('opt-')) {
+          updateSchedule(task.id, { startTime: newStart, endTime: newEnd }).catch(() => {})
+        }
+      }
+
+      window.addEventListener('mousemove', handleMove as any)
+      window.addEventListener('mouseup', handleUp as any)
+      window.addEventListener('touchmove', handleMove as any, { passive: false })
+      window.addEventListener('touchend', handleUp as any)
+    },
+    [timeToPixels, pixelToTime, timelineHeight, updateTodo, deleteTodo, addTodo]
+  )
+
   const renderTaskBlock = useCallback((task: Todo) => {
     if (!task.startTime || !task.endTime) return null
-    const startPixel = timeToPixels(task.startTime)
-    const endPixel = timeToPixels(task.endTime)
+
+    // 원본 위치 (시간 기준)
+    const originalStartPixel = timeToPixels(task.startTime)
+    const originalEndPixel = timeToPixels(task.endTime)
+
+    // 기본값: 원본 위치
+    let startPixel = originalStartPixel
+    let endPixel = originalEndPixel
+
+    // 전체 카드 드래그가 아닌, 리사이즈 중일 때만 프리뷰 값을 실제 카드 위치/높이에 반영
+    if (dragPreview && dragPreview.taskId === task.id && !isDraggingRef.current) {
+      startPixel = timeToPixels(dragPreview.startTime)
+      endPixel = timeToPixels(dragPreview.endTime)
+    }
+
     const baseHeight = endPixel - startPixel
     const isPast = isSelectedDateToday && endPixel < currentTimePosition
     const isCurrent = isSelectedDateToday && startPixel <= currentTimePosition && currentTimePosition < endPixel
@@ -303,15 +385,24 @@ export function VerticalTimeline() {
       ? ((currentTimePosition - startPixel) / (endPixel - startPixel)) * 100
       : 0
     const scale = 1
+    const isEditingThisTask = editingTodo?.id === task.id
 
     return (
       <motion.div
+        {...(isEditingThisTask && { 'data-editing-card': 'true' })}
         key={`${task.id}-${task.startTime}-${task.endTime}`}
         className={`
-          task-card group absolute left-0 right-0 mx-4 rounded-lg cursor-pointer active:cursor-grabbing overflow-hidden
+          task-card group absolute left-0 right-0 mx-4 cursor-pointer active:cursor-grabbing overflow-hidden touch-none
+          ${isEditingThisTask ? 'rounded-2xl border-2 border-primary-400 shadow-[0_0_0_1px_rgba(56,189,248,0.4)]' : 'rounded-lg'}
           ${isPast ? 'task-card-past' : ''}
           ${isCurrent ? 'task-card-active backdrop-blur-md' : ''}
-          ${isFuture || (!isCurrent && !isPast) ? 'bg-[#252525]/90 backdrop-blur-md border border-white/10 hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] hover:border-white/30 hover:bg-[#2a2a2a]/90 transition-all duration-300 ease-out' : ''}
+          ${isFuture || (!isCurrent && !isPast)
+            ? `bg-[#252525]/90 backdrop-blur-md ${
+                isEditingThisTask ? '' : 'border border-white/10'
+              } hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] ${
+                isEditingThisTask ? '' : 'hover:border-white/30'
+              } hover:bg-[#2a2a2a]/90 transition-all duration-300 ease-out`
+            : ''}
         `}
         style={{
           top: `${startPixel}px`,
@@ -322,15 +413,17 @@ export function VerticalTimeline() {
           willChange: 'transform',
           transition: 'none',
         }}
-        drag="y"
+        drag={isEditingThisTask ? false : 'y'}
         dragElastic={0}
         dragMomentum={false}
-        whileDrag={{ scale: 1.05, zIndex: 100, cursor: 'grabbing' }}
+        whileDrag={isEditingThisTask ? undefined : { scale: 1.05, zIndex: 100, cursor: 'grabbing' }}
         onDragStart={() => {
+          if (isEditingThisTask) return
           isDraggingRef.current = true
           draggingTaskIdRef.current = task.id
         }}
         onDrag={(_, info) => {
+          if (isEditingThisTask) return
           const newStartPixel = Math.max(0, Math.min(timelineHeight - (endPixel - startPixel), startPixel + info.offset.y))
           setDragPreview({
             taskId: task.id,
@@ -339,6 +432,7 @@ export function VerticalTimeline() {
           })
         }}
         onDragEnd={(_, info) => {
+          if (isEditingThisTask) return
           setDragPreview(null)
           let newStartPixel = Math.max(0, Math.min(timelineHeight - (endPixel - startPixel), startPixel + info.offset.y))
           const newEndPixel = newStartPixel + (endPixel - startPixel)
@@ -375,6 +469,60 @@ export function VerticalTimeline() {
             <span className="px-2.5 py-1 bg-primary-500 rounded-full text-white text-xs font-bold">📍 10분</span>
           </div>
         )}
+        {/* 편집 모드에서 상/하단 테두리를 잡고 리사이즈할 수 있는 영역 (카드 전체 높이에 따라 자동 이동) */}
+        {!isPast && editingTodo?.id === task.id && (
+          <>
+            {/* 상단: 얇은 투명 히트존만 유지 (시간 앞당기기용) */}
+            <div
+              className="absolute inset-x-0 top-0 h-3 cursor-n-resize touch-none z-20"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                startResize(e.clientY, task, 'start')
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                const touch = e.touches[0]
+                if (touch) startResize(touch.clientY, task, 'start')
+              }}
+            />
+            {/* 하단: 테마와 어울리는 V(chevron) 모양 드래그 핸들 */}
+            <div
+              className="absolute left-1/2 bottom-1 -translate-x-1/2 z-20"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                startResize(e.clientY, task, 'end')
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                const touch = e.touches[0]
+                if (touch) startResize(touch.clientY, task, 'end')
+              }}
+            >
+              <div
+                className="
+                  flex items-center justify-center
+                  w-8 h-4
+                  rounded-full
+                  bg-white/5
+                  border border-primary-500/70
+                  text-primary-400
+                  shadow-[0_0_8px_rgba(251,146,60,0.4)]
+                  hover:bg-primary-500/20
+                  transition-all duration-150
+                  animate-float-soft
+                  cursor-s-resize
+                  touch-none
+                "
+              >
+                <ChevronDown className="w-3 h-3" />
+              </div>
+            </div>
+          </>
+        )}
         {isCurrent && (
           <>
             <div className="absolute inset-x-0 top-0 bg-slate-600/50" style={{ height: `${completedHeight}%`, transition: 'height 2s ease-out' }} />
@@ -385,9 +533,24 @@ export function VerticalTimeline() {
         {isPast && <div className="absolute inset-0 bg-gray-300" />}
         <div className={`relative z-10 ${isPast ? 'p-2' : 'p-4'}`}>
           {!isPast && (
-            <div className="absolute top-2 right-2 z-20">
+            <div className="absolute top-2 right-2 bottom-2 z-20 flex items-center gap-1">
+              {isEditingThisTask && (
+                <button
+                  ref={editButtonRef}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleDelete(task)
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-red-500/40 hover:bg-red-500/60 backdrop-blur-sm' : 'bg-red-500/30 hover:bg-red-500/50 group'}`}
+                  title="삭제"
+                >
+                  <Trash2 className={`w-4 h-4 ${isCurrent ? 'text-white' : 'text-red-400 group-hover:text-white'}`} />
+                </button>
+              )}
               <button
-                ref={editingTodo?.id === task.id ? editButtonRef : undefined}
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation()
@@ -396,7 +559,8 @@ export function VerticalTimeline() {
                   }
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
-                className={`p-2 rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-white/20 hover:bg-white/30 backdrop-blur-sm' : 'bg-notion-sidebar/80 hover:bg-blue-500 group'}`}
+                className={`h-full aspect-square flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-white/20 hover:bg-white/30 backdrop-blur-sm' : 'bg-notion-sidebar/80 hover:bg-blue-500 group'}`}
+                title={isEditingThisTask ? '편집 모드 해제' : '편집'}
               >
                 <Edit2 className={`w-4 h-4 ${isCurrent ? 'text-white' : 'text-gray-600 group-hover:text-white'}`} />
               </button>
@@ -411,7 +575,34 @@ export function VerticalTimeline() {
           ) : (
             <>
               <div className="text-sm font-medium mb-2 text-gray-400">{task.startTime} - {task.endTime}</div>
-              <div className={`text-lg font-semibold mb-2 leading-tight ${isCurrent ? 'text-white text-2xl drop-shadow-lg' : 'text-white'}`}>{task.title}</div>
+              {isEditingThisTask ? (
+                <input
+                  ref={titleInputRef}
+                  type="text"
+                  value={renameInputValue}
+                  onChange={(e) => setRenameInputValue(e.target.value)}
+                  onBlur={() => {
+                    if (renameInputValue.trim() && renameInputValue.trim() !== task.title) {
+                      handleSaveRename(task)
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      if (renameInputValue.trim()) handleSaveRename(task)
+                    }
+                    if (e.key === 'Escape') {
+                      setRenameInputValue(task.title)
+                      setEditingTodo(null)
+                    }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`w-[25%] pr-12 text-lg font-semibold mb-2 leading-tight bg-white/10 border border-white/20 rounded px-2 py-1 focus:outline-none focus:ring-0 focus-visible:ring-0 ${isCurrent ? 'text-white placeholder-white/50' : 'text-white placeholder-white/40'}`}
+                  placeholder="제목"
+                />
+              ) : (
+                <div className={`text-lg font-semibold mb-2 leading-tight pr-12 ${isCurrent ? 'text-white text-2xl drop-shadow-lg' : 'text-white'}`}>{task.title}</div>
+              )}
               {task.description && <div className={`text-sm mb-3 ${isCurrent ? 'text-white/90' : 'text-gray-400'}`}>{task.description}</div>}
               {isCurrent && (
                 <div className="mt-4 mr-4">
@@ -429,7 +620,7 @@ export function VerticalTimeline() {
         </div>
       </motion.div>
     )
-  }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renamingTodoId, renameInputValue, isSavingRename, handleSaveRename, handleDelete])
+  }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renameInputValue, handleSaveRename, handleDelete])
 
   const getMinutesDiff = (startPixel: number, endPixel: number) => ((endPixel - startPixel) / 100) * 60
 
@@ -441,7 +632,7 @@ export function VerticalTimeline() {
             <button
               type="button"
               onClick={() => setShowPastTime(false)}
-              className="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-3 cursor-pointer"
+              className="touch-target w-full min-h-[44px] bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-3 cursor-pointer"
             >
               <Clock className="w-5 h-5" />
               <span>이전 기록 접기 (현재 시간으로 돌아가기) ↑</span>
@@ -462,7 +653,7 @@ export function VerticalTimeline() {
             tabIndex={0}
             onClick={() => setShowPastTime(true)}
             onKeyDown={(e) => e.key === 'Enter' && setShowPastTime(true)}
-            className="mx-4 mb-4 rounded-xl cursor-pointer overflow-hidden border border-white/10 bg-[#252525]/60 backdrop-blur-xl hover:bg-[#2a2a2a]/70 hover:border-white/20 h-[100px] flex items-center justify-center"
+            className="touch-target mx-4 mb-0 rounded-xl cursor-pointer overflow-hidden border border-white/10 bg-[#252525]/60 backdrop-blur-xl hover:bg-[#2a2a2a]/70 hover:border-white/20 min-h-[300px] flex items-center justify-center"
             style={{ position: 'relative', zIndex: 100 }}
           >
             <Clock className="w-5 h-5 text-primary-600 animate-pulse" />
@@ -516,79 +707,6 @@ export function VerticalTimeline() {
 
         <div className="absolute left-0 right-0 top-0 bg-gray-900/10 pointer-events-none transition-all duration-1000" style={{ height: `${currentTimePosition}px`, zIndex: 2 }} />
       </div>
-      {/* 일정 액션 드롭다운: Portal로 body에 렌더링하여 카드 overflow에 잘리지 않음 */}
-      {editingTodo && menuAnchorRect && createPortal(
-        <div
-          ref={actionMenuRef}
-          className="min-w-[180px] rounded-lg border border-white/10 bg-[#252525] shadow-xl py-1 z-[9999]"
-          style={{
-            position: 'fixed',
-            ...(menuAnchorRect.top + 150 > window.innerHeight - 20
-              ? { bottom: window.innerHeight - menuAnchorRect.buttonTop + 4 }
-              : { top: menuAnchorRect.top + 4 }),
-            right: window.innerWidth - menuAnchorRect.left,
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {renamingTodoId === editingTodo.id ? (
-            <div className="px-3 py-2 space-y-2">
-              <input
-                ref={renameInputRef}
-                type="text"
-                value={renameInputValue}
-                onChange={(e) => setRenameInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSaveRename(editingTodo)
-                  if (e.key === 'Escape') setRenamingTodoId(null)
-                }}
-                className="w-full px-2 py-1.5 text-sm text-white bg-white/10 border border-white/20 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
-                placeholder="제목"
-              />
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  disabled={isSavingRename || !renameInputValue.trim()}
-                  onClick={() => handleSaveRename(editingTodo)}
-                  className="flex-1 py-1.5 text-xs font-medium text-white bg-primary-500 hover:bg-primary-600 disabled:opacity-50 rounded transition-colors"
-                >
-                  {isSavingRename ? '저장 중…' : '저장'}
-                </button>
-                <button
-                  type="button"
-                  disabled={isSavingRename}
-                  onClick={() => setRenamingTodoId(null)}
-                  className="flex-1 py-1.5 text-xs font-medium text-gray-300 hover:bg-white/10 rounded transition-colors"
-                >
-                  취소
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  setRenamingTodoId(editingTodo.id)
-                  setRenameInputValue(editingTodo.title)
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-white hover:bg-white/10 transition-colors"
-              >
-                <Pencil className="w-4 h-4 text-gray-400" />
-                이름 변경
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(editingTodo)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-white hover:bg-white/10 transition-colors"
-              >
-                <Trash2 className="w-4 h-4 text-gray-400" />
-                삭제
-              </button>
-            </>
-          )}
-        </div>,
-        document.body
-      )}
     </div>
   )
 }

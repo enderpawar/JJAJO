@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Calendar, Clock, AlertCircle } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { createSchedule } from '@/services/scheduleService'
@@ -57,6 +57,13 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
     })
     onClose()
   }
+
+  useEffect(() => {
+    if (!isOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [isOpen])
 
   if (!isOpen) return null
 
