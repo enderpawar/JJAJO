@@ -3,7 +3,6 @@ import { useToastStore } from '@/stores/toastStore'
 import { cn } from '@/utils/cn'
 
 const TOAST_DURATION_MS = 2250
-const TOAST_EXIT_MS = 220
 
 export function ToastContainer() {
   const { toasts, removeToast } = useToastStore()

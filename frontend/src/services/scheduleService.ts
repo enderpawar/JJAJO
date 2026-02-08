@@ -1,19 +1,11 @@
 import { format } from 'date-fns'
-import { getApiBase } from '@/utils/api'
+import { getApiBase, apiRequest } from '@/utils/api'
 import { sendDebugIngest } from '@/utils/debugIngest'
 import type { Todo } from '@/types/calendar'
 
 function getSchedulesApiBase(): string {
   const base = getApiBase()
   return base ? `${base}/api/v1/schedules` : '/api/v1/schedules'
-}
-
-/** 백엔드가 200 + HTML 로그인 페이지를 반환할 때 JSON 파싱 에러 방지 */
-function ensureJsonResponse(response: Response, text: string): void {
-  const ct = response.headers.get('content-type') ?? ''
-  if (ct.includes('text/html') || text.trimStart().startsWith('<!')) {
-    throw new Error('로그인이 필요합니다')
-  }
 }
 
 /** API 일정 응답 → Todo 타입 정규화 */
@@ -38,15 +30,7 @@ export function scheduleFromApi(item: Record<string, unknown>): Todo {
 
 /** 현재 사용자 일정 목록 조회 */
 export async function getSchedules(): Promise<Todo[]> {
-  const url = getSchedulesApiBase()
-  const response = await fetch(url, { credentials: 'include' })
-  if (!response.ok) {
-    if (response.status === 401) throw new Error('로그인이 필요합니다')
-    throw new Error(`일정 조회 실패: ${response.statusText}`)
-  }
-  const text = await response.text()
-  ensureJsonResponse(response, text)
-  const data = JSON.parse(text) as unknown
+  const data = await apiRequest<unknown>(getSchedulesApiBase())
   const list = Array.isArray(data) ? data : []
   return list.map((item: Record<string, unknown>) => scheduleFromApi(item))
 }
@@ -64,10 +48,9 @@ export async function createSchedule(
     sessionId: 'debug-session',
     hypothesisId: 'A',
   })
-  const response = await fetch(schedulesUrl, {
+  const item = await apiRequest<Record<string, unknown>>(schedulesUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    body: {
       title: todo.title,
       description: todo.description ?? '',
       date: todo.date,
@@ -76,57 +59,34 @@ export async function createSchedule(
       status: todo.status ?? 'pending',
       priority: todo.priority ?? 'medium',
       createdBy: todo.createdBy ?? 'user',
-    }),
-    credentials: 'include',
+    },
   })
   sendDebugIngest({
     location: 'scheduleService.ts:createSchedule',
     message: 'createSchedule response',
-    data: { status: response.status, ok: response.ok, url: response.url },
+    data: { success: true },
     timestamp: Date.now(),
     sessionId: 'debug-session',
     hypothesisId: 'A',
   })
-  if (!response.ok) {
-    if (response.status === 401) throw new Error('로그인이 필요합니다')
-    throw new Error(`일정 생성 실패: ${response.statusText}`)
-  }
-  const text = await response.text()
-  ensureJsonResponse(response, text)
-  const item = JSON.parse(text) as Record<string, unknown>
   return scheduleFromApi(item)
 }
 
 /** 일정 수정 */
 export async function updateSchedule(id: string, updates: Partial<Pick<Todo, 'title' | 'description' | 'date' | 'startTime' | 'endTime' | 'status' | 'priority'>>): Promise<Todo> {
-  const response = await fetch(`${getSchedulesApiBase()}/${id}`, {
+  const item = await apiRequest<Record<string, unknown>>(`${getSchedulesApiBase()}/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(updates),
-    credentials: 'include',
+    body: updates,
   })
-  if (!response.ok) {
-    if (response.status === 401) throw new Error('로그인이 필요합니다')
-    if (response.status === 404) throw new Error('일정을 찾을 수 없습니다')
-    throw new Error(`일정 수정 실패: ${response.statusText}`)
-  }
-  const text = await response.text()
-  ensureJsonResponse(response, text)
-  const item = JSON.parse(text) as Record<string, unknown>
   return scheduleFromApi(item)
 }
 
 /** 일정 삭제 */
 export async function deleteSchedule(id: string): Promise<void> {
-  const response = await fetch(`${getSchedulesApiBase()}/${id}`, {
+  await apiRequest<void>(`${getSchedulesApiBase()}/${id}`, {
     method: 'DELETE',
-    credentials: 'include',
+    parseJson: false,
   })
-  if (!response.ok && response.status !== 204) {
-    if (response.status === 401) throw new Error('로그인이 필요합니다')
-    if (response.status === 404) throw new Error('일정을 찾을 수 없습니다')
-    throw new Error(`일정 삭제 실패: ${response.statusText}`)
-  }
 }
 
 export interface DailyScheduleRequest {
@@ -179,20 +139,8 @@ export const generateDailySchedule = async (
     targetDate: format(request.targetDate, 'yyyy-MM-dd'),
   }
 
-  const response = await fetch(url, {
+  return apiRequest<DailyScheduleResponse>(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-    credentials: 'include',
+    body: payload,
   })
-
-  if (!response.ok) {
-    throw new Error(`일정 생성 실패: ${response.statusText}`)
-  }
-
-  const text = await response.text()
-  ensureJsonResponse(response, text)
-  return JSON.parse(text)
 }

@@ -10,9 +10,8 @@ import { GoalsAndBackwardsPlanSection } from '@/components/goals/GoalsAndBackwar
 import { Target, Calendar as CalendarIcon, X, CalendarDays, ListTodo } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useGoalStore } from '@/stores/goalStore'
+import { checkAuth, loadGoals } from '@/services/authService'
 import { getSchedules } from '@/services/scheduleService'
-import { getApiBase, normalizeGoalFromApi } from '@/utils/api'
-import type { Goal } from '@/types/goal'
 
 export default function MainPage() {
   const navigate = useNavigate()
@@ -22,47 +21,27 @@ export default function MainPage() {
   const { goals, setGoals } = useGoalStore()
   const { todos, setTodos } = useCalendarStore()
 
-  // 플래너 진입 시 인증 확인 + 회원별 목표 로드
+  // 플래너 진입 시 인증 확인 + 회원별 목표·일정 로드
   useEffect(() => {
-    const base = getApiBase()
-    const apiMe = base ? `${base}/api/me` : '/api/me'
-    const apiGoals = base ? `${base}/api/v1/goals` : '/api/v1/goals'
-
-    const checkAuthAndLoadGoals = async () => {
+    const init = async () => {
       try {
-        const res = await fetch(apiMe, { credentials: 'include' })
-        if (!res.ok) {
-          navigate('/', { replace: true })
-          return
-        }
-        // 로그인된 사용자의 목표 목록 로드 (백엔드 enum → 소문자 정규화)
-        const goalsRes = await fetch(apiGoals, { credentials: 'include' })
-        if (goalsRes.ok) {
-          const ct = goalsRes.headers.get('content-type') ?? ''
-          if (ct.includes('application/json')) {
-            const data = await goalsRes.json()
-            const list = Array.isArray(data) ? data.map((g: Record<string, unknown>) => normalizeGoalFromApi(g)) : []
-            setGoals(list as Goal[])
-          }
-        }
-        // 회원별 일정 목록 로드 (원격 DB)
-        try {
-          const scheduleList = await getSchedules()
-          setTodos(scheduleList)
-        } catch {
-          // 일정 조회 실패 시 빈 목록 유지
-        }
+        await checkAuth()
+        const [goalsList] = await Promise.all([
+          loadGoals(),
+          getSchedules().then(setTodos).catch(() => {}),
+        ])
+        setGoals(goalsList)
       } catch (err) {
-        // ERR_CONNECTION_REFUSED 등: 백엔드(8080)가 꺼져 있음. 진입은 허용하되 로그인/데이터는 불가
         if (err instanceof TypeError && (err.message === 'Failed to fetch' || err.message.includes('fetch'))) {
           console.warn('백엔드에 연결할 수 없습니다. 백엔드를 실행한 뒤 새로고침하세요. (예: 포트 8080)')
+        } else {
+          navigate('/', { replace: true })
         }
       } finally {
         setCheckingAuth(false)
       }
     }
-
-    checkAuthAndLoadGoals()
+    init()
   }, [navigate, setGoals, setTodos])
   
   // ESC 키로 월간 캘린더 모달 닫기

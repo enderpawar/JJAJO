@@ -1,10 +1,28 @@
-import { getApiBase } from '@/utils/api'
+import { getApiBase, apiRequest, ApiError } from '@/utils/api'
 import { useApiKeyStore } from '@/stores/apiKeyStore'
 import type { Goal } from '@/types/goal'
 
 function getGoalsApiBase(): string {
   const base = getApiBase()
   return base ? `${base}/api/v1/goals` : '/api/v1/goals'
+}
+
+function mapGoalApiError(e: unknown, fallback: string): never {
+  if (e instanceof ApiError) {
+    if (e.statusCode === 403) throw new Error('수정 권한이 없습니다.')
+    if (e.statusCode === 404) throw new Error('존재하지 않는 목표입니다.')
+    throw new Error(e.responseText || e.message || fallback)
+  }
+  throw e
+}
+
+function mapDeleteApiError(e: unknown, fallback: string): never {
+  if (e instanceof ApiError) {
+    if (e.statusCode === 403) throw new Error('삭제 권한이 없습니다.')
+    if (e.statusCode === 404) throw new Error('이미 삭제되었거나 존재하지 않는 목표입니다.')
+    throw new Error(e.responseText || e.message || fallback)
+  }
+  throw e
 }
 
 interface GoalCreationResult {
@@ -37,69 +55,37 @@ export const goalService = {
    * 목표 단순 생성 (제목 + 마감일)
    */
   async createGoal(params: SimpleGoalCreateParams): Promise<Goal> {
-    const url = getGoalsApiBase()
-    const method = 'POST'
-    const response = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: params.title.trim(),
-        deadline: params.deadline,
-        description: params.description?.trim() || undefined,
-      }),
-      credentials: 'include',
-    })
-    if (!response.ok) {
-      const msg = await response.text()
-      if (response.status === 401) {
-        throw new Error('로그인이 필요합니다.')
-      }
-      throw new Error(msg || '목표 등록에 실패했습니다.')
+    try {
+      return await apiRequest<Goal>(getGoalsApiBase(), {
+        method: 'POST',
+        body: {
+          title: params.title.trim(),
+          deadline: params.deadline,
+          description: params.description?.trim() || undefined,
+        },
+      })
+    } catch (e) {
+      if (e instanceof ApiError) throw new Error(e.responseText || e.message || '목표 등록에 실패했습니다.')
+      throw e
     }
-    const contentType = response.headers.get('Content-Type') ?? ''
-    if (!contentType.includes('application/json')) {
-      throw new Error('서버가 JSON이 아닌 응답을 반환했습니다. 로그인 상태를 확인해 주세요.')
-    }
-    const data = await response.json()
-    return data as Goal
   },
 
   /**
    * 목표 수정 (제목/마감일/설명)
    */
   async updateGoal(id: string, params: SimpleGoalCreateParams): Promise<Goal> {
-    const url = `${getGoalsApiBase()}/${encodeURIComponent(id)}`
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: params.title.trim(),
-        deadline: params.deadline,
-        description: params.description?.trim() || undefined,
-      }),
-      credentials: 'include',
-    })
-
-    if (!response.ok) {
-      const msg = await response.text()
-      if (response.status === 401) {
-        throw new Error('로그인이 필요합니다.')
-      }
-      if (response.status === 403) {
-        throw new Error('수정 권한이 없습니다.')
-      }
-      if (response.status === 404) {
-        throw new Error('존재하지 않는 목표입니다.')
-      }
-      throw new Error(msg || '목표 수정에 실패했습니다.')
+    try {
+      return await apiRequest<Goal>(`${getGoalsApiBase()}/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        body: {
+          title: params.title.trim(),
+          deadline: params.deadline,
+          description: params.description?.trim() || undefined,
+        },
+      })
+    } catch (e) {
+      mapGoalApiError(e, '목표 수정에 실패했습니다.')
     }
-
-    const contentType = response.headers.get('Content-Type') ?? ''
-    if (!contentType.includes('application/json')) {
-      throw new Error('서버가 JSON이 아닌 응답을 반환했습니다. 로그인 상태를 확인해 주세요.')
-    }
-    const data = await response.json()
-    return data as Goal
   },
 
   /**
@@ -107,53 +93,26 @@ export const goalService = {
    */
   async createGoalWithAI(goalDescription: string): Promise<GoalCreationResult> {
     const { apiKey } = useApiKeyStore.getState()
-    
-    if (!apiKey) {
-      throw new Error('API 키가 설정되지 않았습니다')
-    }
+    if (!apiKey) throw new Error('API 키가 설정되지 않았습니다')
 
-    const response = await fetch(`${getGoalsApiBase()}/create-with-ai`, {
+    return apiRequest<GoalCreationResult>(`${getGoalsApiBase()}/create-with-ai`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Gemini-API-Key': apiKey,
-      },
-      body: JSON.stringify({
-        goalDescription,
-      }),
-      credentials: 'include',
+      headers: { 'X-Gemini-API-Key': apiKey },
+      body: { goalDescription },
     })
-
-    if (!response.ok) {
-      throw new Error('목표 생성 실패')
-    }
-
-    const data: GoalCreationResult = await response.json()
-    return data
   },
 
   /**
    * 목표 삭제
    */
   async deleteGoal(id: string): Promise<void> {
-    const url = `${getGoalsApiBase()}/${encodeURIComponent(id)}`
-    const response = await fetch(url, {
-      method: 'DELETE',
-      credentials: 'include',
-    })
-
-    if (!response.ok) {
-      const msg = await response.text()
-      if (response.status === 401) {
-        throw new Error('로그인이 필요합니다.')
-      }
-      if (response.status === 403) {
-        throw new Error('삭제 권한이 없습니다.')
-      }
-      if (response.status === 404) {
-        throw new Error('이미 삭제되었거나 존재하지 않는 목표입니다.')
-      }
-      throw new Error(msg || '목표 삭제에 실패했습니다.')
+    try {
+      await apiRequest<void>(`${getGoalsApiBase()}/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        parseJson: false,
+      })
+    } catch (e) {
+      mapDeleteApiError(e, '목표 삭제에 실패했습니다.')
     }
   },
 }
