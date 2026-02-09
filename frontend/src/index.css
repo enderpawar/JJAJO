@@ -88,6 +88,14 @@
     display: none;
   }
 
+  /* 타임라인 등 상하 스크롤 부드럽게: GPU 레이어 + 터치 모멘텀 */
+  .timeline-scroll {
+    -webkit-overflow-scrolling: touch;
+    transform: translateZ(0);
+    contain: paint;
+    overflow-anchor: auto;
+  }
+
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
