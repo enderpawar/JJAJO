@@ -31,6 +31,13 @@ export function AddGoalModal({
     setError(null)
   }, [isOpen, initialValues?.title, initialValues?.deadline, initialValues?.description])
 
+  useEffect(() => {
+    if (!isOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [isOpen])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const trimmedTitle = title.trim()

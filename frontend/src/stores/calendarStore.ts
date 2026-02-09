@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { Todo, ViewMode } from '@/types/calendar'
 import { format, subDays } from 'date-fns'
+import { getTodosForDate, checkConflicts } from '@/utils/scheduleUtils'
 
 interface CalendarStore {
   // 현재 선택된 날짜
@@ -27,7 +28,8 @@ interface CalendarStore {
   clearAllTodos: () => void
   getTodosByDate: (date: string) => Todo[]
   getAiTodos: () => Todo[]
-  copyTodosFromPreviousDay: () => number
+  /** 전날 일정 복사 시 복사 대상 + 시간 중복으로 제외된 목록 반환 (상태 변경 없음). */
+  copyTodosFromPreviousDay: () => { toCopy: Todo[]; excluded: { title: string; startTime: string; endTime: string }[] }
 }
 
 /**
@@ -78,8 +80,9 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   },
 
   /**
-   * 전날 일정을 현재 선택된 날짜로 복사
-   * @returns 복사된 일정 개수
+   * 전날 일정을 현재 선택된 날짜로 복사할 때 쓸 목록 반환 (상태 변경 없음).
+   * 대상 날짜에 이미 일정이 있는 시간대는 복사 제외하고 excluded에 담아 반환.
+   * @returns { toCopy } 서버 저장 후 addTodos로 반영, { excluded } 토스트 안내용
    */
   copyTodosFromPreviousDay: () => {
     const { selectedDate, todos } = get()
@@ -87,29 +90,35 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
     const previousDate = subDays(selectedDate, 1)
     const previousDateStr = format(previousDate, 'yyyy-MM-dd')
 
-    // 전날 일정 찾기
     const previousTodos = todos.filter(todo => todo.date === previousDateStr)
+    if (previousTodos.length === 0) return { toCopy: [], excluded: [] }
 
-    if (previousTodos.length === 0) {
-      return 0
+    const existingOnTarget = getTodosForDate(todos, currentDateStr)
+    const toCopy: Todo[] = []
+    const excluded: { title: string; startTime: string; endTime: string }[] = []
+
+    for (const todo of previousTodos) {
+      if (todo.startTime && todo.endTime) {
+        const conflict = checkConflicts(todo.startTime, todo.endTime, existingOnTarget)
+        if (conflict.hasConflict) {
+          excluded.push({
+            title: todo.title,
+            startTime: todo.startTime,
+            endTime: todo.endTime,
+          })
+          continue
+        }
+      }
+      toCopy.push({
+        ...todo,
+        id: `${Date.now()}-${Math.random()}`,
+        date: currentDateStr,
+        status: 'pending' as const,
+        createdBy: 'user' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
     }
-
-    // 전날 일정을 오늘 날짜로 복사 (시간은 동일하게 유지)
-    const copiedTodos: Todo[] = previousTodos.map(todo => ({
-      ...todo,
-      id: `${Date.now()}-${Math.random()}`,
-      date: currentDateStr,
-      status: 'pending' as const,
-      createdBy: 'user' as const,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }))
-
-    // 복사된 일정 추가
-    set(state => ({
-      todos: [...state.todos, ...copiedTodos]
-    }))
-
-    return copiedTodos.length
+    return { toCopy, excluded }
   },
 }))

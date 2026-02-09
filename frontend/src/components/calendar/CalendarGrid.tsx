@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Trash2, AlertTriangle } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
+import { deleteAllSchedules } from '@/services/scheduleService'
 import { formatDate, formatYearMonth, getCalendarDays, isSameDay, isToday } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
 
 export default function CalendarGrid() {
-  const { currentMonth, selectedDate, setCurrentMonth, setSelectedDate, getTodosByDate, clearAllTodos, todos } = useCalendarStore()
+  const { currentMonth, selectedDate, setCurrentMonth, setSelectedDate, getTodosByDate, clearAllTodos, setTodos, todos } = useCalendarStore()
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   
   const year = currentMonth.getFullYear()
@@ -28,20 +29,34 @@ export default function CalendarGrid() {
     setSelectedDate(date)
   }
   
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
+    if (todos.length === 0) {
+      setShowConfirmDialog(false)
+      return
+    }
+    const prevTodos = [...todos]
     clearAllTodos()
     setShowConfirmDialog(false)
+    try {
+      await deleteAllSchedules()
+    } catch (e) {
+      console.error('일정 전체 삭제 실패:', e)
+      alert('일정 전체 삭제에 실패했습니다. 화면을 이전 상태로 되돌릴게요.')
+      setTodos(prevTodos)
+    }
   }
   
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
   
   return (
-    <div className="bg-notion-sidebar rounded-2xl p-6 flex flex-col h-full max-h-[750px]">
+    <div className="bg-notion-sidebar rounded-2xl p-4 sm:p-6 flex flex-col h-full max-h-[50vh] sm:max-h-[60vh] xl:max-h-[750px]">
       {/* 월 네비게이션 */}
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <button
+          type="button"
           onClick={handlePrevMonth}
-          className="p-2 hover:bg-notion-hover rounded-lg transition-colors"
+          className="touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 hover:bg-notion-hover rounded-lg transition-colors"
+          title="이전 달"
         >
           <ChevronLeft className="w-5 h-5 text-notion-muted" />
         </button>
@@ -51,8 +66,10 @@ export default function CalendarGrid() {
         </h2>
         
         <button
+          type="button"
           onClick={handleNextMonth}
-          className="p-2 hover:bg-notion-hover rounded-lg transition-colors"
+          className="touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 hover:bg-notion-hover rounded-lg transition-colors"
+          title="다음 달"
         >
           <ChevronRight className="w-5 h-5 text-notion-muted" />
         </button>
@@ -87,7 +104,7 @@ export default function CalendarGrid() {
               key={dateStr}
               onClick={() => handleDateClick(date)}
               className={cn(
-                'w-full h-full p-1.5 rounded-lg transition-all duration-200',
+                'w-full h-full min-h-[44px] p-2 rounded-lg transition-all duration-200',
                 'hover:bg-notion-hover relative flex flex-col items-center justify-center',
                 isCurrentMonthDay ? 'text-notion-text' : 'text-notion-muted',
                 isTodayDate && 'bg-primary-500/20 border-2 border-primary-500',
@@ -154,14 +171,16 @@ export default function CalendarGrid() {
             
             <div className="flex gap-3">
               <button
+                type="button"
                 onClick={() => setShowConfirmDialog(false)}
-                className="flex-1 px-4 py-2 bg-notion-sidebar hover:bg-notion-hover text-notion-text rounded-lg font-medium transition-colors"
+                className="touch-target flex-1 min-h-[44px] px-4 py-2 bg-notion-sidebar hover:bg-notion-hover text-notion-text rounded-lg font-medium transition-colors"
               >
                 취소
               </button>
               <button
+                type="button"
                 onClick={handleClearAll}
-                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                className="touch-target flex-1 min-h-[44px] px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
               >
                 삭제하기
               </button>

@@ -8,6 +8,8 @@ export type TodoPriority = 'low' | 'medium' | 'high'
 
 export interface Todo {
   id: string
+  /** React key 안정화용(복사 직후 드래그 유지). 서버 id로 교체돼도 동일 노드 유지 */
+  clientKey?: string
   title: string
   description?: string
   date: string // YYYY-MM-DD

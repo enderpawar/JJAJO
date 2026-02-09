@@ -2,9 +2,8 @@ import { useState, useCallback } from 'react'
 import { Wand2, Loader2, Check, Sparkles } from 'lucide-react'
 import { editScheduleByNaturalLanguage } from '@/services/magicBarService'
 
-/** 모드 전환 없이 추가·수정·삭제 모두 가능한 통합 placeholder */
-const PLACEHOLDER =
-  '일정 추가·수정·삭제 (예: 내일 오후 3시 회의 / 공부 1시간 늘려줘 / 첫 번째 일정 취소해줘)'
+/** 짧은 placeholder로 첫인상 부담 감소 */
+const PLACEHOLDER = '일정을 말로 입력해보세요 (예: 내일 오후 3시 회의)'
 
 export default function MagicBar() {
   const [input, setInput] = useState('')

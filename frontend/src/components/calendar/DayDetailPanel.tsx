@@ -60,7 +60,7 @@ export default function DayDetailPanel() {
   }
   
   return (
-    <div className="bg-notion-sidebar rounded-2xl p-6 flex flex-col h-[600px]">
+    <div className="bg-notion-sidebar rounded-2xl p-4 sm:p-6 flex flex-col min-h-0 flex-1 max-h-[60vh] sm:max-h-[70vh]">
       {/* 헤더 */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
@@ -109,14 +109,20 @@ export default function DayDetailPanel() {
                       {todo.title}
                     </h4>
                     <div className="flex gap-1">
-                      <button className="p-1 hover:bg-notion-hover rounded transition-colors">
-                        <Edit2 className="w-3 h-3 text-notion-muted" />
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteTodo(todo)}
-                        className="p-1 hover:bg-red-500/20 rounded transition-colors"
+                      <button
+                        type="button"
+                        className="touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2.5 hover:bg-notion-hover rounded transition-colors"
+                        title="편집"
                       >
-                        <Trash2 className="w-3 h-3 text-red-500" />
+                        <Edit2 className="w-4 h-4 text-notion-muted" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTodo(todo)}
+                        className="touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2.5 hover:bg-red-500/20 rounded transition-colors"
+                        title="삭제"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
                       </button>
                     </div>
                   </div>

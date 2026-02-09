@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { Wand2, X, Loader2, CalendarDays, AlertTriangle } from 'lucide-react'
 import type { BackwardsPlanResult } from '@/types/backwardsPlan'
@@ -34,6 +34,16 @@ export function BackwardsPlanModal({
   onFormChange,
   onApply,
 }: BackwardsPlanModalProps) {
+  // 모달 열릴 때 body 스크롤 잠금 (크로스플랫폼)
+  useEffect(() => {
+    if (!isOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [isOpen])
+
   return (
     <Transition.Root show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
