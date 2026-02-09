@@ -254,7 +254,11 @@ export function VerticalTimeline() {
     if (!isToday) return
     const scrollPosition = Math.max(0, currentTimePosition - 200)
     const t = setTimeout(() => {
-      timelineRef.current?.scrollTo({ top: scrollPosition, behavior: 'smooth' })
+      const el = timelineRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const absoluteTop = rect.top + window.scrollY
+      window.scrollTo({ top: absoluteTop + scrollPosition, behavior: 'smooth' })
       hasAutoScrolled.current = true
     }, 300)
     return () => clearTimeout(t)
@@ -629,7 +633,7 @@ export function VerticalTimeline() {
   const getMinutesDiff = (startPixel: number, endPixel: number) => ((endPixel - startPixel) / 100) * 60
 
   return (
-    <div ref={timelineRef} className="timeline-scroll flex-1 bg-[#191919] overflow-y-auto relative">
+    <div ref={timelineRef} className="timeline-scroll flex-1 bg-[#191919] relative">
       {showPastTime && (
         <div className="sticky top-0 left-0 right-0 z-[100] bg-gradient-to-b from-notion-sidebar via-notion-sidebar to-transparent pb-4 pt-4">
           <div className="mx-4">
