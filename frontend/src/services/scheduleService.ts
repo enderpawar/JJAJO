@@ -89,6 +89,14 @@ export async function deleteSchedule(id: string): Promise<void> {
   })
 }
 
+/** 현재 사용자 일정 전체 삭제 (서버 DB 반영) */
+export async function deleteAllSchedules(): Promise<void> {
+  await apiRequest<void>(getSchedulesApiBase(), {
+    method: 'DELETE',
+    parseJson: false,
+  })
+}
+
 export interface DailyScheduleRequest {
   goalId?: string
   goalTitle: string

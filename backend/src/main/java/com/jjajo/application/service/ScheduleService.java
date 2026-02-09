@@ -93,6 +93,12 @@ public class ScheduleService {
         return true;
     }
 
+    /** 해당 사용자의 모든 일정 삭제 */
+    @Transactional
+    public void deleteAllByUserId(String userId) {
+        scheduleRepository.deleteByUserId(userId);
+    }
+
     private static ScheduleItemResponse toResponse(ScheduleEntity e) {
         return ScheduleItemResponse.builder()
                 .id(e.getId())

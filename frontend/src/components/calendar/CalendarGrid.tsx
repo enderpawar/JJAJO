@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Trash2, AlertTriangle } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
+import { deleteAllSchedules } from '@/services/scheduleService'
 import { formatDate, formatYearMonth, getCalendarDays, isSameDay, isToday } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
 
 export default function CalendarGrid() {
   const { currentMonth, selectedDate, setCurrentMonth, setSelectedDate, getTodosByDate, clearAllTodos, todos } = useCalendarStore()
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
   
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
@@ -28,9 +30,19 @@ export default function CalendarGrid() {
     setSelectedDate(date)
   }
   
-  const handleClearAll = () => {
-    clearAllTodos()
-    setShowConfirmDialog(false)
+  const handleClearAll = async () => {
+    setIsClearing(true)
+    try {
+      await deleteAllSchedules()
+      clearAllTodos()
+      setShowConfirmDialog(false)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      console.error('일정 전체 삭제 실패:', e)
+      alert(`일정 전체 삭제에 실패했습니다. ${msg}`)
+    } finally {
+      setIsClearing(false)
+    }
   }
   
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
@@ -167,9 +179,10 @@ export default function CalendarGrid() {
               <button
                 type="button"
                 onClick={handleClearAll}
-                className="touch-target flex-1 min-h-[44px] px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                disabled={isClearing}
+                className="touch-target flex-1 min-h-[44px] px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
               >
-                삭제하기
+                {isClearing ? '삭제 중…' : '삭제하기'}
               </button>
             </div>
           </div>

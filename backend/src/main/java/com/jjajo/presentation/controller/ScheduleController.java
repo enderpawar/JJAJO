@@ -99,4 +99,15 @@ public class ScheduleController {
         }
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(summary = "현재 사용자 일정 전체 삭제")
+    @DeleteMapping
+    public ResponseEntity<Void> deleteAll(Authentication authentication) {
+        String userId = SecurityConfig.extractUserId(authentication);
+        if (userId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        scheduleService.deleteAllByUserId(userId);
+        return ResponseEntity.noContent().build();
+    }
 }

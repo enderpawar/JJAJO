@@ -15,4 +15,7 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, String
     Optional<ScheduleEntity> findByUserIdAndId(String userId, String id);
 
     void deleteByUserIdAndId(String userId, String id);
+
+    /** 해당 사용자의 모든 일정 삭제 */
+    void deleteByUserId(String userId);
 }
