@@ -6,9 +6,8 @@ import { formatDate, formatYearMonth, getCalendarDays, isSameDay, isToday } from
 import { cn } from '@/utils/cn'
 
 export default function CalendarGrid() {
-  const { currentMonth, selectedDate, setCurrentMonth, setSelectedDate, getTodosByDate, clearAllTodos, todos } = useCalendarStore()
+  const { currentMonth, selectedDate, setCurrentMonth, setSelectedDate, getTodosByDate, clearAllTodos, setTodos, todos } = useCalendarStore()
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-  const [isClearing, setIsClearing] = useState(false)
   
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
@@ -31,17 +30,19 @@ export default function CalendarGrid() {
   }
   
   const handleClearAll = async () => {
-    setIsClearing(true)
+    if (todos.length === 0) {
+      setShowConfirmDialog(false)
+      return
+    }
+    const prevTodos = [...todos]
+    clearAllTodos()
+    setShowConfirmDialog(false)
     try {
       await deleteAllSchedules()
-      clearAllTodos()
-      setShowConfirmDialog(false)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
       console.error('일정 전체 삭제 실패:', e)
-      alert(`일정 전체 삭제에 실패했습니다. ${msg}`)
-    } finally {
-      setIsClearing(false)
+      alert('일정 전체 삭제에 실패했습니다. 화면을 이전 상태로 되돌릴게요.')
+      setTodos(prevTodos)
     }
   }
   
@@ -179,10 +180,9 @@ export default function CalendarGrid() {
               <button
                 type="button"
                 onClick={handleClearAll}
-                disabled={isClearing}
-                className="touch-target flex-1 min-h-[44px] px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                className="touch-target flex-1 min-h-[44px] px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
               >
-                {isClearing ? '삭제 중…' : '삭제하기'}
+                삭제하기
               </button>
             </div>
           </div>
