@@ -17,6 +17,11 @@ Thumbs.db
 *.log
 logs/
 
+# Debug logs (userId 등 개인정보 포함 가능, 저장소 오염/보안 리스크 방지)
+backend/.cursor/
+**/debug.log
+**/debug.log.*
+
 # Build outputs
 dist/
 build/

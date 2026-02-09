@@ -35,6 +35,11 @@ build/
 ### Logs ###
 *.log
 
+### Debug logs (userId 등 개인정보 포함 가능) ###
+.cursor/
+debug.log
+debug.log.*
+
 ### 로컬 설정 (비밀 포함, 커밋 제외) ###
 application-local.yml
 .env
