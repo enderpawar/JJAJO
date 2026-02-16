@@ -2,12 +2,20 @@ import { Sparkles, LogIn } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getApiBase } from '@/utils/api'
+import { debugLog } from '@/utils/debugLog'
 
 export default function AuthPage() {
   const navigate = useNavigate()
   const [checking, setChecking] = useState(true)
 
   // 앱 진입 시 로그인 상태 확인 (백엔드 오리진으로 요청해 쿠키 전송)
+  useEffect(() => {
+    // #region agent log
+    const base = getApiBase()
+    debugLog('AuthPage.tsx:mount', 'AuthPage mounted, getApiBase()', { base, baseLength: base?.length ?? 0 }, 'H1')
+    // #endregion
+  }, [])
+
   useEffect(() => {
     const checkLogin = async () => {
       try {
@@ -34,6 +42,9 @@ export default function AuthPage() {
   const handleGoogleLogin = () => {
     const base = getApiBase()
     const url = base ? `${base}/oauth2/authorization/google` : '/oauth2/authorization/google'
+    // #region agent log
+    debugLog('AuthPage.tsx:handleGoogleLogin', 'Google login clicked', { base, url, hasBase: !!base }, 'H2')
+    // #endregion
     window.location.href = url
   }
 
