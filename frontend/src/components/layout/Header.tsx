@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Sparkles, Settings, X, Moon, Sun, Copy, Calendar, LogIn } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useSettingsStore } from '@/stores/settingsStore'
@@ -20,6 +20,7 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
   const { theme, toggleTheme, initTheme } = useSettingsStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
+  const settingsScrollRef = useRef<HTMLDivElement>(null)
 
   const handleGoogleLogin = () => {
     const base = getApiBase()
@@ -39,6 +40,20 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = prev
+    }
+  }, [isSettingsOpen])
+
+  // 설정 모달 열릴 때 스크롤을 맨 위로 (닫기 버튼이 보이도록)
+  useEffect(() => {
+    if (!isSettingsOpen) return
+    const el = settingsScrollRef.current
+    if (el) {
+      el.scrollTo(0, 0)
+      // requestAnimationFrame으로 한 프레임 뒤에도 한 번 더 적용 (iOS 대응)
+      const id = requestAnimationFrame(() => {
+        el.scrollTo(0, 0)
+      })
+      return () => cancelAnimationFrame(id)
     }
   }, [isSettingsOpen])
 
@@ -177,11 +192,13 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
           onClick={(e) => e.target === e.currentTarget && setIsSettingsOpen(false)}
         >
           <div
-            className="bg-notion-sidebar rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[min(90vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] flex flex-col min-h-0"
+            ref={settingsScrollRef}
+            className="settings-modal-scroll bg-notion-sidebar rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[min(90vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-x-hidden overscroll-contain"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 헤더 - 스크롤 영역 밖에 고정해 닫기 버튼이 항상 보이도록 */}
-            <div className="flex-shrink-0 bg-notion-sidebar rounded-t-lg border-b border-notion-border px-6 py-4 flex items-center justify-between">
+            {/* 상단 여백(세이프 영역) + 헤더 → 위로 스크롤하면 닫기 버튼이 보임 */}
+            <div className="pt-[max(0px,env(safe-area-inset-top))]" />
+            <div className="bg-notion-sidebar border-b border-notion-border px-6 py-4 flex items-center justify-between sticky top-0 z-10">
               <div className="flex items-center gap-3">
                 <Settings className="w-5 h-5 text-notion-text" />
                 <h2 className="text-lg font-semibold text-notion-text">설정</h2>
@@ -195,8 +212,8 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
               </button>
             </div>
 
-            {/* 컨텐츠만 스크롤 - 하단 세이프 영역 패딩으로 iOS 브라우저 바에 가려지지 않도록 */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-8">
+            {/* 컨텐츠 - 하단 세이프 영역 패딩으로 iOS 브라우저 바에 가려지지 않도록 */}
+            <div className="p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-8">
               <div className="border-b border-notion-border pb-6">
                 <h3 className="text-sm font-semibold text-notion-text mb-2">계정</h3>
                 <button

@@ -105,6 +105,12 @@
     overflow-anchor: auto;
   }
 
+  /* 설정 모달: iOS에서 터치 스크롤이 확실히 동작하도록 */
+  .settings-modal-scroll {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: scroll; /* iOS에서 스크롤 영역 인식 개선 */
+  }
+
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
