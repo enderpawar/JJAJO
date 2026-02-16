@@ -177,11 +177,11 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
           onClick={(e) => e.target === e.currentTarget && setIsSettingsOpen(false)}
         >
           <div
-            className="bg-notion-sidebar rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[min(90vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-y-auto flex flex-col"
+            className="bg-notion-sidebar rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[min(90vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] flex flex-col min-h-0"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 헤더 */}
-            <div className="sticky top-0 bg-notion-sidebar border-b border-notion-border px-6 py-4 flex items-center justify-between">
+            {/* 헤더 - 스크롤 영역 밖에 고정해 닫기 버튼이 항상 보이도록 */}
+            <div className="flex-shrink-0 bg-notion-sidebar rounded-t-lg border-b border-notion-border px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Settings className="w-5 h-5 text-notion-text" />
                 <h2 className="text-lg font-semibold text-notion-text">설정</h2>
@@ -194,9 +194,9 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
                 <X className="w-5 h-5 text-notion-muted" />
               </button>
             </div>
-            
-            {/* 컨텐츠 - 하단 세이프 영역 패딩으로 iOS 브라우저 바에 가려지지 않도록 */}
-            <div className="p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-8">
+
+            {/* 컨텐츠만 스크롤 - 하단 세이프 영역 패딩으로 iOS 브라우저 바에 가려지지 않도록 */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-8">
               <div className="border-b border-notion-border pb-6">
                 <h3 className="text-sm font-semibold text-notion-text mb-2">계정</h3>
                 <button
