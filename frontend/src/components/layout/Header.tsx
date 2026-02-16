@@ -171,13 +171,13 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
       {/* 설정 모달 - Notion 스타일 */}
       {isSettingsOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-notion flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-notion flex items-center justify-center z-50 pt-[max(1rem,env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))]"
           role="dialog"
           aria-modal="true"
           onClick={(e) => e.target === e.currentTarget && setIsSettingsOpen(false)}
         >
           <div
-            className="bg-notion-sidebar rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-notion-sidebar rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[min(90vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-y-auto flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 헤더 */}
@@ -195,8 +195,8 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
               </button>
             </div>
             
-            {/* 컨텐츠 */}
-            <div className="p-6 space-y-8">
+            {/* 컨텐츠 - 하단 세이프 영역 패딩으로 iOS 브라우저 바에 가려지지 않도록 */}
+            <div className="p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-8">
               <div className="border-b border-notion-border pb-6">
                 <h3 className="text-sm font-semibold text-notion-text mb-2">계정</h3>
                 <button
