@@ -6,27 +6,32 @@ import { formatDate, formatDateWithDay } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
 import type { Todo } from '@/types/calendar'
 import AddTodoModal from './AddTodoModal'
+import { ConfirmModal } from '@/components/ConfirmModal'
 
 export default function DayDetailPanel() {
-  const { selectedDate, getTodosByDate, deleteTodo } = useCalendarStore()
+  const { selectedDate, getTodosByDate, deleteTodo, addTodo } = useCalendarStore()
+  const [deleteConfirmTodo, setDeleteConfirmTodo] = useState<Todo | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const handleDeleteTodo = async (todo: Todo) => {
-    try {
-      await deleteSchedule(todo.id)
-      deleteTodo(todo.id)
-    } catch (e) {
+  /** 낙관적 삭제: 즉시 UI에서 제거한 뒤 백그라운드에서 API 호출. 실패 시 롤백. */
+  const performDeleteTodo = (todo: Todo) => {
+    const taskCopy = { ...todo }
+    deleteTodo(todo.id)
+    setDeleteConfirmTodo(null)
+
+    if (todo.id.startsWith('opt-')) return
+
+    deleteSchedule(todo.id).catch((e) => {
       const msg = e instanceof Error ? e.message : String(e)
-      if (msg.includes('찾을 수 없습니다')) {
-        deleteTodo(todo.id)
-        return
-      }
+      if (msg.includes('찾을 수 없습니다')) return
+      addTodo(taskCopy)
       console.error('일정 삭제 실패:', e)
       alert(`일정 삭제 실패: ${msg}`)
-    }
+    })
   }
+
   const dateStr = formatDate(selectedDate)
   const todos = getTodosByDate(dateStr)
-  const [isModalOpen, setIsModalOpen] = useState(false)
   
   // 시간별로 정렬
   const sortedTodos = [...todos].sort((a, b) => {
@@ -118,7 +123,7 @@ export default function DayDetailPanel() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDeleteTodo(todo)}
+                        onClick={() => setDeleteConfirmTodo(todo)}
                         className="touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2.5 hover:bg-red-500/20 rounded transition-colors"
                         title="삭제"
                       >
@@ -179,6 +184,18 @@ export default function DayDetailPanel() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         defaultDate={selectedDate}
+      />
+
+      {/* 일정 삭제 확인 모달 */}
+      <ConfirmModal
+        isOpen={!!deleteConfirmTodo}
+        onClose={() => setDeleteConfirmTodo(null)}
+        onConfirm={() => deleteConfirmTodo && performDeleteTodo(deleteConfirmTodo)}
+        title="일정 삭제"
+        message="이 일정을 삭제할까요?"
+        confirmLabel="삭제"
+        cancelLabel="취소"
+        danger
       />
     </div>
   )

@@ -4,6 +4,7 @@ import { updateSchedule, deleteSchedule, createSchedule } from '@/services/sched
 import { Clock, Edit2, Trash2, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { motion } from 'framer-motion'
+import { ConfirmModal } from '@/components/ConfirmModal'
 import type { Todo } from '../../types/calendar'
 
 interface DragPreview {
@@ -39,6 +40,7 @@ export function VerticalTimeline() {
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null)
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
   const [renameInputValue, setRenameInputValue] = useState('')
+  const [deleteConfirmTask, setDeleteConfirmTask] = useState<Todo | null>(null)
   const editButtonRef = useRef<HTMLButtonElement | null>(null)
   const titleInputRef = useRef<HTMLInputElement | null>(null)
   const isDraggingRef = useRef(false)
@@ -73,11 +75,11 @@ export function VerticalTimeline() {
   }, [renameInputValue, updateTodo])
 
   /** 낙관적 삭제: 즉시 UI에서 제거한 뒤 백그라운드에서 API 호출. 실패 시 롤백. */
-  const handleDelete = useCallback((task: Todo) => {
-    if (!confirm('정말 이 일정을 삭제할까요?')) return
+  const performDelete = useCallback((task: Todo) => {
     const taskCopy = { ...task }
     deleteTodo(task.id)
     setEditingTodo(null)
+    setDeleteConfirmTask(null)
 
     if (task.id.startsWith('opt-')) {
       return
@@ -235,8 +237,26 @@ export function VerticalTimeline() {
           if (isDraggingRef.current && draggingTaskIdRef.current === tempId) {
             pendingReplaceRef.current = { tempId, created }
           } else {
-            deleteTodo(tempId)
-            addTodo(created)
+            // 드래그를 이미 끝낸 경우: 스토어에 있는 최신 위치(드래그 결과)를 반영
+            const currentTodos = useCalendarStore.getState().todos
+            const currentTodo = currentTodos.find((t) => t.id === tempId)
+            const wasDragged =
+              currentTodo?.startTime != null &&
+              currentTodo?.endTime != null &&
+              (currentTodo.startTime !== created.startTime || currentTodo.endTime !== created.endTime)
+            if (wasDragged) {
+              const merged = {
+                ...created,
+                startTime: currentTodo!.startTime!,
+                endTime: currentTodo!.endTime!,
+              }
+              deleteTodo(tempId)
+              addTodo(merged)
+              updateSchedule(merged.id, { startTime: merged.startTime, endTime: merged.endTime }).catch(() => {})
+            } else {
+              deleteTodo(tempId)
+              addTodo(created)
+            }
           }
         })
         .catch((err) => {
@@ -544,7 +564,7 @@ export function VerticalTimeline() {
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    handleDelete(task)
+                    setDeleteConfirmTask(task)
                   }}
                   onPointerDown={(e) => e.stopPropagation()}
                   className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-red-500/40 hover:bg-red-500/60 backdrop-blur-sm' : 'bg-red-500/30 hover:bg-red-500/50 group'}`}
@@ -628,11 +648,12 @@ export function VerticalTimeline() {
         </div>
       </motion.div>
     )
-  }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renameInputValue, handleSaveRename, handleDelete])
+  }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renameInputValue, handleSaveRename])
 
   const getMinutesDiff = (startPixel: number, endPixel: number) => ((endPixel - startPixel) / 100) * 60
 
   return (
+    <>
     <div ref={timelineRef} className="timeline-scroll flex-1 bg-[#191919] relative">
       {showPastTime && (
         <div className="sticky top-0 left-0 right-0 z-[100] bg-gradient-to-b from-notion-sidebar via-notion-sidebar to-transparent pb-4 pt-4">
@@ -719,6 +740,18 @@ export function VerticalTimeline() {
         <div className="absolute left-0 right-0 top-0 bg-gray-900/10 pointer-events-none transition-all duration-1000" style={{ height: `${currentTimePosition}px`, zIndex: 2 }} />
       </div>
     </div>
+
+    <ConfirmModal
+      isOpen={!!deleteConfirmTask}
+      onClose={() => setDeleteConfirmTask(null)}
+      onConfirm={() => deleteConfirmTask && performDelete(deleteConfirmTask)}
+      title="일정 삭제"
+      message="정말 이 일정을 삭제할까요?"
+      confirmLabel="삭제"
+      cancelLabel="취소"
+      danger
+    />
+    </>
   )
 }
 
