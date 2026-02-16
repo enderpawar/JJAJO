@@ -39,14 +39,11 @@ export default function AuthPage() {
     checkLogin()
   }, [navigate])
 
-  const handleGoogleLogin = () => {
+  // iOS Safari: window.location.href는 클릭 핸들러에서 차단될 수 있음. <a href> 네이티브 이동 사용.
+  const googleLoginUrl = (() => {
     const base = getApiBase()
-    const url = base ? `${base}/oauth2/authorization/google` : '/oauth2/authorization/google'
-    // #region agent log
-    debugLog('AuthPage.tsx:handleGoogleLogin', 'Google login clicked', { base, url, hasBase: !!base }, 'H2')
-    // #endregion
-    window.location.href = url
-  }
+    return base ? `${base}/oauth2/authorization/google` : '/oauth2/authorization/google'
+  })()
 
   const handleEnterPlanner = () => {
     navigate('/app')
@@ -76,14 +73,19 @@ export default function AuthPage() {
             </p>
           )}
 
-          {/* Google 로그인 버튼 */}
-          <button
-            onClick={handleGoogleLogin}
-            className="btn-primary w-full flex items-center justify-center gap-2"
+          {/* Google 로그인: iOS Safari 호환을 위해 <a href> 사용 (클릭 핸들러 내 location.href는 차단될 수 있음) */}
+          <a
+            href={googleLoginUrl}
+            className="btn-primary w-full flex items-center justify-center gap-2 no-underline text-inherit"
+            onClick={() => {
+              // #region agent log
+              debugLog('AuthPage.tsx:googleLoginLink', 'Google login link tapped', { url: googleLoginUrl }, 'H2')
+              // #endregion
+            }}
           >
             <LogIn className="w-5 h-5" />
             <span>Google 계정으로 시작하기</span>
-          </button>
+          </a>
 
           {/* 안내 문구 */}
           <div className="mt-2 p-4 bg-blue-50 rounded-lg border border-blue-200 text-sm text-blue-800">
