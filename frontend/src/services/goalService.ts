@@ -1,5 +1,4 @@
 import { getApiBase, apiRequest, ApiError } from '@/utils/api'
-import { useApiKeyStore } from '@/stores/apiKeyStore'
 import type { Goal } from '@/types/goal'
 
 function getGoalsApiBase(): string {
@@ -23,22 +22,6 @@ function mapDeleteApiError(e: unknown, fallback: string): never {
     throw new Error(e.responseText || e.message || fallback)
   }
   throw e
-}
-
-interface GoalCreationResult {
-  goal: Goal
-  schedules: Array<{
-    title: string
-    description?: string
-    date: string
-    startTime?: string
-    endTime?: string
-    priority: string
-  }>
-  aiAnalysis: string
-  totalHours: number
-  sessionsPerWeek: number
-  curriculum: string
 }
 
 export interface SimpleGoalCreateParams {
@@ -86,20 +69,6 @@ export const goalService = {
     } catch (e) {
       mapGoalApiError(e, '목표 수정에 실패했습니다.')
     }
-  },
-
-  /**
-   * AI를 활용한 목표 생성 및 계획 수립
-   */
-  async createGoalWithAI(goalDescription: string): Promise<GoalCreationResult> {
-    const { apiKey } = useApiKeyStore.getState()
-    if (!apiKey) throw new Error('API 키가 설정되지 않았습니다')
-
-    return apiRequest<GoalCreationResult>(`${getGoalsApiBase()}/create-with-ai`, {
-      method: 'POST',
-      headers: { 'X-Gemini-API-Key': apiKey },
-      body: { goalDescription },
-    })
   },
 
   /**
