@@ -21,7 +21,7 @@ import java.util.Map;
  * redirect_uri_mismatch 원인 파악용. (디버그 후 제거 가능)
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class OAuthRedirectUriLoggingFilter extends OncePerRequestFilter {
 
     private static final String LOG_PATH = ".cursor/debug.log";

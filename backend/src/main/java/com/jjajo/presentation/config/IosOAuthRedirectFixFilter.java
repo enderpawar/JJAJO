@@ -18,9 +18,11 @@ import java.util.Locale;
  * iOS Safari: 302 리다이렉트 시 주소창만 바뀌고 문서가 갱신되지 않는 이슈 회피.
  * GET /oauth2/authorization/google 요청이 iOS 계열 User-Agent일 때만 응답을 감싸
  * sendRedirect(Google URL)를 200 + meta refresh HTML로 대체한다.
+ * 반드시 Spring Security보다 먼저 실행되어야 하므로 HIGHEST_PRECEDENCE 사용.
+ * (HIGHEST_PRECEDENCE - 10 은 int 오버플로우로 오히려 맨 마지막에 실행됨)
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE - 10)
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class IosOAuthRedirectFixFilter extends OncePerRequestFilter {
 
     private static boolean isIos(HttpServletRequest request) {
@@ -35,7 +37,7 @@ public class IosOAuthRedirectFixFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
         boolean getOauthGoogle = "GET".equalsIgnoreCase(request.getMethod())
-            && path != null && path.equals("/oauth2/authorization/google");
+            && path != null && path.endsWith("/oauth2/authorization/google");
         if (!getOauthGoogle || !isIos(request)) {
             filterChain.doFilter(request, response);
             return;
