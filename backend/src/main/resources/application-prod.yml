@@ -1,14 +1,14 @@
 # 프로덕션: 원격 PostgreSQL (Neon, Supabase, Railway 등)
 # 환경 변수 예: SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD
 
-# 크로스 오리진(프론트 jjajo.pages.dev → 백엔드 onrender.com)에서 세션 쿠키 전달을 위해
-# SameSite=None, Secure 필수 (HTTPS 환경)
+# 크로스 오리진(프론트 → 백엔드) + iOS Safari "크로스 사이트 추적 방지" 켜진 상태에서도
+# 세션 쿠키 전달되도록 SameSite=None, Secure 필수 (배포는 HTTPS 전제)
 server:
   servlet:
     session:
       cookie:
-        same-site: none
-        secure: true
+        same-site: none   # none | lax | strict
+        secure: true     # SameSite=None 사용 시 필수
 
 spring:
   datasource:
