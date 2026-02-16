@@ -186,14 +186,14 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
       {/* 설정 모달 - Notion 스타일 */}
       {isSettingsOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-notion flex items-center justify-center z-50 pt-[max(1rem,env(safe-area-inset-top))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))]"
+          className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-notion flex flex-col items-center justify-start z-50 pt-[max(1.5rem,calc(env(safe-area-inset-top)+56px))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))]"
           role="dialog"
           aria-modal="true"
           onClick={(e) => e.target === e.currentTarget && setIsSettingsOpen(false)}
         >
           <div
             ref={settingsScrollRef}
-            className="settings-modal-scroll bg-notion-sidebar rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[min(90vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-x-hidden overscroll-contain"
+            className="settings-modal-scroll bg-notion-sidebar rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[min(90vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-56px-2rem))] overflow-x-hidden overscroll-contain"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 상단 여백(세이프 영역) + 헤더 → 위로 스크롤하면 닫기 버튼이 보임 */}
