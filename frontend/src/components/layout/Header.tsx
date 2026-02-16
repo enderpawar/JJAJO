@@ -99,7 +99,7 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
 
   return (
     <header className="relative z-30 bg-notion-card border-b border-notion-border shadow-none" style={{ isolation: 'isolate' }}>
-      <div className="max-w-screen-2xl mx-auto px-6 py-3 h-20">
+      <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 py-3 h-20">
         <div className="flex items-center justify-between h-[60px]">
           {/* 로고 - 클릭 시 오늘 날짜로 이동 + 상단 스크롤 */}
           <button

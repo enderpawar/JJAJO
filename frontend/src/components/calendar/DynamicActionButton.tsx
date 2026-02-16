@@ -85,7 +85,7 @@ export function DynamicActionButton() {
   return (
     <>
       {/* 🎯 단일 동적 액션 버튼 - ADHD 친화적 */}
-      <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-3">
+      <div className="fixed right-8 z-50 flex flex-col items-end gap-3 bottom-[max(2rem,calc(2rem+env(safe-area-inset-bottom)))]">
         {/* 메인 액션 버튼 */}
         <button
           onClick={handleClick}

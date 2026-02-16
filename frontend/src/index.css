@@ -71,12 +71,21 @@
   html.dark {
     color-scheme: dark;
   }
+
+  /* iOS 등 모바일: input 포커스 시 자동 줌 방지 (font-size 16px 미만이면 줌 발생) */
+  @media (max-width: 768px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
 }
 
 /* 터치 타겟: WCAG/Apple 44px 최소 (크로스플랫폼) */
 @layer utilities {
   .touch-target {
-    min-height: 100px;
+    min-height: 44px;
     min-width: 44px;
   }
 
@@ -218,7 +227,7 @@
 /* 🎴 FlipCard Planner 스타일 */
 .flip-card-container {
   perspective: 1000px;
-  min-height: 600px;
+  min-height: min(600px, 85vh);
 }
 
 .question-card {

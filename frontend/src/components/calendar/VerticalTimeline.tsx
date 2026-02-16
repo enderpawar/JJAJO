@@ -396,7 +396,7 @@ export function VerticalTimeline() {
         {...(isEditingThisTask && { 'data-editing-card': 'true' })}
         key={`${task.clientKey ?? task.id}-${task.startTime}-${task.endTime}`}
         className={`
-          task-card group absolute left-0 right-0 mx-4 cursor-pointer active:cursor-grabbing overflow-hidden touch-none
+          task-card group absolute left-0 right-0 mx-3 sm:mx-4 cursor-pointer active:cursor-grabbing overflow-hidden touch-none
           ${isEditingThisTask ? 'rounded-2xl border-2 border-primary-400 shadow-[0_0_0_1px_rgba(56,189,248,0.4)]' : 'rounded-lg'}
           ${isPast ? 'task-card-past' : ''}
           ${isCurrent ? 'task-card-active backdrop-blur-md' : ''}
@@ -600,7 +600,7 @@ export function VerticalTimeline() {
                     }
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className={`w-[25%] pr-12 text-lg font-semibold mb-2 leading-tight bg-white/10 border border-white/20 rounded px-2 py-1 focus:outline-none focus:ring-0 focus-visible:ring-0 ${isCurrent ? 'text-white placeholder-white/50' : 'text-white placeholder-white/40'}`}
+                  className={`min-w-0 w-full sm:w-[25%] pr-12 text-lg font-semibold mb-2 leading-tight bg-white/10 border border-white/20 rounded px-2 py-1 focus:outline-none focus:ring-0 focus-visible:ring-0 ${isCurrent ? 'text-white placeholder-white/50' : 'text-white placeholder-white/40'}`}
                   placeholder="제목"
                 />
               ) : (
@@ -636,7 +636,7 @@ export function VerticalTimeline() {
     <div ref={timelineRef} className="timeline-scroll flex-1 bg-[#191919] relative">
       {showPastTime && (
         <div className="sticky top-0 left-0 right-0 z-[100] bg-gradient-to-b from-notion-sidebar via-notion-sidebar to-transparent pb-4 pt-4">
-          <div className="mx-4">
+          <div className="mx-3 sm:mx-4">
             <button
               type="button"
               onClick={() => setShowPastTime(false)}
@@ -661,7 +661,7 @@ export function VerticalTimeline() {
             tabIndex={0}
             onClick={() => setShowPastTime(true)}
             onKeyDown={(e) => e.key === 'Enter' && setShowPastTime(true)}
-            className="touch-target mx-4 mb-0 rounded-xl cursor-pointer overflow-hidden border border-white/10 bg-[#252525]/60 backdrop-blur-xl hover:bg-[#2a2a2a]/70 hover:border-white/20 min-h-[300px] flex items-center justify-center"
+            className="touch-target mx-3 sm:mx-4 mb-0 rounded-xl cursor-pointer overflow-hidden border border-white/10 bg-[#252525]/60 backdrop-blur-xl hover:bg-[#2a2a2a]/70 hover:border-white/20 min-h-[300px] flex items-center justify-center"
             style={{ position: 'relative', zIndex: 100 }}
           >
             <Clock className="w-5 h-5 text-primary-600 animate-pulse" />
