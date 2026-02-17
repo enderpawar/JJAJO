@@ -7,6 +7,7 @@ import DayDetailPanel from '@/components/calendar/DayDetailPanel'
 import { TopTimeline } from '@/components/calendar/TopTimeline'
 import { VerticalTimeline } from '@/components/calendar/VerticalTimeline'
 import { GoalsAndBackwardsPlanSection } from '@/components/goals/GoalsAndBackwardsPlanSection'
+import { ImportTimetableModal } from '@/components/calendar/ImportTimetableModal'
 import { Target, Calendar as CalendarIcon, X, CalendarDays, ListTodo } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useGoalStore } from '@/stores/goalStore'
@@ -18,6 +19,7 @@ export default function MainPage() {
   const navigate = useNavigate()
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [showMonthlyCalendar, setShowMonthlyCalendar] = useState(false)
+  const [showImportTimetable, setShowImportTimetable] = useState(false)
   const [monthlyModalTab, setMonthlyModalTab] = useState<'calendar' | 'goals' | 'day'>('calendar')
   const { goals, setGoals } = useGoalStore()
   const { todos, setTodos } = useCalendarStore()
@@ -140,6 +142,14 @@ export default function MainPage() {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
+                  onClick={() => setShowImportTimetable(true)}
+                  className="hidden sm:inline-flex touch-target items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary-500/15 text-primary-400 hover:bg-primary-500/25 text-sm font-medium"
+                >
+                  <CalendarDays className="w-4 h-4" />
+                  시간표 이미지로 불러오기
+                </button>
+                <button
+                  type="button"
                   onClick={() => setShowMonthlyCalendar(false)}
                   className="touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 hover:bg-notion-hover rounded-lg transition-colors"
                   title="닫기 (ESC)"
@@ -223,6 +233,14 @@ export default function MainPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 시간표 이미지 임포트 모달 */}
+      {showImportTimetable && (
+        <ImportTimetableModal
+          isOpen={showImportTimetable}
+          onClose={() => setShowImportTimetable(false)}
+        />
       )}
     </div>
   )

@@ -15,7 +15,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
-  const { copyTodosFromPreviousDay, addTodos, selectedDate, setSelectedDate } = useCalendarStore()
+  const { copyTodosFromPreviousDay, addTodos, selectedDate, setSelectedDate, isBulkSavingTimetable } = useCalendarStore()
   const { addToast } = useToastStore()
   const { theme, toggleTheme, initTheme } = useSettingsStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -182,6 +182,17 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
           </div>
         </div>
       </div>
+      {/* 시간표 대량 저장 백그라운드 인디케이터 */}
+      {isBulkSavingTimetable && (
+        <div className="w-full border-t border-notion-border bg-primary-500/8">
+          <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 py-1.5 flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-primary-400 animate-pulse" />
+            <p className="text-xs text-notion-muted">
+              시간표를 학기 전체에 적용하는 중이에요… 잠시 후 모든 일정이 안정적으로 저장됩니다.
+            </p>
+          </div>
+        </div>
+      )}
       
       {/* 설정 모달 - Notion 스타일 */}
       {isSettingsOpen && (

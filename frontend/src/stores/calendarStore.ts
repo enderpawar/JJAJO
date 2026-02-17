@@ -15,6 +15,9 @@ interface CalendarStore {
   
   // 모든 일정 목록
   todos: Todo[]
+
+  // 대량 시간표 저장 진행 여부 (백그라운드 인디케이터용)
+  isBulkSavingTimetable: boolean
   
   // Actions
   setSelectedDate: (date: Date) => void
@@ -28,6 +31,7 @@ interface CalendarStore {
   clearAllTodos: () => void
   getTodosByDate: (date: string) => Todo[]
   getAiTodos: () => Todo[]
+  setIsBulkSavingTimetable: (value: boolean) => void
   /** 전날 일정 복사 시 복사 대상 + 시간 중복으로 제외된 목록 반환 (상태 변경 없음). */
   copyTodosFromPreviousDay: () => { toCopy: Todo[]; excluded: { title: string; startTime: string; endTime: string }[] }
 }
@@ -40,6 +44,7 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   currentMonth: new Date(),
   viewMode: 'month',
   todos: [],
+  isBulkSavingTimetable: false,
   
   setSelectedDate: (date) => set({ selectedDate: date }),
   
@@ -78,6 +83,8 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
     const todos = get().todos
     return todos.filter((todo) => todo.createdBy === 'ai')
   },
+
+  setIsBulkSavingTimetable: (value) => set({ isBulkSavingTimetable: value }),
 
   /**
    * 전날 일정을 현재 선택된 날짜로 복사할 때 쓸 목록 반환 (상태 변경 없음).

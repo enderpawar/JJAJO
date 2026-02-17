@@ -38,16 +38,21 @@ export type ApiRequestOptions = {
  */
 export async function apiRequest<T>(url: string, options: ApiRequestOptions = {}): Promise<T> {
   const { method = 'GET', body, headers = {}, parseJson = true } = options
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
   const init: RequestInit = {
     method,
     credentials: 'include',
     headers: {
-      ...(body != null && typeof body === 'object' && !(body instanceof FormData)
+      ...(body != null && typeof body === 'object' && !isFormData
         ? { 'Content-Type': 'application/json' }
         : {}),
       ...headers,
     },
-    ...(body != null && method !== 'GET' ? { body: typeof body === 'string' ? body : JSON.stringify(body) } : {}),
+    ...(body != null && method !== 'GET'
+      ? {
+          body: isFormData ? (body as FormData) : typeof body === 'string' ? body : JSON.stringify(body),
+        }
+      : {}),
   }
 
   const response = await fetch(url, init)
