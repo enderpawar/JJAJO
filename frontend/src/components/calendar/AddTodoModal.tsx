@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Calendar, Clock, AlertCircle } from 'lucide-react'
+import { X, Calendar, Clock } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { createSchedule } from '@/services/scheduleService'
 import { formatDate } from '@/utils/dateUtils'
@@ -71,8 +71,8 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-notion-sidebar border border-notion-border rounded-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
         {/* 헤더 */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-800">새 일정 추가</h2>
+        <div className="flex items-center justify-between p-6 border-b border-notion-border">
+          <h2 className="text-xl font-bold text-white">새 일정 추가</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-notion-hover rounded-md transition-colors"
@@ -85,7 +85,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* 제목 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               제목 *
             </label>
             <input
@@ -100,7 +100,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
 
           {/* 설명 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               설명
             </label>
             <textarea
@@ -114,7 +114,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
 
           {/* 날짜 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-white mb-2">
               <Calendar className="w-4 h-4 inline mr-1" />
               날짜 *
             </label>
@@ -130,7 +130,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
           {/* 시간 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-white mb-2">
                 <Clock className="w-4 h-4 inline mr-1" />
                 시작 시간
               </label>
@@ -142,7 +142,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-white mb-2">
                 종료 시간
               </label>
               <input
@@ -152,39 +152,6 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
                 className="input-field"
               />
             </div>
-          </div>
-
-          {/* 우선순위 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <AlertCircle className="w-4 h-4 inline mr-1" />
-              우선순위
-            </label>
-            <select
-              value={formData.priority}
-              onChange={(e) => setFormData({ ...formData, priority: e.target.value as TodoPriority })}
-              className="input-field"
-            >
-              <option value="low">낮음</option>
-              <option value="medium">보통</option>
-              <option value="high">높음</option>
-            </select>
-          </div>
-
-          {/* 상태 */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              상태
-            </label>
-            <select
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as TodoStatus })}
-              className="input-field"
-            >
-              <option value="pending">대기</option>
-              <option value="in-progress">진행중</option>
-              <option value="completed">완료</option>
-            </select>
           </div>
 
           {/* 버튼 */}

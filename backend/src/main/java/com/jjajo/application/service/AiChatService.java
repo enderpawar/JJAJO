@@ -115,7 +115,7 @@ public class AiChatService implements ProcessAiChatUseCase, ParseScheduleUseCase
         log.info("대화형 일정 수정 요청: {}", command);
         var operations = geminiChatAdapter.editScheduleWithFunctionCalling(command, todos, apiKey);
         String message = operations.isEmpty()
-                ? "해당하는 일정이 없거나 변경할 내용이 없습니다."
+                ? "일정 내용을 이해하지 못했어요. 날짜·시간·제목을 명확히 적어주세요. (예: 내일 오후 3시 2시간 회의)"
                 : null;
         return EditScheduleResponse.builder()
                 .operations(operations)

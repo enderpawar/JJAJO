@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react'
 import { Wand2, Loader2, Check, Sparkles } from 'lucide-react'
-import { editScheduleByNaturalLanguage } from '@/services/magicBarService'
+import { submitMagicBarCommand } from '@/services/magicBarService'
 
-/** 짧은 placeholder로 첫인상 부담 감소 */
-const PLACEHOLDER = '일정을 말로 입력해보세요 (예: 내일 오후 3시 회의)'
+/** 구체적인 예시로 입력 가이드 제공 */
+const PLACEHOLDER = '예: 내일 오후 3시 회의, 다음 주 월요일 2시간 스터디'
 
 export default function MagicBar() {
   const [input, setInput] = useState('')
@@ -18,8 +18,8 @@ export default function MagicBar() {
     setLoading(true)
     setMessage(null)
 
-    // 모드 전환 없이 항상 통합 API(추가·수정·삭제) 호출
-    const result = await editScheduleByNaturalLanguage(trimmed)
+    // 순수 추가는 parse-schedule 우선, 수정/삭제는 edit-schedule
+    const result = await submitMagicBarCommand(trimmed)
 
     setLoading(false)
     if (result.success) {

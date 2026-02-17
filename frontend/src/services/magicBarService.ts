@@ -49,6 +49,7 @@ interface EditOperationResponse {
     date?: string
     startTime?: string
     endTime?: string
+    durationMinutes?: number
     description?: string
   }
 }
@@ -153,6 +154,38 @@ export async function parseAndAddSchedule(command: string): Promise<{ success: t
 const CONTEXT_DAYS = 7
 const MAX_TODOS_CONTEXT = 50
 
+/** 수정/삭제 의도 키워드 - 이 중 하나라도 있으면 edit API만 사용 */
+const EDIT_DELETE_KEYWORDS = /삭제|취소|수정|늘려|줄여|바꿔|변경|지워|취소해|삭제해|수정해|바꿔줘|변경해/
+
+/**
+ * 순수 일정 추가 의도 여부 (날짜·시간·제목 위주 단일 추가 요청)
+ * 수정/삭제 키워드가 없고, 여러 일정 추가 패턴(쉼표/그리고)도 없으면 추가로 간주
+ */
+function isPureAddIntent(command: string): boolean {
+  const trimmed = command.trim()
+  if (!trimmed || trimmed.length > 150) return false
+  if (EDIT_DELETE_KEYWORDS.test(trimmed)) return false
+  // 여러 개 추가 패턴: "회의, 미팅, 점심" / "회의 그리고 미팅"
+  if (/,.{2,}|그리고|또\s|및\s/.test(trimmed)) return false
+  return true
+}
+
+/**
+ * 매직 바 통합 제출: 순수 추가는 parse-schedule 우선, 그 외엔 edit-schedule
+ */
+export async function submitMagicBarCommand(
+  command: string
+): Promise<{ success: true; appliedCount: number } | { success: false; message: string }> {
+  if (isPureAddIntent(command)) {
+    const parseResult = await parseAndAddSchedule(command)
+    if (parseResult.success) {
+      return { success: true, appliedCount: 1 }
+    }
+    // 파싱 실패 시 edit API로 폴백 (복합 명령일 수 있음)
+  }
+  return editScheduleByNaturalLanguage(command)
+}
+
 /**
  * 대화형 일정 수정: 자연어 명령을 보내 연산 목록을 받아 스토어와 API에 반영
  */
@@ -236,10 +269,9 @@ export async function editScheduleByNaturalLanguage(
 
     const operations = data.operations ?? []
     if (operations.length === 0) {
-      return {
-        success: false,
-        message: data.message ?? '해당하는 일정이 없거나 변경할 내용이 없습니다.',
-      }
+      const fallbackMessage =
+        data.message ?? '일정 내용을 이해하지 못했어요. 날짜·시간·제목을 명확히 적어주세요. (예: 내일 오후 3시 2시간 회의)'
+      return { success: false, message: fallbackMessage }
     }
 
     const adds = operations.filter((o) => String(o.type).toLowerCase() === 'add')
@@ -306,6 +338,7 @@ export async function editScheduleByNaturalLanguage(
 
         const durationMinutes = (() => {
           if (startTime && endTime) return Math.max(10, timeToMinutes(endTime) - timeToMinutes(startTime))
+          if (payload?.durationMinutes != null && payload.durationMinutes > 0) return Math.min(480, payload.durationMinutes)
           return DEFAULT_DURATION_MINUTES
         })()
 

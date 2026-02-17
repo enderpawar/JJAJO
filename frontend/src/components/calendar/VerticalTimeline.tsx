@@ -418,9 +418,8 @@ export function VerticalTimeline() {
         className={`
           task-card group absolute left-0 right-0 mx-3 sm:mx-4 cursor-pointer active:cursor-grabbing overflow-hidden touch-none
           ${isEditingThisTask ? 'rounded-2xl border-2 border-primary-400 shadow-[0_0_0_1px_rgba(56,189,248,0.4)]' : 'rounded-lg'}
-          ${isPast ? 'task-card-past' : ''}
           ${isCurrent ? 'task-card-active backdrop-blur-md' : ''}
-          ${isFuture || (!isCurrent && !isPast)
+          ${!isCurrent
             ? `bg-[#252525]/90 backdrop-blur-md ${
                 isEditingThisTask ? '' : 'border border-white/10'
               } hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] ${
@@ -433,7 +432,7 @@ export function VerticalTimeline() {
           height: `${baseHeight}px`,
           zIndex: isCurrent ? 10 : isPast ? 1 : 5,
           transform: `scale(${scale})`,
-          opacity: isPast ? 0.5 : isFuture ? 0.7 : 1,
+          opacity: isFuture ? 0.7 : 1,
           transition: 'none',
         }}
         drag={isEditingThisTask ? false : 'y'}
@@ -489,11 +488,10 @@ export function VerticalTimeline() {
             <span className="text-2xl font-black text-white animate-pulse whitespace-nowrap">{dragPreview.startTime}</span>
             <span className="text-xl text-white/70">~</span>
             <span className="text-2xl font-black text-white animate-pulse whitespace-nowrap">{dragPreview.endTime}</span>
-            <span className="px-2.5 py-1 bg-primary-500 rounded-full text-white text-xs font-bold">📍 10분</span>
           </div>
         )}
         {/* 편집 모드에서 상/하단 테두리를 잡고 리사이즈할 수 있는 영역 (카드 전체 높이에 따라 자동 이동) */}
-        {!isPast && editingTodo?.id === task.id && (
+        {editingTodo?.id === task.id && (
           <>
             {/* 상단: 얇은 투명 히트존만 유지 (시간 앞당기기용) */}
             <div
@@ -553,97 +551,99 @@ export function VerticalTimeline() {
             <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-sm" />
           </>
         )}
-        {isPast && <div className="absolute inset-0 bg-gray-300" />}
-        <div className={`relative z-10 ${isPast ? 'p-2' : 'p-4'}`}>
-          {!isPast && (
-            <div className="absolute top-2 right-2 z-20 flex items-center gap-1">
-              {isEditingThisTask && (
-                <button
-                  ref={editButtonRef}
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setDeleteConfirmTask(task)
-                  }}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-red-500/40 hover:bg-red-500/60 backdrop-blur-sm' : 'bg-red-500/30 hover:bg-red-500/50 group'}`}
-                  title="삭제"
-                >
-                  <Trash2 className={`w-3.5 h-3.5 ${isCurrent ? 'text-white' : 'text-red-400 group-hover:text-white'}`} />
-                </button>
-              )}
+        <div className="relative z-10 p-4">
+          <div className="absolute top-2 right-2 z-20 flex items-center gap-1">
+            {isEditingThisTask && (
               <button
+                ref={editButtonRef}
                 type="button"
                 onClick={(e) => {
+                  e.preventDefault()
                   e.stopPropagation()
-                  if (!isDraggingRef.current) {
-                    setEditingTodo(prev => (prev?.id === task.id ? null : task))
-                  }
+                  setDeleteConfirmTask(task)
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
-                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-white/20 hover:bg-white/30 backdrop-blur-sm' : 'bg-notion-sidebar/80 hover:bg-blue-500 group'}`}
-                title={isEditingThisTask ? '편집 모드 해제' : task.title === '새 일정' ? '클릭하여 이름 입력' : '편집'}
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-red-500/40 hover:bg-red-500/60 backdrop-blur-sm' : 'bg-red-500/30 hover:bg-red-500/50 group'}`}
+                title="삭제"
               >
-                <Edit2 className={`w-3.5 h-3.5 ${isCurrent ? 'text-white' : 'text-gray-600 group-hover:text-white'}`} />
+                <Trash2 className={`w-3.5 h-3.5 ${isCurrent ? 'text-white' : 'text-red-400 group-hover:text-white'}`} />
               </button>
-            </div>
-          )}
-          {isPast ? (
-            <div className="flex items-center gap-2 text-notion-muted">
-              <span className="text-xs">✓</span>
-              <span className="text-xs font-medium truncate">{task.title}</span>
-              <span className="text-xs opacity-50 ml-auto">{task.startTime}</span>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                if (!isDraggingRef.current) {
+                  setEditingTodo(prev => (prev?.id === task.id ? null : task))
+                }
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-white/20 hover:bg-white/30 backdrop-blur-sm' : 'bg-notion-sidebar/80 hover:bg-blue-500 group'}`}
+              title={isEditingThisTask ? '편집 모드 해제' : task.title === '새 일정' ? '클릭하여 이름 입력' : '편집'}
+            >
+              <Edit2 className={`w-3.5 h-3.5 ${isCurrent ? 'text-white' : 'text-gray-600 group-hover:text-white'}`} />
+            </button>
+          </div>
+
+          <div className="text-sm font-medium mb-2 text-gray-400">
+            {task.startTime} - {task.endTime}
+          </div>
+
+          {isEditingThisTask ? (
+            <input
+              ref={titleInputRef}
+              type="text"
+              value={renameInputValue}
+              onChange={(e) => setRenameInputValue(e.target.value)}
+              onBlur={() => {
+                if (renameInputValue.trim() && renameInputValue.trim() !== task.title) {
+                  handleSaveRename(task)
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  if (renameInputValue.trim()) handleSaveRename(task)
+                }
+                if (e.key === 'Escape') {
+                  setRenameInputValue(task.title)
+                  setEditingTodo(null)
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className={`min-w-0 w-full sm:w-[25%] pr-12 text-lg font-semibold mb-2 leading-tight bg-white/10 border border-white/20 rounded px-2 py-1 focus:outline-none focus:ring-0 focus-visible:ring-0 ${isCurrent ? 'text-white placeholder-white/50' : 'text-white placeholder-white/40'}`}
+              placeholder="제목"
+            />
           ) : (
             <>
-              <div className="text-sm font-medium mb-2 text-gray-400">{task.startTime} - {task.endTime}</div>
-              {isEditingThisTask ? (
-                <input
-                  ref={titleInputRef}
-                  type="text"
-                  value={renameInputValue}
-                  onChange={(e) => setRenameInputValue(e.target.value)}
-                  onBlur={() => {
-                    if (renameInputValue.trim() && renameInputValue.trim() !== task.title) {
-                      handleSaveRename(task)
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      if (renameInputValue.trim()) handleSaveRename(task)
-                    }
-                    if (e.key === 'Escape') {
-                      setRenameInputValue(task.title)
-                      setEditingTodo(null)
-                    }
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className={`min-w-0 w-full sm:w-[25%] pr-12 text-lg font-semibold mb-2 leading-tight bg-white/10 border border-white/20 rounded px-2 py-1 focus:outline-none focus:ring-0 focus-visible:ring-0 ${isCurrent ? 'text-white placeholder-white/50' : 'text-white placeholder-white/40'}`}
-                  placeholder="제목"
-                />
-              ) : (
-                <>
-                  <div className={`text-lg font-semibold mb-2 leading-tight pr-12 ${isCurrent ? 'text-white text-2xl drop-shadow-lg' : 'text-white'}`}>{task.title}</div>
-                  {task.title === '새 일정' && (
-                    <div className="text-xs text-notion-muted">연필 아이콘을 눌러 제목을 입력하세요</div>
-                  )}
-                </>
-              )}
-              {task.description && <div className={`text-sm mb-3 ${isCurrent ? 'text-white/90' : 'text-gray-400'}`}>{task.description}</div>}
-              {isCurrent && (
-                <div className="mt-4 mr-4">
-                  <div className="relative h-2 bg-slate-700/60 rounded-full overflow-hidden mb-2">
-                    <div className="absolute inset-y-0 left-0 bg-slate-500 rounded-full transition-all duration-1000" style={{ width: `${progress}%` }} />
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-white/60">🔥 진행 중</span>
-                    <span className="text-white font-bold">{Math.round(progress)}%</span>
-                  </div>
-                </div>
+              <div className={`text-lg font-semibold mb-2 leading-tight pr-12 ${isCurrent ? 'text-white text-2xl drop-shadow-lg' : 'text-white'}`}>
+                {task.title}
+              </div>
+              {task.title === '새 일정' && (
+                <div className="text-xs text-notion-muted">연필 아이콘을 눌러 제목을 입력하세요</div>
               )}
             </>
+          )}
+
+          {task.description && (
+            <div className={`text-sm mb-3 ${isCurrent ? 'text-white/90' : 'text-gray-400'}`}>
+              {task.description}
+            </div>
+          )}
+
+          {isCurrent && (
+            <div className="mt-4 mr-4">
+              <div className="relative h-2 bg-slate-700/60 rounded-full overflow-hidden mb-2">
+                <div
+                  className="absolute inset-y-0 left-0 bg-slate-500 rounded-full transition-all duration-1000"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-white/60">🔥 진행 중</span>
+                <span className="text-white font-bold">{Math.round(progress)}%</span>
+              </div>
+            </div>
           )}
         </div>
       </motion.div>
@@ -737,7 +737,12 @@ export function VerticalTimeline() {
           </div>
         </div>
 
-        <div className="absolute left-0 right-0 top-0 bg-gray-900/10 pointer-events-none transition-all duration-1000" style={{ height: `${currentTimePosition}px`, zIndex: 2 }} />
+        {!showPastTime && (
+          <div
+            className="absolute left-0 right-0 top-0 bg-gray-900/10 pointer-events-none transition-all duration-1000"
+            style={{ height: `${currentTimePosition}px`, zIndex: 2 }}
+          />
+        )}
       </div>
     </div>
 

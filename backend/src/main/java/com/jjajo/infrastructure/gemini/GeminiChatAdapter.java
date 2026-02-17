@@ -469,6 +469,19 @@ public class GeminiChatAdapter {
                     String date = getString(edit, "date");
                     String startTime = getString(edit, "start_time");
                     String endTime = getString(edit, "end_time");
+                    Integer durationMinutes = getInteger(edit, "duration_minutes");
+                    // endTime 없고 duration_minutes 있으면 startTime + duration으로 계산
+                    if ((endTime == null || endTime.isEmpty()) && startTime != null && !startTime.isEmpty() && durationMinutes != null && durationMinutes > 0) {
+                        try {
+                            String norm = startTime.contains(":") ? startTime : startTime + ":00";
+                            if (norm.length() == 4) norm = "0" + norm;
+                            String parsed = norm.length() >= 5 ? norm.substring(0, 5) : (norm + ":00").substring(0, 5);
+                            LocalTime start = LocalTime.parse(parsed, DateTimeFormatter.ISO_LOCAL_TIME);
+                            endTime = start.plusMinutes(durationMinutes).format(DateTimeFormatter.ISO_LOCAL_TIME).substring(0, 5);
+                        } catch (Exception e) {
+                            log.debug("duration_minutes로 endTime 계산 실패: start={}, dur={}", startTime, durationMinutes);
+                        }
+                    }
                     // start/end는 누락될 수 있음(프론트에서 자동 보완). title/date는 최소 필요.
                     if (title == null || date == null) continue;
                     ScheduleUpdateRequest addPayload = ScheduleUpdateRequest.builder()
@@ -476,6 +489,7 @@ public class GeminiChatAdapter {
                             .date(date)
                             .startTime(startTime)
                             .endTime(endTime)
+                            .durationMinutes(durationMinutes)
                             .build();
                     operations.add(EditOperationDto.builder()
                             .type(EditOperationDto.TYPE_ADD)
@@ -514,5 +528,16 @@ public class GeminiChatAdapter {
     private static String getString(Map<String, Object> map, String key) {
         Object v = map.get(key);
         return v != null ? v.toString().trim() : null;
+    }
+
+    private static Integer getInteger(Map<String, Object> map, String key) {
+        Object v = map.get(key);
+        if (v == null) return null;
+        if (v instanceof Number n) return n.intValue();
+        try {
+            return Integer.parseInt(v.toString().trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }
