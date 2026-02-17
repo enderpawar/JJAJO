@@ -12,6 +12,7 @@ import { useCalendarStore } from '@/stores/calendarStore'
 import { useGoalStore } from '@/stores/goalStore'
 import { checkAuth, loadGoals } from '@/services/authService'
 import { getSchedules } from '@/services/scheduleService'
+import { useApiKeyStore } from '@/stores/apiKeyStore'
 
 export default function MainPage() {
   const navigate = useNavigate()
@@ -20,12 +21,15 @@ export default function MainPage() {
   const [monthlyModalTab, setMonthlyModalTab] = useState<'calendar' | 'goals' | 'day'>('calendar')
   const { goals, setGoals } = useGoalStore()
   const { todos, setTodos } = useCalendarStore()
+  const loadApiKeyForCurrentUser = useApiKeyStore((s) => s.loadApiKeyForCurrentUser)
 
   // 플래너 진입 시 인증 확인 + 회원별 목표·일정 로드
   useEffect(() => {
     const init = async () => {
       try {
         await checkAuth()
+        // 인증 후 userId가 설정되면, 해당 계정에 대한 Gemini API 키를 localStorage에서 불러온다
+        loadApiKeyForCurrentUser()
         const [goalsList] = await Promise.all([
           loadGoals(),
           getSchedules().then(setTodos).catch(() => {}),
@@ -42,7 +46,7 @@ export default function MainPage() {
       }
     }
     init()
-  }, [navigate, setGoals, setTodos])
+  }, [navigate, setGoals, setTodos, loadApiKeyForCurrentUser])
   
   // ESC 키로 월간 캘린더 모달 닫기
   useEffect(() => {

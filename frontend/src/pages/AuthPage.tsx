@@ -3,10 +3,12 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getApiBase } from '@/utils/api'
 import { debugLog } from '@/utils/debugLog'
+import { useUserStore } from '@/stores/userStore'
 
 export default function AuthPage() {
   const navigate = useNavigate()
   const [checking, setChecking] = useState(true)
+  const setCurrentUser = useUserStore((s) => s.setCurrentUser)
 
   // 앱 진입 시 로그인 상태 확인 (백엔드 오리진으로 요청해 쿠키 전송)
   useEffect(() => {
@@ -25,6 +27,21 @@ export default function AuthPage() {
           credentials: 'include',
         })
         if (res.ok) {
+          // 현재 로그인한 사용자 정보 저장
+          try {
+            const me = await res.json()
+            if (me && typeof me.userId === 'string') {
+              setCurrentUser({
+                userId: me.userId,
+                email: me.email ?? null,
+                name: me.name ?? null,
+                pictureUrl: me.pictureUrl ?? null,
+              })
+            }
+          } catch {
+            // JSON 파싱 실패 시에는 사용자 정보 저장 없이 진행
+          }
+
           // 이미 로그인된 상태이면 바로 플래너로 이동
           navigate('/app', { replace: true })
           return
@@ -37,7 +54,7 @@ export default function AuthPage() {
     }
 
     checkLogin()
-  }, [navigate])
+  }, [navigate, setCurrentUser])
 
   // iOS Safari: window.location.href는 클릭 핸들러에서 차단될 수 있음. <a href> 네이티브 이동 사용.
   const googleLoginUrl = (() => {

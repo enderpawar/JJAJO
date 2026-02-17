@@ -70,7 +70,7 @@ export function ApiKeySettings() {
         </h3>
       </div>
       <p className="text-xs text-notion-muted">
-        API 키는 브라우저의 세션 저장소에만 저장되며, 브라우저를 닫으면 자동으로 삭제됩니다.
+        API 키는 브라우저의 로컬 저장소에만 저장되며, 로그인한 계정(userId)마다 별도로 보관돼요.
       </p>
 
       <div className="space-y-3">
