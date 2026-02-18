@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Sparkles, Settings, X, Moon, Sun, Copy, Calendar, LogIn } from 'lucide-react'
+import { Settings, X, Moon, Sun, Copy, Calendar, LogIn } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { TimeSlotSettings } from '@/components/settings/TimeSlotSettings'
@@ -61,7 +61,7 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
     if (isCopying) return
     const { toCopy, excluded } = copyTodosFromPreviousDay()
     if (toCopy.length === 0 && excluded.length === 0) {
-      alert('어제 일정이 없습니다.')
+      addToast('어제 일정이 없습니다.')
       return
     }
     excluded.forEach(({ title, startTime, endTime }) => {
@@ -96,12 +96,12 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
           return t
         })
       )
-      alert(`어제 일정 ${created.length}개를 ${format(selectedDate, 'M월 d일', { locale: ko })}로 가져왔습니다!`)
+      addToast(`어제 일정 ${created.length}개를 ${format(selectedDate, 'M월 d일', { locale: ko })}로 가져왔습니다!`)
     } catch (e) {
       const { todos, setTodos } = useCalendarStore.getState()
       setTodos(todos.filter((t) => !optimisticIds.has(t.id)))
       const message = e instanceof Error ? e.message : '일정 저장 실패'
-      alert(`저장 중 오류: ${message}`)
+      addToast(`저장 중 오류: ${message}`)
     } finally {
       setIsCopying(false)
     }
@@ -114,7 +114,7 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
 
   return (
     <header className="relative z-30 bg-notion-card border-b border-notion-border shadow-none" style={{ isolation: 'isolate' }}>
-      <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 py-3 h-20">
+      <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 min-h-[5rem] flex flex-col justify-center">
         <div className="flex items-center justify-between h-[60px]">
           {/* 로고 - 클릭 시 오늘 날짜로 이동 + 상단 스크롤 */}
           <button
@@ -124,10 +124,11 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
             title="오늘로 이동"
             aria-label="짜조 로고, 오늘로 이동"
           >
-            <div className="w-8 h-8 bg-primary-500 rounded-notion flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <h1 className="text-base font-semibold text-notion-text-primary">짜조</h1>
+            <img
+              src="/logo.png"
+              alt="짜조"
+              className="h-11 w-auto object-contain flex-shrink-0"
+            />
           </button>
           
           {/* 우측 메뉴 - 어제 일정 복사 | 월간 | 설정 */}

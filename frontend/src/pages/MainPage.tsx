@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '@/components/layout/Header'
 import MagicBar from '@/components/layout/MagicBar'
@@ -8,9 +8,10 @@ import { TopTimeline } from '@/components/calendar/TopTimeline'
 import { VerticalTimeline } from '@/components/calendar/VerticalTimeline'
 import { GoalsAndBackwardsPlanSection } from '@/components/goals/GoalsAndBackwardsPlanSection'
 import { ImportTimetableModal } from '@/components/calendar/ImportTimetableModal'
-import { Target, Calendar as CalendarIcon, X, CalendarDays, ListTodo } from 'lucide-react'
+import { Target, X, CalendarDays } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useGoalStore } from '@/stores/goalStore'
+import { formatDateWithDay } from '@/utils/dateUtils'
 import { checkAuth, loadGoals } from '@/services/authService'
 import { getSchedules } from '@/services/scheduleService'
 import { useApiKeyStore } from '@/stores/apiKeyStore'
@@ -20,9 +21,13 @@ export default function MainPage() {
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [showMonthlyCalendar, setShowMonthlyCalendar] = useState(false)
   const [showImportTimetable, setShowImportTimetable] = useState(false)
-  const [monthlyModalTab, setMonthlyModalTab] = useState<'calendar' | 'goals' | 'day'>('calendar')
+  const [monthlyModalTab, setMonthlyModalTab] = useState<'calendar' | 'goals'>('calendar')
+  const [showDayPanelInModal, setShowDayPanelInModal] = useState(false)
+  const [modalDragY, setModalDragY] = useState(0)
+  const modalDragStartY = useRef(0)
+  const skipNextScrollToTimeRef = useRef(false)
   const { goals, setGoals } = useGoalStore()
-  const { todos, setTodos } = useCalendarStore()
+  const { todos, setTodos, selectedDate } = useCalendarStore()
   const loadApiKeyForCurrentUser = useApiKeyStore((s) => s.loadApiKeyForCurrentUser)
 
   // 플래너 진입 시 인증 확인 + 회원별 목표·일정 로드
@@ -50,20 +55,29 @@ export default function MainPage() {
     init()
   }, [navigate, setGoals, setTodos, loadApiKeyForCurrentUser])
   
+  const closeMonthlyCalendar = useCallback(() => {
+    skipNextScrollToTimeRef.current = true
+    setShowMonthlyCalendar(false)
+  }, [])
+
   // ESC 키로 월간 캘린더 모달 닫기
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && showMonthlyCalendar) {
-        setShowMonthlyCalendar(false)
+        closeMonthlyCalendar()
       }
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [showMonthlyCalendar])
+  }, [showMonthlyCalendar, closeMonthlyCalendar])
 
   // 월간 모달 열릴 때 body 스크롤 잠금 + 탭 초기화
   useEffect(() => {
-    if (!showMonthlyCalendar) return
+    if (!showMonthlyCalendar) {
+      setModalDragY(0)
+      setShowDayPanelInModal(false)
+      return
+    }
     setMonthlyModalTab('calendar')
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -74,7 +88,8 @@ export default function MainPage() {
   
   if (checkingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-notion-bg text-notion-text">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-notion-bg text-notion-text">
+        <img src="/logo.png" alt="짜조" className="h-12 w-auto object-contain" />
         <p className="text-sm text-notion-text-secondary">로그인 상태를 확인하고 있어요...</p>
       </div>
     )
@@ -98,7 +113,7 @@ export default function MainPage() {
           {/* 메인 영역: VerticalTimeline */}
           <div className="flex-1 flex min-h-0 relative">
             <div className="flex-1 min-h-0">
-              <VerticalTimeline />
+              <VerticalTimeline skipNextScrollToTimeRef={skipNextScrollToTimeRef} />
             </div>
           </div>
         </main>
@@ -107,59 +122,55 @@ export default function MainPage() {
       {/* 🗓️ 월간 캘린더 모달 */}
       {showMonthlyCalendar && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
-              setShowMonthlyCalendar(false)
+              closeMonthlyCalendar()
             }
           }}
         >
-          <div className="bg-notion-sidebar rounded-lg border border-notion-border w-full max-w-[1800px] max-h-[95vh] overflow-hidden flex flex-col">
-            {/* 모달 헤더 - 반응형 패딩 */}
-            <div className="flex items-center justify-between px-4 sm:px-6 xl:px-8 py-4 sm:py-6 border-b border-notion-border bg-notion-sidebar">
-              <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-500/15 border border-primary-500/30 rounded-lg flex items-center justify-center">
-                    <CalendarIcon className="w-5 h-5 text-primary-400" />
-                  </div>
-                  <h2 className="text-xl font-semibold text-notion-text">월간 일정</h2>
-                </div>
-                
-                {/* 간결한 통계 배지 */}
-                <div className="flex items-center gap-3">
-                  <div className="px-3 py-1.5 bg-primary-500/20 rounded-full flex items-center gap-2">
-                    <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
-                    <span className="text-sm font-medium text-primary-400">{todos.length}개 일정</span>
-                  </div>
-                  <div className="px-3 py-1.5 bg-red-500/20 rounded-full flex items-center gap-2">
-                    <Target className="w-3.5 h-3.5 text-red-500" />
-                    <span className="text-sm font-medium text-red-400">{goals.length}개 목표</span>
-                  </div>
-                </div>
+          <div 
+            className="bg-notion-sidebar rounded-lg border border-notion-border w-full max-w-[1800px] max-h-[min(95vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-hidden flex flex-col transition-transform duration-150"
+            style={{ transform: `translateY(${modalDragY}px)` }}
+          >
+            {/* 상단: 모바일은 스와이프 핸들+닫기, 데스크톱은 최소 바(닫기+시간표 불러오기) */}
+            <div className="shrink-0 flex items-center justify-between px-2 py-2 border-b border-notion-border bg-notion-sidebar">
+              <div
+                className="xl:hidden flex-1 flex justify-center touch-none min-h-[44px] items-center"
+                onTouchStart={(e) => { modalDragStartY.current = e.touches[0].clientY }}
+                onTouchMove={(e) => {
+                  const y = e.touches[0].clientY
+                  const delta = y - modalDragStartY.current
+                  if (delta > 0) setModalDragY(delta)
+                }}
+                onTouchEnd={() => {
+                  if (modalDragY > 100) closeMonthlyCalendar()
+                  setModalDragY(0)
+                }}
+              >
+                <div className="w-10 h-1 rounded-full bg-notion-border" aria-hidden />
               </div>
-              
-              {/* 우측: 액션 버튼 */}
-              <div className="flex items-center gap-3">
+              <div className="hidden xl:flex items-center gap-2 flex-1">
                 <button
                   type="button"
                   onClick={() => setShowImportTimetable(true)}
-                  className="hidden sm:inline-flex touch-target items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary-500/15 text-primary-400 hover:bg-primary-500/25 text-sm font-medium"
+                  className="touch-target flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary-500/15 text-primary-400 hover:bg-primary-500/25 text-sm font-medium"
                 >
                   <CalendarDays className="w-4 h-4" />
                   시간표 이미지로 불러오기
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowMonthlyCalendar(false)}
-                  className="touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 hover:bg-notion-hover rounded-lg transition-colors"
-                  title="닫기 (ESC)"
-                >
-                  <X className="w-5 h-5 text-notion-muted" />
-                </button>
               </div>
+              <button
+                type="button"
+                onClick={closeMonthlyCalendar}
+                className="touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 hover:bg-notion-hover rounded-lg transition-colors shrink-0"
+                title="닫기 (ESC)"
+              >
+                <X className="w-5 h-5 text-notion-muted" />
+              </button>
             </div>
 
-            {/* 매직 바: 월간 일정에서도 한 줄 자연어로 일정 추가 */}
+            {/* 매직 바: 모바일/데스크톱 모두 항상 표시 */}
             <div className="shrink-0 border-b border-notion-border bg-notion-card/50">
               <MagicBar />
             </div>
@@ -172,7 +183,6 @@ export default function MainPage() {
                   {[
                     { id: 'calendar' as const, label: '캘린더', icon: CalendarDays },
                     { id: 'goals' as const, label: '목표', icon: Target },
-                    { id: 'day' as const, label: '선택일', icon: ListTodo },
                   ].map(({ id, label, icon: Icon }) => (
                     <button
                       key={id}
@@ -193,11 +203,14 @@ export default function MainPage() {
 
               <div className="flex-1 overflow-auto min-h-0">
                 <div className="max-w-[1600px] mx-auto p-4 sm:p-6 xl:p-8">
-                  {/* 모바일: 탭별 단일 패널 */}
-                  <div className="xl:hidden">
+                  {/* 모바일: 탭별 단일 패널. 날짜 더블클릭/더블탭 시 일정 패널 오버레이 */}
+                  <div className="xl:hidden relative flex-1 min-h-0 flex flex-col">
                     {monthlyModalTab === 'calendar' && (
-                      <div className="bg-notion-sidebar rounded-2xl shadow-none p-4 sm:p-6 border border-notion-border">
-                        <CalendarGrid />
+                      <div className="bg-notion-sidebar rounded-2xl shadow-none p-4 sm:p-6 border border-notion-border flex flex-col min-h-0 flex-1">
+                        <CalendarGrid
+                          onDateDoubleClick={() => setShowDayPanelInModal(true)}
+                          allowFullHeight
+                        />
                       </div>
                     )}
                     {monthlyModalTab === 'goals' && (
@@ -205,9 +218,22 @@ export default function MainPage() {
                         <GoalsAndBackwardsPlanSection />
                       </div>
                     )}
-                    {monthlyModalTab === 'day' && (
-                      <div className="bg-notion-sidebar rounded-2xl shadow-none border border-notion-border flex flex-col min-h-0 max-h-[70vh]">
-                        <DayDetailPanel />
+                    {/* 더블클릭/더블탭으로 연 일정 패널 오버레이 */}
+                    {showDayPanelInModal && (
+                      <div className="absolute inset-0 z-10 bg-notion-bg flex flex-col rounded-2xl overflow-hidden border border-notion-border">
+                        <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-notion-border bg-notion-sidebar">
+                          <button
+                            type="button"
+                            onClick={() => setShowDayPanelInModal(false)}
+                            className="touch-target flex items-center gap-2 min-h-[44px] px-3 text-sm font-medium text-notion-muted hover:text-notion-text"
+                          >
+                            ← 뒤로
+                          </button>
+                          <span className="text-sm text-notion-muted">{formatDateWithDay(selectedDate)}</span>
+                        </div>
+                        <div className="flex-1 min-h-0 overflow-auto">
+                          <DayDetailPanel />
+                        </div>
                       </div>
                     )}
                   </div>

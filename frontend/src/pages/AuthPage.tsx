@@ -1,4 +1,4 @@
-import { Sparkles, LogIn } from 'lucide-react'
+import { LogIn } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getApiBase } from '@/utils/api'
@@ -69,10 +69,14 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-notion-bg text-notion-text">
       <div className="max-w-md w-full">
-        {/* 헤더 */}
+        {/* 헤더 - 짜조 로고 */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-400 to-primary-600 rounded-2xl mb-4 shadow-lg">
-            <Sparkles className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img
+              src="/logo.png"
+              alt="짜조"
+              className="h-14 w-auto object-contain"
+            />
           </div>
           <h1 className="text-3xl font-bold mb-2">
             짜조에 오신 것을 환영해요!

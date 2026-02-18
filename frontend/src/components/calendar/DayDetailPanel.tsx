@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Calendar, Clock, Plus, Edit2, Trash2 } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
+import { useToastStore } from '@/stores/toastStore'
 import { deleteSchedule } from '@/services/scheduleService'
 import { formatDate, formatDateWithDay } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
@@ -10,6 +11,7 @@ import { ConfirmModal } from '@/components/ConfirmModal'
 
 export default function DayDetailPanel() {
   const { selectedDate, getTodosByDate, deleteTodo, addTodo } = useCalendarStore()
+  const { addToast } = useToastStore()
   const [deleteConfirmTodo, setDeleteConfirmTodo] = useState<Todo | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -26,7 +28,7 @@ export default function DayDetailPanel() {
       if (msg.includes('찾을 수 없습니다')) return
       addTodo(taskCopy)
       console.error('일정 삭제 실패:', e)
-      alert(`일정 삭제 실패: ${msg}`)
+      addToast(`일정 삭제 실패: ${msg}`)
     })
   }
 

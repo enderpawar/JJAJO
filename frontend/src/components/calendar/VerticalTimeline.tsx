@@ -1,10 +1,10 @@
-import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
+import { useMemo, useState, useEffect, useRef, useCallback, type MutableRefObject } from 'react'
 import { useCalendarStore } from '@/stores/calendarStore'
+import { useToastStore } from '@/stores/toastStore'
 import { updateSchedule, deleteSchedule, createSchedule } from '@/services/scheduleService'
 import { Clock, Edit2, Trash2, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { motion } from 'framer-motion'
-import { ConfirmModal } from '@/components/ConfirmModal'
 import type { Todo } from '../../types/calendar'
 
 interface DragPreview {
@@ -33,14 +33,20 @@ function minutesToTimeStr(totalMinutes: number): string {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
 }
 
-export function VerticalTimeline() {
+interface VerticalTimelineProps {
+  /** 모달 닫기 직후 한 번만 현재 시각 스크롤을 건너뛸 때 사용 */
+  skipNextScrollToTimeRef?: MutableRefObject<boolean>
+}
+
+export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelineProps = {}) {
   const { todos, updateTodo, deleteTodo, addTodo, selectedDate } = useCalendarStore()
+  const { addToast } = useToastStore()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showPastTime, setShowPastTime] = useState(false)
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null)
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
   const [renameInputValue, setRenameInputValue] = useState('')
-  const [deleteConfirmTask, setDeleteConfirmTask] = useState<Todo | null>(null)
+  const [lastCreatedTodoId, setLastCreatedTodoId] = useState<string | null>(null)
   const editButtonRef = useRef<HTMLButtonElement | null>(null)
   const titleInputRef = useRef<HTMLInputElement | null>(null)
   const isDraggingRef = useRef(false)
@@ -48,6 +54,7 @@ export function VerticalTimeline() {
   const pendingReplaceRef = useRef<{ tempId: string; created: Todo } | null>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
   const hasAutoScrolled = useRef(false)
+  const createdAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (editingTodo) {
       setRenameInputValue(editingTodo.title ?? '')
@@ -70,16 +77,15 @@ export function VerticalTimeline() {
     } catch (e) {
       console.error('이름 변경 실패:', e)
       updateTodo(task.id, { title: previousTitle })
-      alert(`이름 변경 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
+      addToast(`이름 변경 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
     }
-  }, [renameInputValue, updateTodo])
+  }, [renameInputValue, updateTodo, addToast])
 
   /** 낙관적 삭제: 즉시 UI에서 제거한 뒤 백그라운드에서 API 호출. 실패 시 롤백. */
   const performDelete = useCallback((task: Todo) => {
     const taskCopy = { ...task }
     deleteTodo(task.id)
     setEditingTodo(null)
-    setDeleteConfirmTask(null)
 
     if (task.id.startsWith('opt-')) {
       return
@@ -89,9 +95,9 @@ export function VerticalTimeline() {
       if (msg.includes('찾을 수 없습니다')) return
       addTodo(taskCopy)
       console.error('일정 삭제 실패:', e)
-      alert(`일정 삭제 실패: ${msg}`)
+      addToast(`일정 삭제 실패: ${msg}`)
     })
-  }, [deleteTodo, addTodo])
+  }, [deleteTodo, addTodo, addToast])
 
   useEffect(() => {
     if (!editingTodo) return
@@ -223,6 +229,12 @@ export function VerticalTimeline() {
         updatedAt: now,
       }
       addTodo(optimisticTodo)
+      if (createdAnimationTimeoutRef.current) clearTimeout(createdAnimationTimeoutRef.current)
+      setLastCreatedTodoId(tempId)
+      createdAnimationTimeoutRef.current = setTimeout(() => {
+        setLastCreatedTodoId(null)
+        createdAnimationTimeoutRef.current = null
+      }, 500)
 
       createSchedule({
         title: optimisticTodo.title,
@@ -252,23 +264,30 @@ export function VerticalTimeline() {
               }
               deleteTodo(tempId)
               addTodo(merged)
+              setEditingTodo(prev => (prev?.id === tempId ? merged : prev))
               updateSchedule(merged.id, { startTime: merged.startTime, endTime: merged.endTime }).catch(() => {})
             } else {
               deleteTodo(tempId)
               addTodo(created)
+              setEditingTodo(prev => (prev?.id === tempId ? created : prev))
             }
           }
         })
         .catch((err) => {
           deleteTodo(tempId)
           console.error('일정 생성 실패:', err)
-          alert(`일정 생성 실패: ${err instanceof Error ? err.message : '알 수 없음'}`)
+          addToast(`일정 생성 실패: ${err instanceof Error ? err.message : '알 수 없음'}`)
         })
     },
-    [gapsForDay, dateStr, addTodo, deleteTodo]
+    [gapsForDay, dateStr, addTodo, deleteTodo, addToast, setEditingTodo]
   )
 
   useEffect(() => {
+    if (skipNextScrollToTimeRef?.current) {
+      skipNextScrollToTimeRef.current = false
+      hasAutoScrolled.current = true
+      return
+    }
     if (!timelineRef.current || hasAutoScrolled.current) return
     const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
     if (!isToday) return
@@ -411,10 +430,16 @@ export function VerticalTimeline() {
     const scale = 1
     const isEditingThisTask = editingTodo?.id === task.id
 
+    const isJustCreated = task.id === lastCreatedTodoId
+    const styleOpacity = isEditingThisTask ? 1 : (isFuture ? 0.7 : 1)
+
     return (
       <motion.div
         {...(isEditingThisTask && { 'data-editing-card': 'true' })}
         key={`${task.clientKey ?? task.id}-${task.startTime}-${task.endTime}`}
+        initial={isJustCreated ? { scale: 0.92, opacity: 0 } : false}
+        animate={isJustCreated ? { scale: 1, opacity: 1 } : { opacity: 1 }}
+        transition={isJustCreated ? { type: 'spring', stiffness: 380, damping: 26 } : undefined}
         className={`
           task-card group absolute left-0 right-0 mx-3 sm:mx-4 cursor-pointer active:cursor-grabbing overflow-hidden touch-none
           ${isEditingThisTask ? 'rounded-2xl border-2 border-primary-400 shadow-[0_0_0_1px_rgba(56,189,248,0.4)]' : 'rounded-lg'}
@@ -424,7 +449,7 @@ export function VerticalTimeline() {
                 isEditingThisTask ? '' : 'border border-white/10'
               } hover:-translate-y-1 hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] ${
                 isEditingThisTask ? '' : 'hover:border-white/30'
-              } hover:bg-[#2a2a2a]/90 transition-all duration-300 ease-out`
+              } hover:bg-[#2a2a2a]/90 ${isEditingThisTask ? '' : 'transition-all duration-300 ease-out'}`
             : ''}
         `}
         style={{
@@ -432,7 +457,7 @@ export function VerticalTimeline() {
           height: `${baseHeight}px`,
           zIndex: isCurrent ? 10 : isPast ? 1 : 5,
           transform: `scale(${scale})`,
-          opacity: isFuture ? 0.7 : 1,
+          opacity: styleOpacity,
           transition: 'none',
         }}
         drag={isEditingThisTask ? false : 'y'}
@@ -560,7 +585,7 @@ export function VerticalTimeline() {
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
-                  setDeleteConfirmTask(task)
+                  performDelete(task)
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
                 className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-red-500/40 hover:bg-red-500/60 backdrop-blur-sm' : 'bg-red-500/30 hover:bg-red-500/50 group'}`}
@@ -648,7 +673,7 @@ export function VerticalTimeline() {
         </div>
       </motion.div>
     )
-  }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renameInputValue, handleSaveRename])
+  }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renameInputValue, handleSaveRename, performDelete, lastCreatedTodoId])
 
   const getMinutesDiff = (startPixel: number, endPixel: number) => ((endPixel - startPixel) / 100) * 60
 
@@ -746,16 +771,6 @@ export function VerticalTimeline() {
       </div>
     </div>
 
-    <ConfirmModal
-      isOpen={!!deleteConfirmTask}
-      onClose={() => setDeleteConfirmTask(null)}
-      onConfirm={() => deleteConfirmTask && performDelete(deleteConfirmTask)}
-      title="일정 삭제"
-      message="정말 이 일정을 삭제할까요?"
-      confirmLabel="삭제"
-      cancelLabel="취소"
-      danger
-    />
     </>
   )
 }

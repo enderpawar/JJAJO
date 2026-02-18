@@ -60,7 +60,7 @@ export default function MagicBar() {
           type="button"
           onClick={() => setEditMode((prev) => !prev)}
           className={`
-            flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200
+            touch-target flex-shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px] w-10 h-10 rounded-lg transition-all duration-200
             ${editMode
               ? 'bg-primary-500/20 text-primary-500 ring-2 ring-primary-500/40'
               : 'bg-primary-500/10 text-primary-500 hover:bg-primary-500/15'
@@ -88,7 +88,7 @@ export default function MagicBar() {
           onClick={submit}
           disabled={loading || !hasValue}
           className={`
-            flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm
+            touch-target flex-shrink-0 flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] px-4 py-2.5 rounded-lg font-medium text-sm
             transition-all duration-200
             ${hasValue && !loading
               ? 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:shadow'

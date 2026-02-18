@@ -3,6 +3,7 @@ import { Plus, Target } from 'lucide-react'
 import { useGoalStore } from '@/stores/goalStore'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { useToastStore } from '@/stores/toastStore'
 import { useBackwardsPlanStore } from '@/stores/backwardsPlanStore'
 import { requestBackwardsPlan } from '@/services/backwardsPlanService'
 import { createSchedule } from '@/services/scheduleService'
@@ -26,6 +27,7 @@ export function GoalsAndBackwardsPlanSection() {
   const [addGoalModalOpen, setAddGoalModalOpen] = useState(false)
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
   const [planningGoal, setPlanningGoal] = useState<Goal | null>(null)
+  const { addToast } = useToastStore()
   const todos = useCalendarStore((state) => state.todos)
   const addTodo = useCalendarStore((state) => state.addTodo)
   const addTodosBulk = useCalendarStore((state) => state.addTodos)
@@ -97,7 +99,7 @@ export function GoalsAndBackwardsPlanSection() {
       })
       .catch((err) => {
         deleteGoal(tempId)
-        alert(err instanceof Error ? err.message : '목표 등록에 실패했습니다.')
+        addToast(err instanceof Error ? err.message : '목표 등록에 실패했습니다.')
       })
   }
 
@@ -233,7 +235,7 @@ export function GoalsAndBackwardsPlanSection() {
     }
 
     if (failureCount > 0) {
-      alert(`일부 블록 저장에 실패했습니다. (${failureCount}개)\n네트워크/로그인 상태를 확인해 주세요.`)
+      addToast(`일부 블록 저장에 실패했습니다. (${failureCount}개) 네트워크/로그인 상태를 확인해 주세요.`)
     }
   }
 

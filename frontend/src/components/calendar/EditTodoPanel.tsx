@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock, FileText, AlertCircle, Trash2 } from 'lucide-react';
 import { useCalendarStore } from '../../stores/calendarStore';
+import { useToastStore } from '@/stores/toastStore';
 import { updateSchedule, deleteSchedule } from '@/services/scheduleService';
 import type { Todo } from '../../types/calendar';
 
@@ -12,6 +13,7 @@ interface EditTodoPanelProps {
 
 export default function EditTodoPanel({ todo, onClose }: EditTodoPanelProps) {
   const { updateTodo, deleteTodo } = useCalendarStore();
+  const { addToast } = useToastStore();
   
   const [title, setTitle] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -63,7 +65,7 @@ export default function EditTodoPanel({ todo, onClose }: EditTodoPanelProps) {
       onClose();
     } catch (e) {
       console.error('일정 수정 실패:', e);
-      alert(`일정 수정 실패: ${e instanceof Error ? e.message : '알 수 없음'}`);
+      addToast(`일정 수정 실패: ${e instanceof Error ? e.message : '알 수 없음'}`);
     }
   };
 
@@ -74,7 +76,7 @@ export default function EditTodoPanel({ todo, onClose }: EditTodoPanelProps) {
       onClose();
     } catch (e) {
       console.error('일정 삭제 실패:', e);
-      alert(`일정 삭제 실패: ${e instanceof Error ? e.message : '알 수 없음'}`);
+      addToast(`일정 삭제 실패: ${e instanceof Error ? e.message : '알 수 없음'}`);
     }
   };
 

@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Clock, Eye, EyeOff, CalendarDays } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { useToastStore } from '@/stores/toastStore'
 import { TIME_SLOT_LABELS, WEEKDAY_LABELS, DEFAULT_DAYS_OFF, WeekdayCode } from '@/types/settings'
 
 export function TimeSlotSettings() {
   const { settings, updateTimeSlotPreferences, updateDaysOff } = useSettingsStore()
+  const { addToast } = useToastStore()
   const [preferences, setPreferences] = useState(settings.timeSlotPreferences)
   const [daysOff, setDaysOff] = useState<WeekdayCode[]>(settings.daysOff ?? DEFAULT_DAYS_OFF)
 
@@ -54,7 +56,7 @@ export function TimeSlotSettings() {
   const handleSave = () => {
     updateTimeSlotPreferences(preferences)
     updateDaysOff(daysOff)
-    alert('✅ 시간대/쉬는 날 설정이 저장되었습니다!')
+    addToast('시간대/쉬는 날 설정이 저장되었습니다.')
   }
 
   // 초기화
@@ -63,7 +65,7 @@ export function TimeSlotSettings() {
     resetToDefaults()
     setPreferences(useSettingsStore.getState().settings.timeSlotPreferences)
     setDaysOff(useSettingsStore.getState().settings.daysOff)
-    alert('🔄 기본 설정으로 초기화되었습니다')
+    addToast('기본 설정으로 초기화되었습니다.')
   }
 
   return (

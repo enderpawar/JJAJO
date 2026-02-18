@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Calendar, Clock } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
+import { useToastStore } from '@/stores/toastStore'
 import { createSchedule } from '@/services/scheduleService'
 import { formatDate } from '@/utils/dateUtils'
 import type { TodoPriority, TodoStatus } from '@/types/calendar'
@@ -13,6 +14,7 @@ interface AddTodoModalProps {
 
 export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoModalProps) {
   const { addTodo } = useCalendarStore()
+  const { addToast } = useToastStore()
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -26,7 +28,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.title.trim()) {
-      alert('제목을 입력해주세요')
+      addToast('제목을 입력해주세요')
       return
     }
     try {
@@ -43,7 +45,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
       addTodo(saved)
     } catch (e) {
       console.error('일정 추가 실패:', e)
-      alert(`일정 추가 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
+      addToast(`일정 추가 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
       return
     }
     setFormData({
@@ -74,8 +76,10 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
         <div className="flex items-center justify-between p-6 border-b border-notion-border">
           <h2 className="text-xl font-bold text-white">새 일정 추가</h2>
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 hover:bg-notion-hover rounded-md transition-colors"
+            className="touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 hover:bg-notion-hover rounded-md transition-colors"
+            aria-label="닫기"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>

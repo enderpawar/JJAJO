@@ -1,14 +1,29 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Trash2, AlertTriangle } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
+import { useToastStore } from '@/stores/toastStore'
 import { deleteAllSchedules } from '@/services/scheduleService'
 import { formatDate, formatYearMonth, getCalendarDays, isSameDay, isToday } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
 
-export default function CalendarGrid() {
+interface CalendarGridProps {
+  /** 날짜 클릭 시 호출 (데스크톱 등에서 선택일 영역 포커스용) */
+  onDateSelect?: () => void
+  /** 날짜 더블클릭/더블탭 시 호출 (모바일 모달에서 해당일 일정 패널 열기) */
+  onDateDoubleClick?: () => void
+  /** true면 높이 제한 완화, 모달 내부 스크롤로 한 달 전체 표시 */
+  allowFullHeight?: boolean
+}
+
+const DOUBLE_TAP_MS = 450
+
+export default function CalendarGrid({ onDateSelect, onDateDoubleClick, allowFullHeight }: CalendarGridProps) {
   const { currentMonth, selectedDate, setCurrentMonth, setSelectedDate, getTodosByDate, clearAllTodos, setTodos, todos } = useCalendarStore()
+  const { addToast } = useToastStore()
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-  
+  const lastClickedDateRef = useRef<string>('')
+  const lastClickedTimeRef = useRef<number>(0)
+
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
   const days = getCalendarDays(year, month)
@@ -26,7 +41,22 @@ export default function CalendarGrid() {
   }
   
   const handleDateClick = (date: Date) => {
+    const dateStr = formatDate(date)
+    const now = Date.now()
+    const lastTime = lastClickedTimeRef.current
+    const isDouble = lastTime > 0 && dateStr === lastClickedDateRef.current && now - lastTime < DOUBLE_TAP_MS
+
+    if (isDouble) {
+      setSelectedDate(date)
+      onDateDoubleClick?.()
+      lastClickedDateRef.current = ''
+      lastClickedTimeRef.current = 0
+      return
+    }
+    lastClickedDateRef.current = dateStr
+    lastClickedTimeRef.current = now
     setSelectedDate(date)
+    if (!onDateDoubleClick) onDateSelect?.()
   }
   
   const handleClearAll = async () => {
@@ -41,7 +71,7 @@ export default function CalendarGrid() {
       await deleteAllSchedules()
     } catch (e) {
       console.error('일정 전체 삭제 실패:', e)
-      alert('일정 전체 삭제에 실패했습니다. 화면을 이전 상태로 되돌릴게요.')
+      addToast('일정 전체 삭제에 실패했습니다. 화면을 이전 상태로 되돌릴게요.')
       setTodos(prevTodos)
     }
   }
@@ -49,7 +79,12 @@ export default function CalendarGrid() {
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
   
   return (
-    <div className="bg-notion-sidebar rounded-2xl p-4 sm:p-6 flex flex-col h-full max-h-[50vh] sm:max-h-[60vh] xl:max-h-[750px]">
+    <div
+      className={cn(
+        'bg-notion-sidebar rounded-2xl p-4 sm:p-6 flex flex-col h-full',
+        allowFullHeight ? 'min-h-0 flex-1 overflow-auto max-h-none' : 'max-h-[50vh] sm:max-h-[60vh] xl:max-h-[750px]'
+      )}
+    >
       {/* 월 네비게이션 */}
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <button
@@ -75,8 +110,8 @@ export default function CalendarGrid() {
         </button>
       </div>
       
-      {/* 요일 헤더 - 다크 테마에 맞춘 부드러운 톤 */}
-      <div className="grid grid-cols-7 gap-2 mb-2 flex-shrink-0">
+      {/* 요일 헤더 - 모바일에서 gap 축소 */}
+      <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 flex-shrink-0">
         {weekDays.map((day, index) => (
           <div
             key={day}
@@ -90,8 +125,8 @@ export default function CalendarGrid() {
         ))}
       </div>
       
-      {/* 날짜 그리드 */}
-      <div className="grid grid-cols-7 gap-2 flex-1 min-h-0">
+      {/* 날짜 그리드 - 모바일에서 gap·글자 크기 조정 */}
+      <div className="grid grid-cols-7 gap-1 sm:gap-2 flex-1 min-h-0">
         {days.map((date) => {
           const dateStr = formatDate(date)
           const dateTodos = getTodosByDate(dateStr)
@@ -104,7 +139,7 @@ export default function CalendarGrid() {
               key={dateStr}
               onClick={() => handleDateClick(date)}
               className={cn(
-                'w-full h-full min-h-[44px] p-2 rounded-lg transition-all duration-200',
+                'w-full h-full min-h-[44px] p-1.5 sm:p-2 rounded-lg transition-all duration-200',
                 'hover:bg-notion-hover relative flex flex-col items-center justify-center',
                 isCurrentMonthDay ? 'text-notion-text' : 'text-notion-muted',
                 isTodayDate && 'bg-primary-500/20 border-2 border-primary-500',
@@ -112,7 +147,7 @@ export default function CalendarGrid() {
                 !isSelected && !isTodayDate && 'border border-notion-border'
               )}
             >
-              <div className="text-xs font-medium">{date.getDate()}</div>
+              <div className="text-[10px] sm:text-xs font-medium">{date.getDate()}</div>
               
               {/* 일정 표시 점 */}
               {dateTodos.length > 0 && (
@@ -133,13 +168,14 @@ export default function CalendarGrid() {
         })}
       </div>
       
-      {/* 하단: 초기화 버튼 */}
+      {/* 하단: 모바일/데스크톱 공통 - 모든 일정 초기화 버튼 */}
       <div className="mt-3 pt-3 border-t border-notion-border flex-shrink-0">
         <button
+          type="button"
           onClick={() => setShowConfirmDialog(true)}
           disabled={todos.length === 0}
           className={cn(
-            'w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium text-sm',
+            'touch-target w-full flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-lg transition-colors font-medium text-sm',
             todos.length === 0
               ? 'bg-notion-sidebar text-notion-muted cursor-not-allowed'
               : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'

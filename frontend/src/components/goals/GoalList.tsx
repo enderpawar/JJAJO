@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useGoalStore } from '@/stores/goalStore'
+import { useToastStore } from '@/stores/toastStore'
 import { Menu } from '@headlessui/react'
 import { Target, Calendar, TrendingUp, Wand2, MoreVertical, Trash2, Pencil, Loader2 } from 'lucide-react'
 import { cn } from '@/utils/cn'
@@ -16,6 +17,7 @@ interface GoalListProps {
 
 export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoalClick }: GoalListProps) {
   const { getActiveGoals, deleteGoal } = useGoalStore()
+  const { addToast } = useToastStore()
   const activeGoals = getActiveGoals()
   const isNotion = variant === 'notion'
   const showBackwardsPlanButton = isNotion && onBackwardsPlanClick
@@ -246,7 +248,7 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
                             try {
                               await goalService.deleteGoal(goal.id)
                             } catch (e) {
-                              alert(e instanceof Error ? e.message : '목표 삭제에 실패했습니다.')
+                              addToast(e instanceof Error ? e.message : '목표 삭제에 실패했습니다.')
                             } finally {
                               setDeletingId(null)
                             }

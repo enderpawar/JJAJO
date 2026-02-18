@@ -3,14 +3,15 @@ import { format, addDays, isSameDay } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
 /**
- * 🎨 TopTimeline: 오늘 중심 7일 바
- * - 오늘이 7개 중앙에 오고, 좌측 이전 3일·우측 다음 3일 배치
+ * 🎨 TopTimeline: 오늘 중심 날짜 바
+ * - 모바일: 5일 표시 (오늘 ±2일), 한 화면에 모두 노출
+ * - 데스크톱: 7일 표시 (오늘 ±3일)
  */
 export function TopTimeline() {
   const { todos, selectedDate } = useCalendarStore()
 
-  // 오늘 기준: 좌측 3일 · 오늘(중앙) · 우측 3일
   const todayRef = new Date()
+  // 모바일 5일 + 데스크톱용 2일(앞뒤) = 7일 유지, 모바일에서는 index 0·6 숨김
   const weekDays = [-3, -2, -1, 0, 1, 2, 3].map((d) => addDays(todayRef, d))
   
   // 각 날짜별 일정 밀도 계산 (0-1 scale)
@@ -50,8 +51,8 @@ export function TopTimeline() {
   return (
     <section className="h-[130px] min-h-[130px] overflow-hidden box-border flex flex-col bg-transparent border-b border-[#373737] py-3">
       <div className="flex-1 min-h-0 flex flex-col items-center px-3 sm:px-4">
-        {/* 카드 행: 최대 너비·간격 축소로 좌우 폭 감소 */}
-        <div className="flex gap-1 md:gap-2 w-full max-w-2xl h-[72px] shrink-0 overflow-x-auto snap-x snap-mandatory md:overflow-visible md:snap-none scrollbar-none">
+        {/* 카드 행: 모바일 5일 한 화면, 데스크톱 7일 */}
+        <div className="flex gap-1 md:gap-2 w-full max-w-2xl h-[72px] shrink-0 overflow-hidden md:overflow-visible scrollbar-none">
           {weekDays.map((date, index) => {
             const density = getDensity(date)
             const heatmapColor = getHeatmapColor(density)
@@ -60,6 +61,7 @@ export function TopTimeline() {
             const todoCount = todos.filter(t => t.date === format(date, 'yyyy-MM-dd')).length
             const dayLabel = format(date, 'EEE', { locale: ko })
             const titleText = todoCount > 0 ? `${dayLabel} ${date.getDate()}일 · ${todoCount}개 일정` : `${dayLabel} ${date.getDate()}일`
+            const isMobileOnly = index === 0 || index === 6
 
             return (
               <button
@@ -68,11 +70,10 @@ export function TopTimeline() {
                 onClick={() => handleDayClick(date)}
                 title={titleText}
                 className={`
-                  touch-target flex-none snap-center min-w-[40px] md:min-w-0 w-full h-full max-h-full min-h-0 md:max-w-[100px]
-                  flex flex-col items-center justify-center gap-0.5 px-0.5
-                  transition-all duration-300 cursor-pointer rounded-lg
-                  relative
-                  md:flex-1 ${today ? 'md:flex-[1.4]' : ''} hover:brightness-110
+                  touch-target flex flex-col items-center justify-center gap-0.5 px-0.5 min-h-0 h-full rounded-lg
+                  transition-all duration-300 cursor-pointer relative
+                  ${isMobileOnly ? 'hidden md:flex flex-none md:flex-1 md:min-w-0 md:max-w-[100px]' : 'flex-1 min-w-0 md:flex-1 md:max-w-[100px]'}
+                  ${today ? 'md:flex-[1.4]' : ''} hover:brightness-110
                   ${selected ? 'bg-primary-500/25 ring-2 ring-inset ring-primary-500/50' : today ? 'bg-transparent hover:bg-white/5' : heatmapColor}
                 `}
               >
