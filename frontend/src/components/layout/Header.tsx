@@ -15,7 +15,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
-  const { copyTodosFromPreviousDay, addTodos, selectedDate, setSelectedDate, isBulkSavingTimetable } = useCalendarStore()
+  const { copyTodosFromPreviousDay, addTodos, selectedDate, isBulkSavingTimetable } = useCalendarStore()
   const { addToast } = useToastStore()
   const { theme, toggleTheme, initTheme } = useSettingsStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -107,49 +107,29 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
     }
   }
 
-  const handleLogoClick = () => {
-    setSelectedDate(new Date())
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
   return (
-    <header className="relative z-30 bg-notion-card border-b border-notion-border shadow-none" style={{ isolation: 'isolate' }}>
+    <header className="relative z-30 theme-transition border-b border-[var(--border-color)]" style={{ isolation: 'isolate', backgroundColor: 'var(--bg-color)' }}>
       <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 min-h-[5rem] flex flex-col justify-center">
-        <div className="flex items-center justify-between h-[60px]">
-          {/* 로고 - 클릭 시 오늘 날짜로 이동 + 상단 스크롤 */}
-          <button
-            type="button"
-            onClick={handleLogoClick}
-            className="flex items-center gap-3 rounded-notion hover:bg-notion-hover transition-colors px-1 py-1 -mx-1 min-h-[44px]"
-            title="오늘로 이동"
-            aria-label="짜조 로고, 오늘로 이동"
-          >
-            <img
-              src="/logo.png"
-              alt="짜조"
-              className="h-11 w-auto object-contain flex-shrink-0"
-            />
-          </button>
-          
-          {/* 우측 메뉴 - 어제 일정 복사 | 월간 | 설정 */}
+        <div className="flex items-center justify-end h-[60px]">
+          {/* 우측 메뉴 - 어제 일정 복사 | 월간 | 테마 토글 | 설정 */}
           <div className="flex items-center gap-1 sm:gap-2">
-            {/* 어제 일정 복사하기 - 월간 캘린더 왼쪽 */}
             <button
               type="button"
               onClick={handleCopyPreviousDay}
               disabled={isCopying}
-              className="touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="neu-btn touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] rounded-neu text-xs font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ color: 'var(--text-main)' }}
               title={isCopying ? '복사 중…' : `선택한 날짜(${format(selectedDate, 'M월 d일', { locale: ko })})로 어제 일정 복사`}
             >
               <Copy className="w-4 h-4 flex-shrink-0" />
               <span className="hidden sm:inline">{isCopying ? '복사 중…' : '어제 일정 복사'}</span>
             </button>
-            {/* 월간 캘린더 */}
             {onOpenMonthlyCalendar && (
               <button
                 type="button"
                 onClick={onOpenMonthlyCalendar}
-                className="touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] hover:bg-notion-hover rounded-notion transition-colors text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary cursor-pointer"
+                className="neu-btn touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] rounded-neu text-xs font-medium cursor-pointer"
+                style={{ color: 'var(--text-main)' }}
                 title="월간 일정 보기"
               >
                 <Calendar className="w-4 h-4" />
@@ -157,38 +137,35 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
               </button>
             )}
 
-            {/* 다크모드 토글 (Notion은 항상 다크모드이므로 숨김 처리 가능) */}
+            {/* 테마 토글 스위치 (설정 옆, Sun/Moon 교체 · 소프트 미니멀) */}
             <button
+              type="button"
               onClick={toggleTheme}
-              className="hidden touch-target p-2 hover:bg-notion-hover rounded-notion transition-colors"
+              className="theme-toggle-switch touch-target"
               title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+              aria-label={theme === 'dark' ? '라이트 모드' : '다크 모드'}
             >
-              {theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-notion-text-secondary" />
-              ) : (
-                <Moon className="w-4 h-4 text-notion-text-secondary" />
-              )}
+              {theme === 'dark' ? <Sun className="w-4 h-4" aria-hidden /> : <Moon className="w-4 h-4" aria-hidden />}
             </button>
 
-            {/* 설정 - sm 이상에서 라벨 표시 */}
             <button
               type="button"
               onClick={() => setIsSettingsOpen(true)}
-              className="touch-target flex items-center justify-center gap-2 p-2 sm:px-3 min-w-[44px] hover:bg-notion-hover rounded-notion transition-colors cursor-pointer"
+              className="neu-btn touch-target flex items-center justify-center p-2 min-w-[44px] rounded-neu cursor-pointer"
+              style={{ color: 'var(--text-main)' }}
               title="설정"
             >
-              <Settings className="w-4 h-4 text-notion-text-secondary hover:text-notion-text-primary flex-shrink-0" />
-              <span className="hidden sm:inline text-xs font-medium text-notion-text-secondary hover:text-notion-text-primary">설정</span>
+              <Settings className="w-4 h-4 flex-shrink-0" />
             </button>
           </div>
         </div>
       </div>
       {/* 시간표 대량 저장 백그라운드 인디케이터 */}
       {isBulkSavingTimetable && (
-        <div className="w-full border-t border-notion-border bg-primary-500/8">
+        <div className="w-full bg-primary-500/8" style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }}>
           <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 py-1.5 flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-primary-400 animate-pulse" />
-            <p className="text-xs text-notion-muted">
+            <p className="text-xs text-theme-muted">
               시간표를 학기 전체에 적용하는 중이에요… 잠시 후 모든 일정이 안정적으로 저장됩니다.
             </p>
           </div>
@@ -198,51 +175,50 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
       {/* 설정 모달 - Notion 스타일 */}
       {isSettingsOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-notion flex flex-col items-center justify-start z-50 pt-[max(1.5rem,calc(env(safe-area-inset-top)+56px))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))]"
+          className="fixed inset-0 bg-black/40 flex flex-col items-center justify-start z-50 pt-[max(1.5rem,calc(env(safe-area-inset-top)+56px))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))]"
           role="dialog"
           aria-modal="true"
           onClick={(e) => e.target === e.currentTarget && setIsSettingsOpen(false)}
         >
-          <div
-            ref={settingsScrollRef}
-            className="settings-modal-scroll bg-notion-sidebar rounded-lg border border-notion-border shadow-none max-w-2xl w-full max-h-[min(90vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-56px-2rem))] overflow-x-hidden overscroll-contain"
+        <div
+          ref={settingsScrollRef}
+          className="settings-modal-scroll rounded-neu-lg max-w-2xl w-full max-h-[min(90vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-56px-2rem))] overflow-x-hidden overscroll-contain theme-transition bg-theme-card"
+          style={{ boxShadow: 'var(--shadow-style)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 상단 여백(세이프 영역) + 헤더 → 위로 스크롤하면 닫기 버튼이 보임 */}
             <div className="pt-[max(0px,env(safe-area-inset-top))]" />
-            <div className="bg-notion-sidebar border-b border-notion-border px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+            <div className="bg-theme-card theme-transition px-6 py-4 flex items-center justify-between sticky top-0 z-10 border-b border-theme">
               <div className="flex items-center gap-3">
-                <Settings className="w-5 h-5 text-notion-text" />
-                <h2 className="text-lg font-semibold text-notion-text">설정</h2>
+                <Settings className="w-5 h-5 text-theme" />
+                <h2 className="text-lg font-semibold text-theme">설정</h2>
               </div>
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(false)}
-                className="touch-target flex items-center justify-center p-2 min-w-[44px] hover:bg-notion-hover rounded-notion transition-colors cursor-pointer"
+                className="neu-btn touch-target flex items-center justify-center p-2 min-w-[44px] rounded-neu cursor-pointer border-0 outline-none focus:outline-none"
               >
-                <X className="w-5 h-5 text-notion-muted" />
+                <X className="w-5 h-5 text-theme" />
               </button>
             </div>
 
-            {/* 컨텐츠 - 하단 세이프 영역 패딩으로 iOS 브라우저 바에 가려지지 않도록 */}
-            <div className="p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-8">
-              <div className="border-b border-notion-border pb-6">
-                <h3 className="text-sm font-semibold text-notion-text mb-2">계정</h3>
+            <div className="p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-8 bg-theme-card theme-transition">
+              <div className="pb-6 border-b border-theme">
+                <h3 className="text-sm font-semibold text-theme mb-2">계정</h3>
                 <button
                   type="button"
                   onClick={handleGoogleLogin}
-                  className="touch-target w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-notion-hover hover:bg-notion-border text-notion-text text-sm font-medium transition-colors"
+                  className="neu-btn touch-target w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2 rounded-neu text-theme text-sm font-medium border-0 outline-none focus:outline-none"
                   title="Google 계정으로 로그인"
                 >
                   <LogIn className="w-4 h-4" />
                   Google 로그인
                 </button>
-                <p className="text-xs text-notion-muted mt-2">
+                <p className="text-xs text-theme-muted mt-2">
                   Google 계정으로 로그인하면 일정을 동기화할 수 있습니다.
                 </p>
               </div>
               <TimeSlotSettings />
-              <div className="border-t border-notion-border pt-6">
+              <div className="pt-6 border-t border-theme">
                 <ApiKeySettings />
               </div>
             </div>

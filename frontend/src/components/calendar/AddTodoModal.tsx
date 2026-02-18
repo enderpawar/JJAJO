@@ -70,18 +70,18 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-notion-sidebar border border-notion-border rounded-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="neu-float rounded-neu-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
         {/* 헤더 */}
-        <div className="flex items-center justify-between p-6 border-b border-notion-border">
-          <h2 className="text-xl font-bold text-white">새 일정 추가</h2>
+        <div className="flex items-center justify-between p-6" style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+          <h2 className="text-xl font-bold text-notion-text">새 일정 추가</h2>
           <button
             type="button"
             onClick={onClose}
-            className="touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 hover:bg-notion-hover rounded-md transition-colors"
+            className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-neu"
             aria-label="닫기"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-notion-muted" />
           </button>
         </div>
 
@@ -89,7 +89,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* 제목 */}
           <div>
-            <label className="block text-sm font-medium text-white mb-2">
+            <label className="block text-sm font-medium text-notion-text mb-2">
               제목 *
             </label>
             <input
@@ -104,7 +104,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
 
           {/* 설명 */}
           <div>
-            <label className="block text-sm font-medium text-white mb-2">
+            <label className="block text-sm font-medium text-notion-text mb-2">
               설명
             </label>
             <textarea
@@ -118,7 +118,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
 
           {/* 날짜 */}
           <div>
-            <label className="block text-sm font-medium text-white mb-2">
+            <label className="block text-sm font-medium text-notion-text mb-2">
               <Calendar className="w-4 h-4 inline mr-1" />
               날짜 *
             </label>
@@ -134,7 +134,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
           {/* 시간 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label className="block text-sm font-medium text-notion-text mb-2">
                 <Clock className="w-4 h-4 inline mr-1" />
                 시작 시간
               </label>
@@ -146,7 +146,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label className="block text-sm font-medium text-notion-text mb-2">
                 종료 시간
               </label>
               <input

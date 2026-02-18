@@ -53,8 +53,8 @@ function ToastItem({
     <div
       ref={elRef}
       className={cn(
-        'rounded-notion border shadow-lg px-4 py-3 text-sm',
-        'bg-notion-sidebar border border-notion-border text-notion-text',
+        'rounded-neu neu-float px-4 py-3 text-sm',
+        'text-theme',
         'toast-enter',
         isExiting && 'toast-exit'
       )}

@@ -243,14 +243,14 @@ export function GoalsAndBackwardsPlanSection() {
     <>
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-notion-text flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-theme flex items-center gap-2">
             <Target className="w-4 h-4 text-red-500" />
             목표
           </h3>
           <button
             type="button"
             onClick={() => setAddGoalModalOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-primary-500/15 text-primary-300 border border-primary-500/30 px-3 py-1.5 text-xs font-semibold hover:bg-primary-500/20 transition-colors"
+            className="touch-target flex items-center gap-2 rounded-neu neu-float-sm text-primary-500 px-3 py-2 text-xs font-semibold hover:shadow-neu-inset-hover active:scale-[0.98] transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
             추가

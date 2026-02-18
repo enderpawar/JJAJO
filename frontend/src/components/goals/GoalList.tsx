@@ -55,7 +55,7 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
         case 'delayed':
           return 'bg-red-500/20 text-red-400'
         default:
-          return 'bg-notion-hover text-notion-text-secondary'
+          return 'bg-[var(--hover-bg)] text-theme-muted'
       }
     }
     switch (status) {
@@ -82,9 +82,9 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
     return (
       <div
         className={cn(
-          'rounded-2xl p-6 text-center',
+          'rounded-2xl p-6 text-center theme-transition',
           isNotion
-            ? 'bg-notion-sidebar/80 border border-notion-border'
+            ? 'bg-theme-card shadow-neu-float-date rounded-neu'
             : 'bg-white shadow-lg p-8'
         )}
       >
@@ -96,10 +96,10 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
             className={cn('w-6 h-6', isNotion ? 'text-red-500/90' : 'text-gray-400')}
           />
         </div>
-        <p className={cn('text-sm font-medium', isNotion ? 'text-notion-text' : 'text-gray-600')}>
+        <p className={cn('text-sm font-medium', isNotion ? 'text-theme' : 'text-gray-600 dark:text-theme')}>
           설정된 목표가 없습니다
         </p>
-        <p className={cn('text-xs mt-1', isNotion ? 'text-notion-muted' : 'text-gray-400')}>
+        <p className={cn('text-xs mt-1', isNotion ? 'text-theme-muted' : 'text-gray-400 dark:text-theme-muted')}>
           새 목표를 만들어 체계적으로 달성해보세요
         </p>
       </div>
@@ -121,9 +121,9 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
           <div
             key={goal.id}
             className={cn(
-              'rounded-xl p-4 transition-shadow duration-200',
+              'rounded-xl p-4 theme-transition transition-shadow duration-200',
               isNotion
-                ? 'bg-notion-sidebar/80 border border-notion-border hover:bg-notion-hover/50'
+                ? 'bg-theme-card border border-theme hover:bg-[var(--hover-bg)]'
                 : 'bg-white shadow-md p-5 hover:shadow-lg border border-gray-100',
               isOptimistic && 'opacity-95'
             )}
@@ -135,7 +135,7 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
                   <h3
                     className={cn(
                       'font-bold text-lg',
-                      isNotion ? 'text-notion-text' : 'text-gray-900'
+                      isNotion ? 'text-theme' : 'text-gray-900 dark:text-theme'
                     )}
                   >
                     {goal.title}
@@ -158,7 +158,7 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
                   <p
                     className={cn(
                       'text-sm',
-                      isNotion ? 'text-notion-text-secondary' : 'text-gray-600'
+                      isNotion ? 'text-theme-muted' : 'text-gray-600 dark:text-theme-muted'
                     )}
                   >
                     {goal.description}
@@ -171,9 +171,9 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
                     type="button"
                     onClick={() => onBackwardsPlanClick(goal)}
                     className={cn(
-                      'rounded-lg p-2 transition-colors',
+                      'rounded-lg p-2 transition-colors theme-transition',
                       isNotion
-                        ? 'hover:bg-notion-hover text-notion-text-secondary hover:text-notion-text'
+                        ? 'hover:bg-[var(--hover-bg)] text-theme-muted hover:text-theme'
                         : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'
                     )}
                     title="역계산"
@@ -188,9 +188,9 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
                     type="button"
                     disabled={deletingId === goal.id}
                     className={cn(
-                      'rounded-lg p-2 transition-colors',
+                      'rounded-lg p-2 transition-colors theme-transition',
                       isNotion
-                        ? 'hover:bg-notion-hover text-notion-text-secondary hover:text-notion-text disabled:opacity-50'
+                        ? 'hover:bg-[var(--hover-bg)] text-theme-muted hover:text-theme disabled:opacity-50'
                         : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900 disabled:opacity-50'
                     )}
                     title="더보기"
@@ -205,10 +205,10 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
 
                   <Menu.Items
                     className={cn(
-                      'absolute right-0 mt-2 w-36 origin-top-right rounded-lg border p-1 shadow-xl focus:outline-none z-10',
+                      'absolute right-0 mt-2 w-36 origin-top-right rounded-lg border p-1 shadow-xl focus:outline-none z-10 theme-transition',
                       isNotion
-                        ? 'bg-notion-sidebar border-notion-border'
-                        : 'bg-white border-gray-200'
+                        ? 'bg-theme-card border-theme'
+                        : 'bg-white border-gray-200 dark:bg-theme-card dark:border-theme'
                     )}
                   >
                     <Menu.Item>
@@ -218,11 +218,11 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
                           onClick={() => onEditGoalClick?.(goal)}
                           disabled={!onEditGoalClick}
                           className={cn(
-                            'w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm',
-                            isNotion ? 'text-notion-text' : 'text-gray-900',
+                            'w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm theme-transition',
+                            isNotion ? 'text-theme' : 'text-gray-900 dark:text-theme',
                             active
                               ? isNotion
-                                ? 'bg-notion-hover'
+                                ? 'bg-[var(--hover-bg)]'
                                 : 'bg-gray-100'
                               : '',
                             !onEditGoalClick ? 'opacity-50 cursor-not-allowed' : ''
@@ -280,7 +280,7 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
                 <span
                   className={cn(
                     'text-xs font-medium',
-                    isNotion ? 'text-notion-text-secondary' : 'text-gray-600'
+                    isNotion ? 'text-theme-muted' : 'text-gray-600 dark:text-theme-muted'
                   )}
                 >
                   진행률
@@ -288,7 +288,7 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
                 <span
                   className={cn(
                     'text-xs font-bold',
-                    isNotion ? 'text-notion-text' : 'text-gray-900'
+                    isNotion ? 'text-theme' : 'text-gray-900 dark:text-theme'
                   )}
                 >
                   {progress.toFixed(0)}%
@@ -297,7 +297,7 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
               <div
                 className={cn(
                   'w-full rounded-full h-2',
-                  isNotion ? 'bg-notion-hover' : 'bg-gray-200'
+                  isNotion ? 'bg-[var(--hover-bg)]' : 'bg-gray-200 dark:bg-[var(--hover-bg)]'
                 )}
               >
                 <div
@@ -313,13 +313,13 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
             <div className="grid grid-cols-3 gap-2">
               <div className="flex items-center gap-2">
                 <Calendar
-                  className={cn('w-4 h-4', isNotion ? 'text-notion-muted' : 'text-gray-400')}
+                  className={cn('w-4 h-4', isNotion ? 'text-theme-muted' : 'text-gray-400 dark:text-theme-muted')}
                 />
                 <div>
                   <p
                     className={cn(
                       'text-xs',
-                      isNotion ? 'text-notion-muted' : 'text-gray-500'
+                      isNotion ? 'text-theme-muted' : 'text-gray-500 dark:text-theme-muted'
                     )}
                   >
                     D-{daysLeft}
@@ -327,7 +327,7 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
                   <p
                     className={cn(
                       'text-xs font-medium',
-                      isNotion ? 'text-notion-text' : 'text-gray-900'
+                      isNotion ? 'text-theme' : 'text-gray-900 dark:text-theme'
                     )}
                   >
                     {new Date(goal.deadline).toLocaleDateString('ko-KR', {
@@ -339,13 +339,13 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
               </div>
               <div className="flex items-center gap-2">
                 <TrendingUp
-                  className={cn('w-4 h-4', isNotion ? 'text-notion-muted' : 'text-gray-400')}
+                  className={cn('w-4 h-4', isNotion ? 'text-theme-muted' : 'text-gray-400 dark:text-theme-muted')}
                 />
                 <div>
                   <p
                     className={cn(
                       'text-xs',
-                      isNotion ? 'text-notion-muted' : 'text-gray-500'
+                      isNotion ? 'text-theme-muted' : 'text-gray-500 dark:text-theme-muted'
                     )}
                   >
                     완료
@@ -353,7 +353,7 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
                   <p
                     className={cn(
                       'text-xs font-medium',
-                      isNotion ? 'text-notion-text' : 'text-gray-900'
+                      isNotion ? 'text-theme' : 'text-gray-900 dark:text-theme'
                     )}
                   >
                     {goal.completedHours}/{goal.estimatedHours}h
@@ -362,13 +362,13 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
               </div>
               <div className="flex items-center gap-2">
                 <Target
-                  className={cn('w-4 h-4', isNotion ? 'text-notion-muted' : 'text-gray-400')}
+                  className={cn('w-4 h-4', isNotion ? 'text-theme-muted' : 'text-gray-400 dark:text-theme-muted')}
                 />
                 <div>
                   <p
                     className={cn(
                       'text-xs',
-                      isNotion ? 'text-notion-muted' : 'text-gray-500'
+                      isNotion ? 'text-theme-muted' : 'text-gray-500 dark:text-theme-muted'
                     )}
                   >
                     우선순위
@@ -376,7 +376,7 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
                   <p
                     className={cn(
                       'text-xs font-medium',
-                      isNotion ? 'text-notion-text' : 'text-gray-900'
+                      isNotion ? 'text-theme' : 'text-gray-900 dark:text-theme'
                     )}
                   >
                     {goal.priority === 'high'
