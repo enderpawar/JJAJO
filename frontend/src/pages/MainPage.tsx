@@ -26,8 +26,8 @@ export default function MainPage() {
   const [modalDragY, setModalDragY] = useState(0)
   const modalDragStartY = useRef(0)
   const skipNextScrollToTimeRef = useRef(false)
-  const { goals, setGoals } = useGoalStore()
-  const { todos, setTodos, selectedDate } = useCalendarStore()
+  const { setGoals } = useGoalStore()
+  const { setTodos, selectedDate } = useCalendarStore()
   const loadApiKeyForCurrentUser = useApiKeyStore((s) => s.loadApiKeyForCurrentUser)
 
   // 플래너 진입 시 인증 확인 + 회원별 목표·일정 로드
