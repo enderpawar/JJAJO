@@ -243,7 +243,7 @@ export function GoalsAndBackwardsPlanSection() {
     <>
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-[#2D2D2D] dark:text-dark-text flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-theme flex items-center gap-2">
             <Target className="w-4 h-4 text-red-500" />
             목표
           </h3>

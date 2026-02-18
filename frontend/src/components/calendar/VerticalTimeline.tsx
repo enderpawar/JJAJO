@@ -424,9 +424,6 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     const progress = isCurrent
       ? ((currentTimePosition - startPixel) / (endPixel - startPixel)) * 100
       : 0
-    const completedHeight = isCurrent
-      ? ((currentTimePosition - startPixel) / (endPixel - startPixel)) * 100
-      : 0
     const scale = 1
     const isEditingThisTask = editingTodo?.id === task.id
 
@@ -512,6 +509,15 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
             <span className="text-2xl font-black text-white animate-pulse whitespace-nowrap">{dragPreview.endTime}</span>
           </div>
         )}
+        {/* 진행 중: 카드 전체를 좌→우로 채워지는 진행률 */}
+        {isCurrent && (
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-[inherit]">
+            <div
+              className="h-full bg-[var(--primary-point)] transition-all duration-1000 ease-out"
+              style={{ width: `${progress}%`, opacity: 0.18 }}
+            />
+          </div>
+        )}
         {/* 편집 모드에서 상/하단 테두리를 잡고 리사이즈할 수 있는 영역 (카드 전체 높이에 따라 자동 이동) */}
         {editingTodo?.id === task.id && (
           <>
@@ -565,13 +571,6 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
             </div>
           </>
         )}
-        {isCurrent && (
-          <>
-            <div className="absolute inset-x-0 top-0 bg-slate-600/50" style={{ height: `${completedHeight}%`, transition: 'height 2s ease-out' }} />
-            <div className="absolute inset-x-0 bottom-0 bg-slate-700/25" style={{ height: `${100 - completedHeight}%`, transition: 'height 2s ease-out' }} />
-            <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-sm" />
-          </>
-        )}
         <div className="relative z-10 p-4">
           <div className="absolute top-2 right-2 z-20 flex items-center gap-1">
             {isEditingThisTask && (
@@ -584,10 +583,10 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
                   performDelete(task)
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
-                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-red-500/40 hover:bg-red-500/60 backdrop-blur-sm' : 'bg-red-500/30 hover:bg-red-500/50 group'}`}
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-red-500/30 hover:bg-red-500/50' : 'bg-red-500/30 hover:bg-red-500/50 group'}`}
                 title="삭제"
               >
-                <Trash2 className={`w-3.5 h-3.5 ${isCurrent ? 'text-white' : 'text-red-400 group-hover:text-white'}`} />
+                <Trash2 className="w-3.5 h-3.5 text-red-400 group-hover:text-white" />
               </button>
             )}
             <button
@@ -599,10 +598,10 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
                 }
               }}
               onPointerDown={(e) => e.stopPropagation()}
-              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-white/20 hover:bg-white/30 backdrop-blur-sm' : 'neu-float-sm hover:bg-primary-500/20 group'}`}
+              className="w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer neu-float-sm hover:bg-primary-500/20 group"
               title={isEditingThisTask ? '편집 모드 해제' : task.title === '새 일정' ? '클릭하여 이름 입력' : '편집'}
             >
-              <Edit2 className={`w-3.5 h-3.5 ${isCurrent ? 'text-white' : 'text-theme-muted group-hover:text-primary-500'}`} />
+              <Edit2 className="w-3.5 h-3.5 text-theme-muted group-hover:text-primary-500" />
             </button>
           </div>
 
@@ -632,12 +631,12 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className={`min-w-0 w-full sm:w-[25%] pr-12 text-lg font-semibold mb-2 leading-tight neu-inset-sm rounded px-2 py-1 focus:outline-none focus:ring-0 focus-visible:ring-0 theme-transition ${isCurrent ? 'text-white placeholder-white/50' : 'text-theme placeholder-theme-muted'}`}
+              className="min-w-0 w-full sm:w-[25%] pr-12 text-lg font-semibold mb-2 leading-tight neu-inset-sm rounded px-2 py-1 focus:outline-none focus:ring-0 focus-visible:ring-0 theme-transition text-theme placeholder-theme-muted"
               placeholder="제목"
             />
           ) : (
             <>
-              <div className={`text-lg font-semibold mb-2 leading-tight pr-12 ${isCurrent ? 'text-white text-2xl drop-shadow-lg' : 'text-theme'}`}>
+              <div className="text-lg font-semibold mb-2 leading-tight pr-12 text-theme">
                 {task.title}
               </div>
               {task.title === '새 일정' && (
@@ -647,23 +646,14 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
           )}
 
           {task.description && (
-            <div className={`text-sm mb-3 ${isCurrent ? 'text-white/90' : 'text-theme-muted'}`}>
+            <div className="text-sm mb-3 text-theme-muted">
               {task.description}
             </div>
           )}
 
           {isCurrent && (
-            <div className="mt-4 mr-4">
-              <div className="relative h-2 bg-slate-700/60 rounded-full overflow-hidden mb-2">
-                <div
-                  className="absolute inset-y-0 left-0 bg-slate-500 rounded-full transition-all duration-1000"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-white/60">🔥 진행 중</span>
-                <span className="text-white font-bold">{Math.round(progress)}%</span>
-              </div>
+            <div className="text-xs text-theme-muted mt-2">
+              🔥 진행 중 <span className="font-semibold text-theme">{Math.round(progress)}%</span>
             </div>
           )}
         </div>

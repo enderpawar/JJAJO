@@ -65,11 +65,11 @@ export function ApiKeySettings() {
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-1">
         <Key className="w-5 h-5 text-primary-500" />
-        <h3 className="text-base font-semibold text-[#2D2D2D] dark:text-dark-text">
+        <h3 className="text-base font-semibold text-theme">
           Gemini API 키 설정
         </h3>
       </div>
-      <p className="text-xs text-[#6B7280] dark:text-dark-muted">
+      <p className="text-xs text-theme-muted">
         API 키는 브라우저의 로컬 저장소에만 저장되며, 로그인한 계정(userId)마다 별도로 보관돼요.
       </p>
 
@@ -77,7 +77,7 @@ export function ApiKeySettings() {
         <div>
           <label
             htmlFor="apiKey"
-            className="block text-xs font-medium text-[#6B7280] dark:text-dark-muted mb-1.5"
+            className="block text-xs font-medium text-theme-muted mb-1.5"
           >
             API 키
           </label>
@@ -94,20 +94,20 @@ export function ApiKeySettings() {
 
         {validationResult && (
           <div
-            className={`flex items-start gap-2 p-3 rounded-neu text-xs ${
+            className={`flex items-start gap-2 p-3 rounded-neu text-xs theme-transition ${
               validationResult.success
                 ? 'bg-emerald-500/10'
                 : 'bg-red-500/10'
             }`}
           >
             {validationResult.success ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
             ) : (
-              <XCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+              <XCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
             )}
             <p
               className={
-                validationResult.success ? 'text-emerald-800' : 'text-red-700'
+                validationResult.success ? 'text-emerald-800 dark:text-emerald-200' : 'text-red-700 dark:text-red-300'
               }
             >
               {validationResult.message}
@@ -140,7 +140,7 @@ export function ApiKeySettings() {
         </div>
 
         <p className="text-xs text-[#92400e] bg-amber-500/10 rounded-neu p-3">
-          <strong className="text-[#2D2D2D] dark:text-dark-text">API 키가 없으신가요?</strong>
+          <strong className="text-theme">API 키가 없으신가요?</strong>
           <br />
           <a
             href="https://aistudio.google.com/app/apikey"

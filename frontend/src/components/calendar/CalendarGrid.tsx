@@ -93,10 +93,10 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, allowFul
           className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-neu"
           title="이전 달"
         >
-          <ChevronLeft className="w-5 h-5 text-[#6B7280] dark:text-dark-muted" />
+          <ChevronLeft className="w-5 h-5 text-theme-muted" />
         </button>
         
-        <h2 className="text-xl font-bold text-[#2D2D2D] dark:text-dark-text">
+        <h2 className="text-xl font-bold text-theme">
           {formatYearMonth(currentMonth)}
         </h2>
         
@@ -106,7 +106,7 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, allowFul
           className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-neu"
           title="다음 달"
         >
-          <ChevronRight className="w-5 h-5 text-[#6B7280] dark:text-dark-muted" />
+          <ChevronRight className="w-5 h-5 text-theme-muted" />
         </button>
       </div>
       
@@ -117,7 +117,7 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, allowFul
             key={day}
             className={cn(
               'text-center text-xs font-semibold py-1',
-              index === 0 ? 'text-red-500/90' : index === 6 ? 'text-primary-500/90' : 'text-[#6B7280] dark:text-dark-muted'
+              index === 0 ? 'text-red-500/90' : index === 6 ? 'text-primary-500/90' : 'text-theme-muted'
             )}
           >
             {day}
@@ -138,9 +138,9 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, allowFul
               key={dateStr}
               onClick={() => handleDateClick(date)}
               className={cn(
-                'w-full h-full min-h-[44px] p-1.5 sm:p-2 rounded-neu transition-all duration-200',
-                'relative flex flex-col items-center justify-center bg-[#F5F6F8] dark:bg-dark-bg',
-                isCurrentMonthDay ? 'text-[#2D2D2D] dark:text-dark-text' : 'text-[#6B7280] dark:text-dark-muted',
+                'w-full h-full min-h-[44px] p-1.5 sm:p-2 rounded-neu theme-transition',
+                'relative flex flex-col items-center justify-center bg-theme-card',
+                isCurrentMonthDay ? 'text-theme' : 'text-theme-muted',
                 isSelected ? 'neu-date-selected' : 'neu-float-sm hover:shadow-neu-inset-hover active:scale-[0.98]'
               )}
             >
@@ -156,7 +156,7 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, allowFul
                     />
                   ))}
                   {dateTodos.length > 3 && (
-                    <div className="text-[10px] text-[#6B7280] dark:text-dark-muted ml-0.5">+</div>
+                    <div className="text-[10px] text-theme-muted ml-0.5">+</div>
                   )}
                 </div>
               )}
@@ -166,15 +166,15 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, allowFul
       </div>
       
       {/* 하단: 모바일/데스크톱 공통 - 모든 일정 초기화 버튼 */}
-      <div className="mt-3 pt-3 flex-shrink-0 border-t border-black/[0.08] dark:border-white/[0.08]">
+      <div className="mt-3 pt-3 flex-shrink-0 border-t border-theme">
         <button
           type="button"
           onClick={() => setShowConfirmDialog(true)}
           disabled={todos.length === 0}
           className={cn(
-            'touch-target w-full flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-neu transition-all duration-200 font-medium text-sm',
+            'touch-target w-full flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-neu theme-transition font-medium text-sm',
             todos.length === 0
-              ? 'neu-inset-sm text-[#6B7280] dark:text-dark-muted cursor-not-allowed'
+              ? 'neu-inset-sm text-theme-muted cursor-not-allowed'
               : 'neu-btn text-red-400'
           )}
         >
@@ -192,10 +192,10 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, allowFul
                 <AlertTriangle className="w-6 h-6 text-red-400" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-[#2D2D2D] dark:text-dark-text mb-2">
+                <h3 className="text-lg font-bold text-theme mb-2">
                   모든 일정을 삭제하시겠습니까?
                 </h3>
-                <p className="text-sm text-[#6B7280] dark:text-dark-muted">
+                <p className="text-sm text-theme-muted">
                   총 <span className="font-semibold text-red-400">{todos.length}개</span>의 일정이 삭제됩니다.
                   이 작업은 되돌릴 수 없습니다.
                 </p>
@@ -206,7 +206,7 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, allowFul
               <button
                 type="button"
                 onClick={() => setShowConfirmDialog(false)}
-                className="neu-btn touch-target flex-1 min-h-[44px] px-4 py-2 text-[#2D2D2D] dark:text-dark-text rounded-neu font-medium"
+                className="neu-btn touch-target flex-1 min-h-[44px] px-4 py-2 text-theme rounded-neu font-medium"
               >
                 취소
               </button>

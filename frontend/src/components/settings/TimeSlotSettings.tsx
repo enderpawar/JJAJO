@@ -71,12 +71,12 @@ export function TimeSlotSettings() {
   return (
     <div className="space-y-6">
       {/* 쉬는 날 선택 */}
-      <div className="neu-float rounded-neu p-4 bg-[#F5F6F8] dark:bg-dark-card">
-        <h3 className="font-semibold text-[#2D2D2D] dark:text-dark-text mb-2 flex items-center gap-2">
+      <div className="neu-float rounded-neu p-4 theme-transition bg-theme-card">
+        <h3 className="font-semibold text-theme mb-2 flex items-center gap-2">
           <CalendarDays className="w-5 h-5 text-primary-500" />
           쉬는 날 설정
         </h3>
-        <p className="text-sm text-[#6B7280] dark:text-dark-muted mb-4">
+        <p className="text-sm text-theme-muted mb-4">
           선택된 요일에는 AI가 자동 일정을 배치하지 않아요.
         </p>
         <div className="grid grid-cols-7 gap-2">
@@ -87,10 +87,10 @@ export function TimeSlotSettings() {
                 key={day}
                 type="button"
                 onClick={() => toggleDayOff(day)}
-                className={`py-2 rounded-neu text-sm font-medium transition-all border-0 outline-none ${
+                className={`py-2 rounded-neu text-sm font-medium theme-transition border-0 outline-none ${
                   active
                     ? 'neu-date-selected text-primary-500'
-                    : 'shadow-neu-float-date text-[#6B7280] dark:text-dark-muted hover:shadow-neu-inset-hover active:scale-[0.98] bg-[#F5F6F8] dark:bg-dark-card'
+                    : 'shadow-neu-float-date text-theme-muted hover:shadow-neu-inset-hover active:scale-[0.98] bg-theme-card'
                 }`}
               >
                 {WEEKDAY_LABELS[day]}
@@ -101,12 +101,12 @@ export function TimeSlotSettings() {
       </div>
 
       {/* 설명 */}
-      <div className="neu-float rounded-neu p-4 bg-[#F5F6F8] dark:bg-dark-card">
-        <h3 className="font-semibold text-[#2D2D2D] dark:text-dark-text mb-2 flex items-center gap-2">
+      <div className="neu-float rounded-neu p-4 theme-transition bg-theme-card">
+        <h3 className="font-semibold text-theme mb-2 flex items-center gap-2">
           <Clock className="w-5 h-5 text-primary-500" />
           시간대 우선순위 설정
         </h3>
-        <p className="text-sm text-[#6B7280] dark:text-dark-muted">
+        <p className="text-sm text-theme-muted">
           AI가 일정을 자동 배치할 때, 어느 시간대를 우선적으로 사용할지 순서를 정할 수 있습니다.
           <br />
           위에 있을수록 우선순위가 높습니다.
@@ -119,7 +119,7 @@ export function TimeSlotSettings() {
           <div
             key={pref.period}
             className={`
-              bg-[#F5F6F8] dark:bg-dark-card rounded-neu p-4 transition-all border-0
+              bg-theme-card rounded-neu p-4 theme-transition border-0
               ${pref.enabled ? 'shadow-neu-float-date ring-2 ring-primary-500/10' : 'shadow-neu-float-date opacity-60'}
             `}
           >
@@ -128,11 +128,11 @@ export function TimeSlotSettings() {
               <div
               className={`
                 w-10 h-10 rounded-full flex items-center justify-center
-                font-bold text-lg bg-[#F5F6F8] dark:bg-dark-card
+                font-bold text-lg theme-transition
                 ${
                     pref.enabled
                       ? 'bg-primary-500 text-white shadow-neu-float-date'
-                      : 'shadow-neu-float-date text-[#6B7280] dark:text-dark-muted'
+                      : 'bg-theme-card shadow-neu-float-date text-theme-muted'
                   }
                 `}
               >
@@ -141,25 +141,24 @@ export function TimeSlotSettings() {
 
               {/* 시간대 정보 */}
               <div className="flex-1">
-                <div className="font-semibold text-[#2D2D2D] dark:text-dark-text">
+                <div className="font-semibold text-theme">
                   {TIME_SLOT_LABELS[pref.period]}
                 </div>
-                <div className="text-sm text-[#6B7280] dark:text-dark-muted">
+                <div className="text-sm text-theme-muted">
                   {pref.enabled ? '활성화됨' : '비활성화됨'}
                 </div>
               </div>
 
               {/* 컨트롤 버튼들 */}
               <div className="flex items-center gap-2">
-                {/* 활성화/비활성화 토글 */}
                 <button
                   onClick={() => handleToggleEnabled(index)}
                   className={`
-                    p-2 rounded-neu transition-all neu-btn
+                    p-2 rounded-neu theme-transition neu-btn
                     ${
                       pref.enabled
                         ? 'neu-date-selected text-primary-500'
-                        : 'text-[#6B7280] dark:text-dark-muted hover:text-[#2D2D2D] dark:hover:text-dark-text'
+                        : 'text-theme-muted hover:text-theme'
                     }
                   `}
                   title={pref.enabled ? '비활성화' : '활성화'}
@@ -167,7 +166,6 @@ export function TimeSlotSettings() {
                   {pref.enabled ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
                 </button>
 
-                {/* 우선순위 조정 버튼 */}
                 <div className="flex flex-col gap-1">
                   <button
                     onClick={() => handlePriorityChange(index, 'up')}
@@ -175,7 +173,7 @@ export function TimeSlotSettings() {
                     className="neu-btn p-1 rounded-neu disabled:opacity-30 disabled:cursor-not-allowed"
                     title="위로 이동"
                   >
-                    <svg className="w-4 h-4 text-[#6B7280] dark:text-dark-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-theme-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                     </svg>
                   </button>
@@ -185,7 +183,7 @@ export function TimeSlotSettings() {
                     className="neu-btn p-1 rounded-neu disabled:opacity-30 disabled:cursor-not-allowed"
                     title="아래로 이동"
                   >
-                    <svg className="w-4 h-4 text-[#6B7280] dark:text-dark-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-theme-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
@@ -197,7 +195,7 @@ export function TimeSlotSettings() {
       </div>
 
       {/* 액션 버튼 */}
-      <div className="flex gap-3 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+      <div className="flex gap-3 pt-4 border-t border-theme">
         <button onClick={handleReset} className="flex-1 btn-secondary">
           기본값으로 초기화
         </button>

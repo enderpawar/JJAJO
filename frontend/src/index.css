@@ -209,12 +209,12 @@ html.dark {
 
 /* 🎯 Vertical Timeline 스타일 (Notion 버전) */
 
-/* 1. 현재 태스크 강조 (진행 중 - 뉴모피즘 + 주황 포인트) */
+/* 1. 현재 태스크 강조 (진행 중 - 흰 배경 + 주황 테두리 포인트) */
 .task-card-active {
   background: var(--card-bg) !important;
-  border: none !important;
-  box-shadow: var(--shadow-float-sm), 0 0 0 2px var(--primary-point-ring) !important;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  border: 2px solid var(--primary-point) !important;
+  box-shadow: var(--shadow-float-sm), 0 0 0 1px var(--primary-point-ring) !important;
+  transition: background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 /* 2. 과거 태스크 (불투명도만) */
