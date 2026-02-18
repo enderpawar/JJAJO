@@ -62,7 +62,7 @@ export function ConfirmModal({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.2 }}
-            className="relative w-full max-w-sm rounded-xl border border-notion-border bg-notion-sidebar shadow-xl"
+            className="relative w-full max-w-sm rounded-neu-lg neu-float"
             role="dialog"
             aria-modal="true"
             aria-labelledby="confirm-modal-title"
@@ -78,24 +78,24 @@ export function ConfirmModal({
                 <div className="min-w-0 flex-1">
                   <h2
                     id="confirm-modal-title"
-                    className="text-base font-semibold text-notion-text"
+                    className="text-base font-semibold text-theme"
                   >
                     {title}
                   </h2>
                   <p
                     id="confirm-modal-desc"
-                    className="mt-1 text-sm text-notion-muted"
+                    className="mt-1 text-sm text-theme-muted"
                   >
                     {message}
                   </p>
                 </div>
               </div>
             </div>
-            <div className="flex gap-3 border-t border-notion-border px-6 py-4">
+            <div className="flex gap-3 px-6 py-4 border-t border-black/[0.08] dark:border-white/[0.08]">
               <button
                 type="button"
                 onClick={onClose}
-                className="btn-secondary flex-1 rounded-lg py-2.5 text-sm font-medium"
+                className="btn-secondary flex-1 rounded-neu py-2.5 text-sm font-medium"
               >
                 {cancelLabel}
               </button>
@@ -104,8 +104,8 @@ export function ConfirmModal({
                 onClick={handleConfirm}
                 className={
                   danger
-                    ? 'flex-1 rounded-lg py-2.5 text-sm font-medium text-white transition-colors bg-red-500 hover:bg-red-600'
-                    : 'flex-1 rounded-lg py-2.5 text-sm font-medium text-white transition-colors bg-primary-500 hover:bg-primary-600'
+                    ? 'flex-1 rounded-neu py-2.5 text-sm font-medium text-white transition-colors bg-red-500 hover:bg-red-600 active:scale-[0.98]'
+                    : 'flex-1 rounded-neu py-2.5 text-sm font-medium text-white transition-colors bg-primary-500 hover:bg-primary-600 active:scale-[0.98]'
                 }
               >
                 {confirmLabel}

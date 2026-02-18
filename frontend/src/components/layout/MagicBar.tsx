@@ -46,24 +46,23 @@ export default function MagicBar() {
     <div className="w-full max-w-2xl mx-auto px-4 py-3">
       <div
         className={`
-          flex items-center gap-3 rounded-xl border transition-all duration-200
-          bg-notion-sidebar/90 backdrop-blur-sm
+          flex items-center gap-3 rounded-neu neu-inset theme-transition
           ${message?.type === 'error'
-            ? 'border-red-500/40 shadow-[0_0_0_1px_rgba(239,68,68,0.2)]'
-            : 'border-notion-border hover:border-notion-muted/50'
+            ? 'ring-2 ring-red-400/30'
+            : ''
           }
-          focus-within:border-primary-500/50 focus-within:shadow-[0_0_0_2px_rgba(255,107,0,0.15)]
+          focus-within:ring-2 focus-within:ring-primary-500/15
         `}
       >
-        {/* 마법봉: 클릭 시 대화 모드 토글 */}
+        {/* 마법봉: 클릭 시 대화 모드 토글 - 활성화 시 주황 포인트 */}
         <button
           type="button"
           onClick={() => setEditMode((prev) => !prev)}
           className={`
-            touch-target flex-shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px] w-10 h-10 rounded-lg transition-all duration-200
+            touch-target flex-shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px] w-10 h-10 rounded-neu transition-all duration-200
             ${editMode
-              ? 'bg-primary-500/20 text-primary-500 ring-2 ring-primary-500/40'
-              : 'bg-primary-500/10 text-primary-500 hover:bg-primary-500/15'
+              ? 'neu-date-selected text-primary-500'
+              : 'neu-float-sm text-theme-muted hover:text-theme hover:shadow-neu-inset-hover active:scale-[0.98]'
             }
           `}
           aria-pressed={editMode}
@@ -79,7 +78,7 @@ export default function MagicBar() {
           onKeyDown={handleKeyDown}
           placeholder={PLACEHOLDER}
           disabled={loading}
-          className="flex-1 min-w-0 py-3 pr-2 bg-transparent text-notion-text placeholder:text-notion-muted/80 text-sm outline-none disabled:opacity-60 placeholder:transition-opacity focus:placeholder:opacity-60"
+          className="flex-1 min-w-0 py-3 pr-2 bg-transparent text-theme placeholder:text-theme-muted text-sm outline-none disabled:opacity-60 theme-transition"
           aria-label="일정 추가·수정·삭제"
         />
 
@@ -88,11 +87,11 @@ export default function MagicBar() {
           onClick={submit}
           disabled={loading || !hasValue}
           className={`
-            touch-target flex-shrink-0 flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] px-4 py-2.5 rounded-lg font-medium text-sm
+            touch-target flex-shrink-0 flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] px-4 py-2.5 rounded-neu font-medium text-sm
             transition-all duration-200
             ${hasValue && !loading
-              ? 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm hover:shadow'
-              : 'bg-notion-hover text-notion-muted cursor-not-allowed'
+              ? 'bg-primary-500 text-white hover:bg-primary-600 active:scale-[0.98]'
+              : 'neu-float-sm text-theme-muted cursor-not-allowed'
             }
             ${loading ? 'bg-primary-500/80 text-white cursor-wait' : ''}
           `}

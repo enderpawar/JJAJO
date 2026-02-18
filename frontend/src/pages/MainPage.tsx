@@ -88,22 +88,22 @@ export default function MainPage() {
   
   if (checkingAuth) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-notion-bg text-notion-text">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 theme-transition bg-theme text-theme">
         <img src="/logo.png" alt="짜조" className="h-12 w-auto object-contain" />
-        <p className="text-sm text-notion-text-secondary">로그인 상태를 확인하고 있어요...</p>
+        <p className="text-sm text-theme-muted">로그인 상태를 확인하고 있어요...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-notion-bg text-notion-text">
+    <div className="min-h-screen flex flex-col theme-transition bg-theme text-theme">
       {/* 🎨 TopTimeline: 주간 히트맵 */}
       <TopTimeline />
       
       <Header onOpenMonthlyCalendar={() => setShowMonthlyCalendar(true)} />
 
-      {/* 매직 바: 한 줄 자연어로 일정 추가 (Gemini Function Calling) */}
-      <div className="shrink-0 border-b border-notion-border bg-notion-card/50">
+      {/* 매직 바: 한 줄 자연어로 일정 추가 */}
+      <div className="shrink-0 theme-transition bg-theme border-b border-theme">
         <MagicBar />
       </div>
       
@@ -122,7 +122,7 @@ export default function MainPage() {
       {/* 🗓️ 월간 캘린더 모달 */}
       {showMonthlyCalendar && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]"
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               closeMonthlyCalendar()
@@ -130,11 +130,11 @@ export default function MainPage() {
           }}
         >
           <div 
-            className="bg-notion-sidebar rounded-lg border border-notion-border w-full max-w-[1800px] max-h-[min(95vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-hidden flex flex-col transition-transform duration-150"
-            style={{ transform: `translateY(${modalDragY}px)` }}
+            className="rounded-neu-lg w-full max-w-[1800px] max-h-[min(95vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-hidden flex flex-col transition-transform duration-150 theme-transition bg-theme-card"
+            style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.08)', transform: `translateY(${modalDragY}px)` }}
           >
             {/* 상단: 모바일은 스와이프 핸들+닫기, 데스크톱은 최소 바(닫기+시간표 불러오기) */}
-            <div className="shrink-0 flex items-center justify-between px-2 py-2 border-b border-notion-border bg-notion-sidebar">
+            <div className="shrink-0 flex items-center justify-between px-2 py-2 theme-transition bg-theme-card border-b border-theme">
               <div
                 className="xl:hidden flex-1 flex justify-center touch-none min-h-[44px] items-center"
                 onTouchStart={(e) => { modalDragStartY.current = e.touches[0].clientY }}
@@ -148,13 +148,13 @@ export default function MainPage() {
                   setModalDragY(0)
                 }}
               >
-                <div className="w-10 h-1 rounded-full bg-notion-border" aria-hidden />
+                <div className="w-10 h-1 rounded-full bg-[#9CA3AF]/60 dark:bg-white/30" aria-hidden />
               </div>
               <div className="hidden xl:flex items-center gap-2 flex-1">
                 <button
                   type="button"
                   onClick={() => setShowImportTimetable(true)}
-                  className="touch-target flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary-500/15 text-primary-400 hover:bg-primary-500/25 text-sm font-medium"
+                  className="touch-target flex items-center justify-center gap-2 px-3 py-2 rounded-neu neu-float-sm text-theme hover:shadow-neu-inset-hover text-sm font-medium"
                 >
                   <CalendarDays className="w-4 h-4" />
                   시간표 이미지로 불러오기
@@ -163,22 +163,21 @@ export default function MainPage() {
               <button
                 type="button"
                 onClick={closeMonthlyCalendar}
-                className="touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 hover:bg-notion-hover rounded-lg transition-colors shrink-0"
+                className="touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-lg transition-colors shrink-0 theme-transition hover:bg-[var(--hover-bg)]"
+                style={{ color: 'var(--text-muted)' }}
                 title="닫기 (ESC)"
               >
-                <X className="w-5 h-5 text-notion-muted" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* 매직 바: 모바일/데스크톱 모두 항상 표시 */}
-            <div className="shrink-0 border-b border-notion-border bg-notion-card/50">
+            <div className="shrink-0 theme-transition bg-theme border-b border-theme">
               <MagicBar />
             </div>
             
-            {/* 모달 컨텐츠: 모바일 탭 / 데스크톱 그리드 */}
-            <div className="flex-1 overflow-auto bg-notion-bg flex flex-col min-h-0">
-              {/* 모바일 전용 탭 (xl 미만에서만) */}
-              <div className="xl:hidden shrink-0 border-b border-notion-border bg-notion-sidebar">
+            <div className="flex-1 overflow-auto theme-transition bg-theme flex flex-col min-h-0">
+              <div className="xl:hidden shrink-0 theme-transition bg-theme border-b border-theme">
                 <div className="flex max-w-[1600px] mx-auto">
                   {[
                     { id: 'calendar' as const, label: '캘린더', icon: CalendarDays },
@@ -188,10 +187,10 @@ export default function MainPage() {
                       key={id}
                       type="button"
                       onClick={() => setMonthlyModalTab(id)}
-                      className={`touch-target flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium transition-colors border-b-2 ${
+                      className={`touch-target flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium transition-all rounded-neu ${
                         monthlyModalTab === id
-                          ? 'border-primary-500 text-primary-400 bg-primary-500/10'
-                          : 'border-transparent text-notion-muted hover:text-notion-text hover:bg-notion-hover'
+                          ? 'neu-date-selected text-primary-500'
+                          : 'neu-float-sm text-theme hover:shadow-neu-inset-hover active:scale-[0.98]'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -206,7 +205,7 @@ export default function MainPage() {
                   {/* 모바일: 탭별 단일 패널. 날짜 더블클릭/더블탭 시 일정 패널 오버레이 */}
                   <div className="xl:hidden relative flex-1 min-h-0 flex flex-col">
                     {monthlyModalTab === 'calendar' && (
-                      <div className="bg-notion-sidebar rounded-2xl shadow-none p-4 sm:p-6 border border-notion-border flex flex-col min-h-0 flex-1">
+                      <div className="neu-float rounded-2xl p-4 sm:p-6 flex flex-col min-h-0 flex-1">
                         <CalendarGrid
                           onDateDoubleClick={() => setShowDayPanelInModal(true)}
                           allowFullHeight
@@ -214,22 +213,22 @@ export default function MainPage() {
                       </div>
                     )}
                     {monthlyModalTab === 'goals' && (
-                      <div className="bg-notion-sidebar rounded-2xl shadow-none p-4 sm:p-5 border border-notion-border">
+                      <div className="neu-float rounded-2xl p-4 sm:p-5">
                         <GoalsAndBackwardsPlanSection />
                       </div>
                     )}
                     {/* 더블클릭/더블탭으로 연 일정 패널 오버레이 */}
                     {showDayPanelInModal && (
-                      <div className="absolute inset-0 z-10 bg-notion-bg flex flex-col rounded-2xl overflow-hidden border border-notion-border">
-                        <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-notion-border bg-notion-sidebar">
+                      <div className="absolute inset-0 z-10 theme-transition bg-theme-card flex flex-col rounded-2xl overflow-hidden neu-float">
+                        <div className="shrink-0 flex items-center justify-between px-4 py-3 theme-transition bg-theme-card border-b border-theme">
                           <button
                             type="button"
                             onClick={() => setShowDayPanelInModal(false)}
-                            className="touch-target flex items-center gap-2 min-h-[44px] px-3 text-sm font-medium text-notion-muted hover:text-notion-text"
+                            className="touch-target flex items-center gap-2 min-h-[44px] px-3 text-sm font-medium text-theme-muted hover:text-theme"
                           >
                             ← 뒤로
                           </button>
-                          <span className="text-sm text-notion-muted">{formatDateWithDay(selectedDate)}</span>
+                          <span className="text-sm text-theme-muted">{formatDateWithDay(selectedDate)}</span>
                         </div>
                         <div className="flex-1 min-h-0 overflow-auto">
                           <DayDetailPanel />
@@ -241,15 +240,15 @@ export default function MainPage() {
                   {/* 데스크톱: 기존 2열 그리드 */}
                   <div className="hidden xl:grid grid-cols-12 gap-6 xl:gap-8">
                     <div className="col-span-7 flex flex-col gap-6">
-                      <div className="bg-notion-sidebar rounded-2xl shadow-none p-8 border border-notion-border">
+                      <div className="neu-float rounded-2xl p-8">
                         <CalendarGrid />
                       </div>
-                      <div className="bg-notion-sidebar rounded-2xl shadow-none p-5 border border-notion-border">
+                      <div className="neu-float rounded-2xl p-5">
                         <GoalsAndBackwardsPlanSection />
                       </div>
                     </div>
                     <div className="col-span-5 flex flex-col gap-6 max-h-[75vh] overflow-y-auto pr-2">
-                      <div className="bg-notion-sidebar rounded-2xl shadow-none border border-notion-border flex flex-col min-h-0">
+                      <div className="neu-float rounded-2xl flex flex-col min-h-0">
                         <DayDetailPanel />
                       </div>
                     </div>

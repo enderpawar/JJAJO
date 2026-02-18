@@ -67,7 +67,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-notion-bg text-notion-text">
+    <div className="min-h-screen flex items-center justify-center p-4 theme-transition bg-theme text-theme">
       <div className="max-w-md w-full">
         {/* 헤더 - 짜조 로고 */}
         <div className="text-center mb-8">
@@ -109,9 +109,9 @@ export default function AuthPage() {
           </a>
 
           {/* 안내 문구 */}
-          <div className="mt-2 p-4 bg-blue-50 rounded-lg border border-blue-200 text-sm text-blue-800">
-            <p className="mb-1">
-              로그인 후 오른쪽 상단 <strong>설정</strong> 버튼에서 Gemini API 키를 설정하면
+          <div className="mt-2 p-4 neu-inset rounded-neu text-sm text-notion-muted">
+            <p className="mb-1 text-notion-text">
+              로그인 후 오른쪽 상단 <strong className="text-notion-text">설정</strong> 버튼에서 Gemini API 키를 설정하면
               AI 플래너 기능이 활성화됩니다.
             </p>
           </div>

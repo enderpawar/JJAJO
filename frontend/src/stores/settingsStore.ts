@@ -40,6 +40,8 @@ export const useSettingsStore = create<SettingsStore>()(
         const theme = get().theme
         if (typeof document !== 'undefined') {
           document.documentElement.classList.toggle('dark', theme === 'dark')
+          const meta = document.querySelector('meta[name="theme-color"]')
+          if (meta) meta.setAttribute('content', theme === 'dark' ? '#121214' : '#F8F9FA')
         }
       },
 
@@ -48,6 +50,8 @@ export const useSettingsStore = create<SettingsStore>()(
           const newTheme = state.theme === 'light' ? 'dark' : 'light'
           if (typeof document !== 'undefined') {
             document.documentElement.classList.toggle('dark', newTheme === 'dark')
+            const meta = document.querySelector('meta[name="theme-color"]')
+            if (meta) meta.setAttribute('content', newTheme === 'dark' ? '#121214' : '#F8F9FA')
           }
           return { theme: newTheme }
         })

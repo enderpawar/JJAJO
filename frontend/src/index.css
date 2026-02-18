@@ -5,10 +5,62 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========== 테마 CSS Variables (라이트 / 다크) ========== */
+:root {
+  --bg-color: #F8F9FA;
+  --card-bg: #FFFFFF;
+  --text-main: #212529;
+  --text-muted: #6B7280;
+  --border-color: rgba(0, 0, 0, 0.08);
+  /* 라이트: 아주 은은한 그림자 */
+  --shadow-style: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-float: 5px 5px 20px rgba(0, 0, 0, 0.03), -4px -4px 12px rgba(255, 255, 255, 0.65);
+  --shadow-float-sm: 2px 2px 24px rgba(0, 0, 0, 0.02), -2px -2px 12px rgba(255, 255, 255, 0.6);
+  --shadow-inset: inset 4px 4px 12px rgba(0, 0, 0, 0.03), inset -4px -4px 10px rgba(255, 255, 255, 0.5);
+  --shadow-inset-sm: inset 3px 3px 10px rgba(0, 0, 0, 0.03), inset -3px -3px 8px rgba(255, 255, 255, 0.5);
+  --primary-point: #FF8C00;
+  --primary-point-ring: rgba(255, 140, 0, 0.28);
+  --hover-bg: #F1F3F5;
+  --grid-line: rgba(0, 0, 0, 0.06);
+}
+
+html.dark {
+  color-scheme: dark;
+  --bg-color: #121214;
+  --card-bg: #1E1E20;
+  --text-main: #E9ECEF;
+  --text-muted: #ADB5BD;
+  --border-color: rgba(255, 255, 255, 0.08);
+  /* 다크: 배경보다 더 어두운 톤으로 깊이감 */
+  --shadow-style: 0 4px 24px rgba(0, 0, 0, 0.45);
+  --shadow-float: 6px 6px 22px rgba(0, 0, 0, 0.4), -2px -2px 10px rgba(255, 255, 255, 0.03);
+  --shadow-float-sm: 3px 3px 20px rgba(0, 0, 0, 0.35), -2px -2px 10px rgba(255, 255, 255, 0.02);
+  --shadow-inset: inset 4px 4px 12px rgba(0, 0, 0, 0.4), inset -4px -4px 10px rgba(255, 255, 255, 0.03);
+  --shadow-inset-sm: inset 3px 3px 10px rgba(0, 0, 0, 0.4), inset -3px -3px 8px rgba(255, 255, 255, 0.03);
+  /* 다크 모드: 가독성을 위해 채도 살짝 높인 주황 */
+  --primary-point: #FF9500;
+  --primary-point-ring: rgba(255, 149, 0, 0.35);
+  --hover-bg: #252528;
+  --grid-line: rgba(255, 255, 255, 0.06);
+}
+
+/* 테마 전환 시 부드러운 전환 (날짜 카드, 타임라인, 입력창 등) */
+.theme-transition,
+.theme-transition * {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* 테마 변수 유틸리티 (레이아웃·컴포넌트에서 사용) */
+.bg-theme { background-color: var(--bg-color); }
+.bg-theme-card { background-color: var(--card-bg); }
+.text-theme { color: var(--text-main); }
+.text-theme-muted { color: var(--text-muted); }
+.border-theme { border-color: var(--border-color); }
+
 /* Notion Dark Mode 전역 스타일 */
 @layer base {
   * {
-    border-color: #373737;
+    border-color: transparent;
   }
 
   html {
@@ -20,8 +72,8 @@
   }
 
   body {
-    background-color: #191919;
-    color: #FFFFFF;
+    background-color: var(--bg-color);
+    color: var(--text-main);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     font-size: 14px;
     line-height: 1.625;
@@ -34,11 +86,11 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   }
 
-  /* Notion 타이포그래피 규칙 */
+  /* 타이포그래피 규칙 */
   h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
     letter-spacing: -0.02em;
-    color: #FFFFFF;
+    color: var(--text-main);
   }
 
   h1 {
@@ -65,11 +117,6 @@
   p {
     line-height: 1.625;
     letter-spacing: -0.01em;
-  }
-
-  /* 항상 다크모드 적용 */
-  html.dark {
-    color-scheme: dark;
   }
 
   /* iOS 등 모바일: input 포커스 시 자동 줌 방지 (font-size 16px 미만이면 줌 발생) */
@@ -121,12 +168,12 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.15);
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.25);
   }
 }
 
@@ -162,48 +209,49 @@
 
 /* 🎯 Vertical Timeline 스타일 (Notion 버전) */
 
-/* 1. 현재 태스크 강조 (진행 중 - 다크 테마 조화) */
+/* 1. 현재 태스크 강조 (진행 중 - 뉴모피즘 + 주황 포인트) */
 .task-card-active {
-  background: #2a2d33 !important;
-  border: 1px solid rgba(71, 85, 105, 0.4) !important;
-  border-left: 4px solid rgba(148, 163, 184, 0.5) !important;
-  box-shadow: none !important;
+  background: var(--card-bg) !important;
+  border: none !important;
+  box-shadow: var(--shadow-float-sm), 0 0 0 2px var(--primary-point-ring) !important;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* 2. 과거 태스크 (Notion 스타일 - 불투명도만) */
+/* 2. 과거 태스크 (불투명도만) */
 .task-card-past {
   opacity: 0.4;
 }
 
-/* 3. 빈 시간 슬롯 (Hover Effect) */
+/* 3. 빈 시간 슬롯 (Hover - 주황 포인트) */
 .free-time-slot {
-  border: 2px dashed #E5E7EB;
-  border-radius: 12px;
+  border: none;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: transparent;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-inset-sm);
 }
 
 .free-time-slot:hover {
-  border-color: #FF6B00 !important;
-  background-color: rgba(255, 107, 0, 0.05) !important;
-  color: #FF6B00;
+  box-shadow: var(--shadow-inset-sm), 0 0 0 2px var(--primary-point-ring) !important;
+  color: var(--primary-point);
   cursor: pointer;
 }
 
-/* 4. 압축된 Gap (Accordion - 찢어진 영수증 효과) */
+/* 4. 압축된 Gap (Accordion - 뉴모피즘) */
 .compressed-gap {
-  background: linear-gradient(to bottom right, #F9FAFB, #F3F4F6);
+  background: var(--card-bg);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 찢어진 종이 느낌의 경계선 */
   mask-image: linear-gradient(to bottom, transparent, black 10px, black calc(100% - 10px), transparent);
   -webkit-mask-image: linear-gradient(to bottom, transparent, black 10px, black calc(100% - 10px), transparent);
   transition: all 0.3s ease;
+  box-shadow: var(--shadow-inset-sm);
 }
 
 .compressed-gap::before,
@@ -215,8 +263,8 @@
   height: 2px;
   background: repeating-linear-gradient(
     90deg,
-    #D1D5DB 0px,
-    #D1D5DB 10px,
+    var(--grid-line) 0px,
+    var(--grid-line) 10px,
     transparent 10px,
     transparent 20px
   );
@@ -237,19 +285,22 @@
 }
 
 .question-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-float);
   will-change: transform;
   backface-visibility: hidden;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
 .rationale {
-  color: #6B7280;
+  color: var(--text-muted);
   font-size: 14px;
   line-height: 1.5;
-  background: #F3F4F6;
-  border-radius: 12px;
+  background: var(--card-bg);
+  border-radius: 16px;
+  box-shadow: var(--shadow-inset);
+  transition: background 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
 }
 
 /* 슬라이더 커스텀 스타일 */
@@ -261,15 +312,19 @@ input[type="range"] {
 }
 
 input[type="range"]::-webkit-slider-track {
-  background: #E5E7EB;
+  background: var(--card-bg);
   border-radius: 9999px;
   height: 12px;
+  box-shadow: var(--shadow-inset-sm);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
 input[type="range"]::-moz-range-track {
-  background: #E5E7EB;
+  background: var(--card-bg);
   border-radius: 9999px;
   height: 12px;
+  box-shadow: var(--shadow-inset-sm);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -278,10 +333,10 @@ input[type="range"]::-webkit-slider-thumb {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FF6B00 0%, #9333EA 100%);
+  background: var(--primary-point);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.4);
-  transition: transform 0.2s;
+  box-shadow: var(--shadow-float-sm);
+  transition: transform 0.2s, background 0.3s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
@@ -292,11 +347,11 @@ input[type="range"]::-moz-range-thumb {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FF6B00 0%, #9333EA 100%);
+  background: var(--primary-point);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.4);
+  box-shadow: var(--shadow-float-sm);
   border: none;
-  transition: transform 0.2s;
+  transition: transform 0.2s, background 0.3s ease;
 }
 
 input[type="range"]::-moz-range-thumb:hover {
@@ -394,50 +449,155 @@ input[type="range"]::-moz-range-thumb:hover {
 }
 
 .compressed-gap:hover {
-  background: linear-gradient(to bottom right, #F3F4F6, #E5E7EB);
+  box-shadow: var(--shadow-inset-sm), 0 0 0 1px var(--primary-point-ring);
   transform: scale(1.01);
   cursor: pointer;
 }
 
-/* Notion 스타일 컴포넌트 클래스 (필요 시 사용) */
+/* 🎨 뉴모피즘 유틸리티 클래스 (테마 변수 적용) */
+@layer components {
+  /* Floating: 배경에서 튀어나온 효과 (카드, 버튼) */
+  .neu-float {
+    background-color: var(--card-bg);
+    border: none;
+    border-radius: 16px;
+    box-shadow: var(--shadow-float);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .neu-float-sm {
+    background-color: var(--card-bg);
+    border: none;
+    border-radius: 12px;
+    box-shadow: var(--shadow-float-sm);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  /* Inset: 안으로 오목하게 들어간 효과 (입력창) */
+  .neu-inset {
+    background-color: var(--card-bg);
+    border: none;
+    border-radius: 16px;
+    box-shadow: var(--shadow-inset);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .neu-inset-sm {
+    background-color: var(--card-bg);
+    border: none;
+    border-radius: 12px;
+    box-shadow: var(--shadow-inset-sm);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  /* Pressed: 눌려있는 상태 + 주황 포인트 */
+  .neu-pressed {
+    background-color: var(--card-bg);
+    border: none;
+    border-radius: 16px;
+    box-shadow: var(--shadow-inset), 0 0 0 1px var(--primary-point-ring);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  /* 버튼 호버/클릭 시 float → inset 전환 */
+  .neu-btn {
+    @apply neu-float-sm;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+  }
+  .neu-btn:hover, .neu-btn:active {
+    box-shadow: var(--shadow-inset-sm);
+  }
+  .neu-btn:active {
+    transform: scale(0.98);
+  }
+  /* 선택된 날짜: 눌린 상태 + 주황 포인트 */
+  .neu-date-selected {
+    background-color: var(--card-bg) !important;
+    box-shadow: var(--shadow-inset-sm), 0 0 0 1px var(--primary-point-ring) !important;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  /* 테마 토글 스위치: 소프트 미니멀, 부드러운 전환 */
+  .theme-toggle-switch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: none;
+    border-radius: 12px;
+    background-color: var(--card-bg);
+    box-shadow: var(--shadow-float-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .theme-toggle-switch:hover {
+    color: var(--text-main);
+    box-shadow: var(--shadow-inset-sm);
+  }
+  .theme-toggle-switch:active {
+    transform: scale(0.96);
+  }
+  .theme-toggle-switch svg {
+    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Notion 스타일 → 뉴모피즘 전환 컴포넌트 클래스 */
 @layer components {
   /* 공통 UI (프로젝트 전반에서 사용) */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-notion px-3 py-2 text-sm font-semibold
-      bg-primary-500 text-white border border-primary-500/30
-      hover:bg-primary-600 hover:border-primary-500/40
-      transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-neu px-4 py-2.5 text-sm font-semibold
+      bg-primary-500 text-white border-0
+      hover:bg-primary-600 active:scale-[0.98]
+      transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100;
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-notion px-3 py-2 text-sm font-semibold
-      bg-notion-hover text-notion-text border border-notion-border
-      hover:bg-notion-sidebar
-      transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-neu px-4 py-2.5 text-sm font-semibold border-0
+      disabled:opacity-40 disabled:cursor-not-allowed;
+    background-color: var(--card-bg);
+    color: var(--text-main);
+    box-shadow: var(--shadow-float-sm);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, transform 0.2s ease;
+  }
+  .btn-secondary:hover {
+    box-shadow: var(--shadow-inset-sm);
+  }
+  .btn-secondary:active {
+    transform: scale(0.98);
   }
 
   .input-field {
-    @apply w-full rounded-notion px-3 py-2 text-sm
-      bg-notion-bg text-notion-text border border-notion-border
-      placeholder:text-notion-muted
-      focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500/40
-      disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply w-full rounded-neu px-4 py-2.5 text-sm focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed;
+    background-color: var(--card-bg);
+    color: var(--text-main);
+    border: none;
+    box-shadow: var(--shadow-inset);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+  }
+  .input-field::placeholder {
+    color: var(--text-muted);
+  }
+  .input-field:focus {
+    box-shadow: var(--shadow-inset), 0 0 0 2px var(--primary-point-ring);
   }
 
   .btn-notion {
-    background-color: #202020;
-    color: #FFFFFF;
+    background-color: var(--card-bg);
+    color: var(--text-main);
     font-weight: 500;
     padding: 0.5rem 1rem;
-    border-radius: 6px;
-    border: 1px solid #373737;
-    transition: background-color 0.15s ease;
+    border-radius: 16px;
+    border: none;
+    box-shadow: var(--shadow-float-sm);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, transform 0.2s ease;
   }
-  
   .btn-notion:hover {
-    background-color: #2F3437;
+    box-shadow: var(--shadow-inset-sm);
   }
-  
+  .btn-notion:active {
+    transform: scale(0.98);
+  }
   .btn-notion:disabled {
     opacity: 0.4;
     cursor: not-allowed;
@@ -445,25 +605,40 @@ input[type="range"]::-moz-range-thumb:hover {
   
   .input-notion {
     width: 100%;
-    padding: 0.5rem 0.75rem;
-    border-radius: 6px;
-    border: 1px solid #373737;
-    background-color: #202020;
-    color: #FFFFFF;
+    padding: 0.5rem 1rem;
+    border-radius: 16px;
+    border: none;
+    background-color: var(--card-bg);
+    color: var(--text-main);
     font-size: 14px;
-    transition: border-color 0.15s ease;
+    box-shadow: var(--shadow-inset);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
   }
-  
+  .input-notion::placeholder {
+    color: var(--text-muted);
+  }
   .input-notion:focus {
     outline: none;
-    border-color: rgba(56, 139, 253, 0.5);
+    box-shadow: var(--shadow-inset), 0 0 0 2px var(--primary-point-ring);
   }
   
   .card-notion {
-    background-color: #202020;
-    border-radius: 6px;
-    border: 1px solid #373737;
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    border: none;
     padding: 1rem;
+    box-shadow: var(--shadow-float);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  /* card: AuthPage 등에서 사용 */
+  .card {
+    background-color: var(--card-bg);
+    border-radius: 20px;
+    border: none;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-float);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
   
   .tag-pill {
@@ -489,5 +664,13 @@ input[type="range"]::-moz-range-thumb:hover {
     background-color: rgba(107, 214, 107, 0.2);
     color: #C8FFB3;
   }
+}
+
+/* 다크 모드 스크롤바 (테마 변수로 배경/카드 등은 이미 적용됨) */
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 

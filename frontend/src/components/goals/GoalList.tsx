@@ -55,7 +55,7 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
         case 'delayed':
           return 'bg-red-500/20 text-red-400'
         default:
-          return 'bg-notion-hover text-notion-text-secondary'
+          return 'bg-[#EDEEF2] dark:bg-dark-hover text-[#6B7280] dark:text-dark-muted'
       }
     }
     switch (status) {
@@ -84,7 +84,7 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
         className={cn(
           'rounded-2xl p-6 text-center',
           isNotion
-            ? 'bg-notion-sidebar/80 border border-notion-border'
+            ? 'bg-[#F5F6F8] dark:bg-dark-card shadow-neu-float-date rounded-neu'
             : 'bg-white shadow-lg p-8'
         )}
       >
@@ -96,10 +96,10 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
             className={cn('w-6 h-6', isNotion ? 'text-red-500/90' : 'text-gray-400')}
           />
         </div>
-        <p className={cn('text-sm font-medium', isNotion ? 'text-notion-text' : 'text-gray-600')}>
+        <p className={cn('text-sm font-medium', isNotion ? 'text-[#2D2D2D] dark:text-dark-text' : 'text-gray-600 dark:text-dark-text')}>
           설정된 목표가 없습니다
         </p>
-        <p className={cn('text-xs mt-1', isNotion ? 'text-notion-muted' : 'text-gray-400')}>
+        <p className={cn('text-xs mt-1', isNotion ? 'text-[#6B7280] dark:text-dark-muted' : 'text-gray-400 dark:text-dark-muted')}>
           새 목표를 만들어 체계적으로 달성해보세요
         </p>
       </div>
