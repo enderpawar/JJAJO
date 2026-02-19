@@ -62,7 +62,16 @@ export function TopTimeline() {
                   {format(date, 'd')}
                 </span>
                 {todoCount > 0 && (
-                  <span className="hidden md:inline-flex shrink-0 items-center justify-center px-1.5 py-0.5 rounded-neu text-[10px] font-medium neu-inset-sm text-notion-text">
+                  <span
+                    className="
+                      inline-flex shrink-0 items-center justify-center
+                      px-2 py-0.5 rounded-full text-[10px] font-semibold
+                      border
+                      bg-primary-500/10 text-primary-600 border-primary-500/40
+                      dark:bg-primary-500/90 dark:text-white dark:border-transparent
+                      shadow-sm
+                    "
+                  >
                     {todoCount}개
                   </span>
                 )}
