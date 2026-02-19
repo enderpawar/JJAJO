@@ -41,6 +41,8 @@ interface CalendarStore {
   setGhostPlans: (plans: Todo[]) => void
   /** 고스트 일정 확정: ghostPlans → todos 반영 후 ghostPlans 비우기. 서버 저장용으로 확정된 목록 반환. */
   confirmGhostPlans: () => Todo[]
+  /** 고스트 일정 확정 (해당 날짜 전체 교체): 대상 날짜 기존 todos 제거 후 ghostPlans로 교체. */
+  applyGhostPlansReplaceDate: () => { applied: Todo[]; removed: Todo[] }
   /** 고스트 일정 취소: ghostPlans 비우기 */
   clearGhostPlans: () => void
 }
@@ -108,6 +110,29 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
     }))
     set({ ghostPlans: [], todos: [...state.todos, ...confirmed] })
     return confirmed
+  },
+
+  applyGhostPlansReplaceDate: () => {
+    const state = get()
+    if (state.ghostPlans.length === 0) return { applied: [], removed: [] }
+
+    const targetDate = state.ghostPlans[0].date
+    const removed = targetDate
+      ? state.todos.filter((t) => t.date === targetDate)
+      : []
+
+    const confirmed = state.ghostPlans.map((t) => ({
+      ...t,
+      isGhost: false,
+      id: t.id.startsWith('ghost-') ? `opt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}` : t.id,
+    }))
+
+    const remaining = targetDate
+      ? state.todos.filter((t) => t.date !== targetDate)
+      : state.todos
+
+    set({ ghostPlans: [], todos: [...remaining, ...confirmed] })
+    return { applied: confirmed, removed }
   },
 
   clearGhostPlans: () => set({ ghostPlans: [] }),
