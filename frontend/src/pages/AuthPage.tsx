@@ -69,15 +69,8 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 theme-transition bg-theme text-theme">
       <div className="max-w-md w-full">
-        {/* 헤더 - 짜조 로고 */}
+        {/* 헤더 */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center mb-4">
-            <img
-              src="/logo.png"
-              alt="짜조"
-              className="h-14 w-auto object-contain"
-            />
-          </div>
           <h1 className="text-3xl font-bold mb-2">
             짜조에 오신 것을 환영해요!
           </h1>
