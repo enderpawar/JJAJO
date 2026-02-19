@@ -89,7 +89,6 @@ export default function MainPage() {
   if (checkingAuth) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 theme-transition bg-theme text-theme">
-        <img src="/logo.png" alt="짜조" className="h-12 w-auto object-contain" />
         <p className="text-sm text-theme-muted">로그인 상태를 확인하고 있어요...</p>
       </div>
     )

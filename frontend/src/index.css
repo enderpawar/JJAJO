@@ -30,13 +30,14 @@ html.dark {
   --card-bg: #1E1E20;
   --text-main: #E9ECEF;
   --text-muted: #ADB5BD;
-  --border-color: rgba(255, 255, 255, 0.08);
-  /* 다크: 배경보다 더 어두운 톤으로 깊이감 */
+  /* 다크 모드: 흰색 테두리 과도 강조 방지 — 투명도 낮춤 */
+  --border-color: rgba(255, 255, 255, 0.04);
+  /* 다크: 배경보다 더 어두운 톤으로 깊이감, 흰색 하이라이트 제거해 테두리처럼 보이는 현상 완화 */
   --shadow-style: 0 4px 24px rgba(0, 0, 0, 0.45);
-  --shadow-float: 6px 6px 22px rgba(0, 0, 0, 0.4), -2px -2px 10px rgba(255, 255, 255, 0.03);
-  --shadow-float-sm: 3px 3px 20px rgba(0, 0, 0, 0.35), -2px -2px 10px rgba(255, 255, 255, 0.02);
-  --shadow-inset: inset 4px 4px 12px rgba(0, 0, 0, 0.4), inset -4px -4px 10px rgba(255, 255, 255, 0.03);
-  --shadow-inset-sm: inset 3px 3px 10px rgba(0, 0, 0, 0.4), inset -3px -3px 8px rgba(255, 255, 255, 0.03);
+  --shadow-float: 6px 6px 22px rgba(0, 0, 0, 0.4);
+  --shadow-float-sm: 3px 3px 20px rgba(0, 0, 0, 0.35);
+  --shadow-inset: inset 4px 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-inset-sm: inset 3px 3px 10px rgba(0, 0, 0, 0.4);
   /* 다크 모드: 가독성을 위해 채도 살짝 높인 주황 */
   --primary-point: #FF9500;
   --primary-point-ring: rgba(255, 149, 0, 0.35);
@@ -664,6 +665,14 @@ input[type="range"]::-moz-range-thumb:hover {
     background-color: rgba(107, 214, 107, 0.2);
     color: #C8FFB3;
   }
+}
+
+/* 다크 모드: Tailwind 커스텀 그림자(neu-float-date, neu-inset-hover) 흰색 하이라이트 제거 */
+html.dark .shadow-neu-float-date {
+  box-shadow: 2px 2px 24px rgba(0, 0, 0, 0.35);
+}
+html.dark .shadow-neu-inset-hover {
+  box-shadow: inset 2px 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* 다크 모드 스크롤바 (테마 변수로 배경/카드 등은 이미 적용됨) */

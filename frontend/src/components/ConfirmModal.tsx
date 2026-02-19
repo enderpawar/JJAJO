@@ -91,7 +91,7 @@ export function ConfirmModal({
                 </div>
               </div>
             </div>
-            <div className="flex gap-3 px-6 py-4 border-t border-black/[0.08] dark:border-white/[0.08]">
+            <div className="flex gap-3 px-6 py-4 border-t border-theme">
               <button
                 type="button"
                 onClick={onClose}
