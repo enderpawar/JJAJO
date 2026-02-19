@@ -2,12 +2,15 @@ package com.jjajo.application.service;
 
 import com.jjajo.application.port.in.EditScheduleUseCase;
 import com.jjajo.application.port.in.ParseScheduleUseCase;
+import com.jjajo.application.port.in.PlannerScheduleUseCase;
 import com.jjajo.application.port.in.ProcessAiChatUseCase;
 import com.jjajo.domain.model.ScheduleRequest;
 import com.jjajo.infrastructure.gemini.GeminiChatAdapter;
 import com.jjajo.presentation.dto.AiChatRequest;
 import com.jjajo.presentation.dto.AiChatResponse;
 import com.jjajo.presentation.dto.EditScheduleResponse;
+import com.jjajo.presentation.dto.PlannerScheduleRequest;
+import com.jjajo.presentation.dto.PlannerScheduleResponse;
 import com.jjajo.presentation.dto.ScheduleItemForEdit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,9 +30,10 @@ import java.util.regex.Pattern;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AiChatService implements ProcessAiChatUseCase, ParseScheduleUseCase, EditScheduleUseCase {
+public class AiChatService implements ProcessAiChatUseCase, ParseScheduleUseCase, EditScheduleUseCase, PlannerScheduleUseCase {
 
     private final GeminiChatAdapter geminiChatAdapter;
+    private final PlannerPlacementService plannerPlacementService;
     
     /**
      * AI 컨설턴트 시스템 프롬프트
@@ -108,6 +112,35 @@ public class AiChatService implements ProcessAiChatUseCase, ParseScheduleUseCase
         log.info("매직 바 일정 파싱 요청: {}", command);
         ScheduleRequest schedule = geminiChatAdapter.parseScheduleWithFunctionCalling(command, apiKey);
         return AiChatResponse.ScheduleData.from(schedule);
+    }
+
+    @Override
+    public PlannerScheduleResponse planSchedule(PlannerScheduleRequest request, String apiKey) {
+        log.info("짜조 플래너 요청: {}", request.getUserText());
+        var slots = request.getAvailableSlots() != null ? request.getAvailableSlots() : List.<PlannerScheduleRequest.TimeSlotDto>of();
+        var categoryAndPlans = geminiChatAdapter.detectCategoryAndPlans(request.getUserText(), apiKey);
+        int currentTimeMinutes = parseTimeToMinutes(request.getCurrentTime());
+        var plansWithDuration = categoryAndPlans.plans().stream()
+                .map(p -> new PlannerPlacementService.PlanWithDuration(p.title(), p.durationMinutes()))
+                .toList();
+        var placed = plannerPlacementService.placePlans(
+                categoryAndPlans.category(),
+                plansWithDuration,
+                slots,
+                currentTimeMinutes);
+        return PlannerScheduleResponse.builder().plans(placed).build();
+    }
+
+    private static int parseTimeToMinutes(String time) {
+        if (time == null || time.isBlank()) return 0;
+        try {
+            String[] p = time.trim().split(":");
+            int h = p.length > 0 ? Integer.parseInt(p[0].trim()) : 0;
+            int m = p.length > 1 ? Integer.parseInt(p[1].trim()) : 0;
+            return h * 60 + m;
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     @Override

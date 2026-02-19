@@ -20,6 +20,8 @@ export interface Todo {
   createdBy: 'user' | 'ai'
   createdAt: string
   updatedAt: string
+  /** 짜조 고스트 일정 여부. true면 미확정 미리보기용 */
+  isGhost?: boolean
 }
 
 export interface CalendarDay {

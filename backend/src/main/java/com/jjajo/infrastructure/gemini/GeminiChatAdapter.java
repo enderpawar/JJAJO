@@ -6,6 +6,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjajo.presentation.dto.EditOperationDto;
 import com.jjajo.presentation.dto.ScheduleItemForEdit;
 import com.jjajo.presentation.dto.ScheduleUpdateRequest;
@@ -539,5 +541,105 @@ public class GeminiChatAdapter {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private static final ObjectMapper PLANNER_JSON = new ObjectMapper();
+
+    /**
+     * 짜조 플래너: 사용자 입력에서 카테고리(study/workout/work/rest) 판별 + 일정 목록(제목, 소요분) 반환.
+     * 실제 배치는 PlannerPlacementService에서 preferredSlots 우선으로 수행.
+     */
+    public CategoryAndPlans detectCategoryAndPlans(String userText, String apiKey) {
+        try {
+            log.debug("짜조 카테고리·일정 추출: userText={}", userText);
+
+            String systemPrompt = """
+                너는 플래너 비서 '짜조'야.
+                사용자 입력을 분석해서 다음 JSON만 출력해. 다른 설명 없이 JSON 객체 하나만 출력해.
+                {
+                  "category": "study|workout|work|rest|default",
+                  "plans": [{ "title": "제목", "durationMinutes": 숫자 }, ...]
+                }
+                - category: study(공부/스터디), workout(운동/헬스), work(업무/회의), rest(휴식/독서), default(기타)
+                - plans: 해야 할 필수 일정만. 쉬는시간·식사시간은 넣지 마. durationMinutes는 분 단위(예: 90).
+                """;
+
+            String userPrompt = "사용자 요청: " + (userText != null ? userText : "");
+
+            Map<String, Object> requestBody = Map.of(
+                "contents", List.of(
+                    Map.of(
+                        "parts", List.of(
+                            Map.of("text", systemPrompt + "\n\n" + userPrompt)
+                        )
+                    )
+                ),
+                "generationConfig", Map.of(
+                    "temperature", 0.2,
+                    "maxOutputTokens", 1024,
+                    "responseMimeType", "application/json"
+                )
+            );
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = webClient.post()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/models/gemini-2.0-flash:generateContent")
+                            .queryParam("key", apiKey)
+                            .build())
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block(TIMEOUT);
+
+            if (response == null || !response.containsKey("candidates")) {
+                log.warn("짜조 플래너: 응답에 candidates 없음");
+                return new CategoryAndPlans("default", List.of());
+            }
+
+            List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.get("candidates");
+            if (candidates.isEmpty()) return new CategoryAndPlans("default", List.of());
+
+            Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
+            List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
+            if (parts == null || parts.isEmpty()) return new CategoryAndPlans("default", List.of());
+
+            String text = (String) parts.get(0).get("text");
+            if (text == null || text.isBlank()) return new CategoryAndPlans("default", List.of());
+
+            String json = text.trim();
+            if (json.startsWith("```")) {
+                int start = json.indexOf('{');
+                int end = json.lastIndexOf('}') + 1;
+                if (start >= 0 && end > start) json = json.substring(start, end);
+            }
+
+            JsonNode root = PLANNER_JSON.readTree(json);
+            String category = root.has("category") ? root.get("category").asText().trim().toLowerCase() : "default";
+            if (!List.of("study", "workout", "work", "rest", "default").contains(category)) {
+                category = "default";
+            }
+
+            List<CategoryAndPlans.PlanWithDuration> plans = new ArrayList<>();
+            JsonNode plansNode = root.get("plans");
+            if (plansNode != null && plansNode.isArray()) {
+                for (JsonNode node : plansNode) {
+                    String title = node.has("title") ? node.get("title").asText().trim() : null;
+                    int dur = node.has("durationMinutes") ? node.get("durationMinutes").asInt(60) : 60;
+                    if (title != null && !title.isEmpty() && dur > 0) {
+                        plans.add(new CategoryAndPlans.PlanWithDuration(title, Math.min(dur, 240)));
+                    }
+                }
+            }
+            log.debug("짜조 카테고리={}, plans={}건", category, plans.size());
+            return new CategoryAndPlans(category, plans);
+        } catch (Exception e) {
+            log.error("짜조 플래너 처리 실패", e);
+            throw new RuntimeException("일정을 생성하지 못했어요. 가용 시간과 목표를 확인해 주세요.", e);
+        }
+    }
+
+    public record CategoryAndPlans(String category, List<PlanWithDuration> plans) {
+        public record PlanWithDuration(String title, int durationMinutes) {}
     }
 }

@@ -39,7 +39,7 @@ interface VerticalTimelineProps {
 }
 
 export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelineProps = {}) {
-  const { todos, updateTodo, deleteTodo, addTodo, selectedDate } = useCalendarStore()
+  const { todos, updateTodo, deleteTodo, addTodo, selectedDate, ghostPlans } = useCalendarStore()
   const { addToast } = useToastStore()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showPastTime, setShowPastTime] = useState(false)
@@ -134,15 +134,22 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
   }, [])
 
+  const dateStr = useMemo(() => format(selectedDate ?? new Date(), 'yyyy-MM-dd'), [selectedDate])
+
   const selectedDateTodos = useMemo(() => {
-    const dateStr = format(selectedDate, 'yyyy-MM-dd')
     return todos
-      .filter(t => t.date === dateStr && t.startTime && t.endTime)
+      .filter(t => t.date === dateStr && t.startTime && t.endTime && !t.isGhost)
       .sort((a, b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'))
-  }, [todos, selectedDate])
+  }, [todos, dateStr])
 
   const todayTodos = selectedDateTodos
-  const dateStr = useMemo(() => format(selectedDate ?? new Date(), 'yyyy-MM-dd'), [selectedDate])
+
+  /** 선택일 기준 고스트 일정 (짜조 제안), 시간순 정렬 */
+  const ghostPlansForDate = useMemo(() => {
+    return ghostPlans
+      .filter(t => t.date === dateStr && t.startTime && t.endTime)
+      .sort((a, b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'))
+  }, [ghostPlans, dateStr])
 
   const TIMELINE_HEIGHT = 2400
   const timelineHeight = TIMELINE_HEIGHT
@@ -661,6 +668,36 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     )
   }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renameInputValue, handleSaveRename, performDelete, lastCreatedTodoId])
 
+  /** 고스트 일정 블록: 반투명 점선 테두리, 위→아래 0.1초 간격 등장 */
+  const renderGhostBlock = useCallback((task: Todo, index: number) => {
+    if (!task.startTime || !task.endTime) return null
+    const startPixel = timeToPixels(task.startTime)
+    const endPixel = timeToPixels(task.endTime)
+    const baseHeight = endPixel - startPixel
+    return (
+      <motion.div
+        key={task.id}
+        className="ghost-block absolute left-0 right-0 mx-3 sm:mx-4 pointer-events-none rounded-neu border-[1.5px] border-dashed border-orange-400/80 bg-orange-400/5 theme-transition"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1, duration: 0.2 }}
+        style={{
+          top: `${startPixel}px`,
+          height: `${baseHeight}px`,
+          zIndex: 4,
+        }}
+      >
+        <div className="relative z-10 p-4 h-full flex flex-col justify-center">
+          <div className="text-xs text-orange-400/90 font-medium mb-1">짜조 제안</div>
+          <div className="text-sm font-medium text-theme">{task.title}</div>
+          <div className="text-xs text-theme-muted mt-1">
+            {task.startTime} - {task.endTime}
+          </div>
+        </div>
+      </motion.div>
+    )
+  }, [timeToPixels])
+
   const getMinutesDiff = (startPixel: number, endPixel: number) => ((endPixel - startPixel) / 100) * 60
 
   return (
@@ -740,6 +777,8 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         </div>
 
         {(showPastTime ? todayTodos : todayTodos.filter(task => timeToPixels(task.endTime!) > currentTimePosition)).map(renderTaskBlock)}
+
+        {(showPastTime ? ghostPlansForDate : ghostPlansForDate.filter(task => timeToPixels(task.endTime!) > currentTimePosition)).map((g, i) => renderGhostBlock(g, i))}
 
         <div className="absolute left-0 right-0 z-50 transition-all duration-1000 ease-linear" style={{ top: `${currentTimePosition}px` }}>
           <div className="relative h-0.5 bg-primary-500">

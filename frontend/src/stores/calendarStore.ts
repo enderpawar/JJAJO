@@ -16,6 +16,9 @@ interface CalendarStore {
   // 모든 일정 목록
   todos: Todo[]
 
+  /** 짜조 고스트 일정 (미확정 미리보기). 확정 시 todos로 이전 후 비움 */
+  ghostPlans: Todo[]
+
   // 대량 시간표 저장 진행 여부 (백그라운드 인디케이터용)
   isBulkSavingTimetable: boolean
   
@@ -34,6 +37,12 @@ interface CalendarStore {
   setIsBulkSavingTimetable: (value: boolean) => void
   /** 전날 일정 복사 시 복사 대상 + 시간 중복으로 제외된 목록 반환 (상태 변경 없음). */
   copyTodosFromPreviousDay: () => { toCopy: Todo[]; excluded: { title: string; startTime: string; endTime: string }[] }
+  /** 짜조 고스트 일정 설정 (타임라인 미리보기용) */
+  setGhostPlans: (plans: Todo[]) => void
+  /** 고스트 일정 확정: ghostPlans → todos 반영 후 ghostPlans 비우기. 서버 저장용으로 확정된 목록 반환. */
+  confirmGhostPlans: () => Todo[]
+  /** 고스트 일정 취소: ghostPlans 비우기 */
+  clearGhostPlans: () => void
 }
 
 /**
@@ -44,6 +53,7 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   currentMonth: new Date(),
   viewMode: 'month',
   todos: [],
+  ghostPlans: [],
   isBulkSavingTimetable: false,
   
   setSelectedDate: (date) => set({ selectedDate: date }),
@@ -85,6 +95,22 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   },
 
   setIsBulkSavingTimetable: (value) => set({ isBulkSavingTimetable: value }),
+
+  setGhostPlans: (plans) => set({ ghostPlans: plans }),
+
+  confirmGhostPlans: () => {
+    const state = get()
+    if (state.ghostPlans.length === 0) return []
+    const confirmed = state.ghostPlans.map((t) => ({
+      ...t,
+      isGhost: false,
+      id: t.id.startsWith('ghost-') ? `opt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}` : t.id,
+    }))
+    set({ ghostPlans: [], todos: [...state.todos, ...confirmed] })
+    return confirmed
+  },
+
+  clearGhostPlans: () => set({ ghostPlans: [] }),
 
   /**
    * 전날 일정을 현재 선택된 날짜로 복사할 때 쓸 목록 반환 (상태 변경 없음).

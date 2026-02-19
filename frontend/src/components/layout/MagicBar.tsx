@@ -1,15 +1,23 @@
-import { useState, useCallback } from 'react'
-import { Wand2, Loader2, Check, Sparkles } from 'lucide-react'
-import { submitMagicBarCommand } from '@/services/magicBarService'
+import { useState, useCallback, useRef } from 'react'
+import { Wand2, Loader2, Check, Sparkles, CheckCircle2, RefreshCw, X } from 'lucide-react'
+import { submitMagicBarCommand, requestJjajoPlanner } from '@/services/magicBarService'
+import { useCalendarStore } from '@/stores/calendarStore'
+import { createSchedule } from '@/services/scheduleService'
 
 /** 구체적인 예시로 입력 가이드 제공 */
 const PLACEHOLDER = '예: 내일 오후 3시 회의, 다음 주 월요일 2시간 스터디'
+const JJAJO_PLACEHOLDER = '예: 오늘 6시간 공부 짜줘, 할 일 계획해줘'
 
 export default function MagicBar() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [editMode, setEditMode] = useState(false)
+  const [lastPlannerCommand, setLastPlannerCommand] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const ghostPlans = useCalendarStore((s) => s.ghostPlans)
+  const { confirmGhostPlans, clearGhostPlans, deleteTodo, addTodo } = useCalendarStore()
 
   const submit = useCallback(async () => {
     const trimmed = input.trim()
@@ -18,20 +26,22 @@ export default function MagicBar() {
     setLoading(true)
     setMessage(null)
 
-    // 순수 추가는 parse-schedule 우선, 수정/삭제는 edit-schedule
-    const result = await submitMagicBarCommand(trimmed)
+    const result = await submitMagicBarCommand(trimmed, { editMode })
 
     setLoading(false)
     if (result.success) {
       setInput('')
-      if ('appliedCount' in result) {
+      if ('isGhost' in result && result.isGhost && 'plansCount' in result) {
+        setLastPlannerCommand(trimmed)
+        setMessage({ type: 'success', text: `짜조가 ${result.plansCount}개 일정을 제안했어요. 확정하거나 수정해 보세요.` })
+      } else if ('appliedCount' in result) {
         setMessage({ type: 'success', text: `${result.appliedCount}개 일정 적용됨` })
       }
       setTimeout(() => setMessage(null), 3000)
     } else {
       setMessage({ type: 'error', text: result.message })
     }
-  }, [input, loading])
+  }, [input, loading, editMode])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
@@ -42,8 +52,59 @@ export default function MagicBar() {
 
   const hasValue = input.trim().length > 0
 
+  const handleWandClick = useCallback(() => {
+    setEditMode((prev) => !prev)
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }, [])
+
+  const handleConfirmGhost = useCallback(async () => {
+    const confirmed = confirmGhostPlans()
+    if (confirmed.length === 0) return
+    for (const todo of confirmed) {
+      try {
+        const saved = await createSchedule({
+          title: todo.title,
+          description: todo.description ?? '',
+          date: todo.date,
+          startTime: todo.startTime ?? undefined,
+          endTime: todo.endTime ?? undefined,
+          status: 'pending',
+          priority: 'medium',
+          createdBy: 'ai',
+        })
+        deleteTodo(todo.id)
+        addTodo(saved)
+      } catch {
+        addTodo(todo)
+      }
+    }
+    setLastPlannerCommand(null)
+    setMessage({ type: 'success', text: `${confirmed.length}개 일정 확정됨` })
+    setTimeout(() => setMessage(null), 3000)
+  }, [confirmGhostPlans, deleteTodo, addTodo])
+
+  const handleCancelGhost = useCallback(() => {
+    clearGhostPlans()
+    setLastPlannerCommand(null)
+  }, [clearGhostPlans])
+
+  const handleRegenerateGhost = useCallback(async () => {
+    if (!lastPlannerCommand?.trim()) return
+    setLoading(true)
+    setMessage(null)
+    clearGhostPlans()
+    const result = await requestJjajoPlanner(lastPlannerCommand)
+    setLoading(false)
+    if (result.success) {
+      setMessage({ type: 'success', text: `다시 ${result.plansCount}개 일정 제안했어요.` })
+      setTimeout(() => setMessage(null), 3000)
+    } else {
+      setMessage({ type: 'error', text: result.message })
+    }
+  }, [lastPlannerCommand, clearGhostPlans])
+
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 py-3">
+    <div ref={containerRef} className="w-full max-w-2xl mx-auto px-4 py-3">
       <div
         className={`
           flex items-center gap-3 rounded-neu neu-inset theme-transition
@@ -51,35 +112,37 @@ export default function MagicBar() {
             ? 'ring-2 ring-red-400/30'
             : ''
           }
+          ${editMode ? 'ring-2 ring-primary-500/40 animate-[pulse_1.5s_ease-in-out_1]' : ''}
           focus-within:ring-2 focus-within:ring-primary-500/15
         `}
       >
-        {/* 마법봉: 클릭 시 대화 모드 토글 - 활성화 시 주황 포인트 */}
+        {/* 마법봉: 클릭 시 짜조 모드 토글 + 테두리 강조 + 입력 포커스 */}
         <button
           type="button"
-          onClick={() => setEditMode((prev) => !prev)}
+          onClick={handleWandClick}
           className={`
             touch-target flex-shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px] w-10 h-10 rounded-neu transition-all duration-200
             ${editMode
-              ? 'neu-date-selected text-primary-500'
+              ? 'neu-date-selected text-primary-500 ring-2 ring-primary-500/50'
               : 'neu-float-sm text-theme-muted hover:text-theme hover:shadow-neu-inset-hover active:scale-[0.98]'
             }
           `}
           aria-pressed={editMode}
-          aria-label={editMode ? '대화형 수정 모드 (끄려면 클릭)' : '대화형 수정 모드 (켜려면 클릭)'}
+          aria-label={editMode ? '짜조 모드 (끄려면 클릭)' : '짜조 모드 (켜려면 클릭)'}
         >
           <Wand2 className="w-5 h-5" strokeWidth={1.8} />
         </button>
 
         <input
+          ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={PLACEHOLDER}
+          placeholder={editMode ? JJAJO_PLACEHOLDER : PLACEHOLDER}
           disabled={loading}
           className="flex-1 min-w-0 py-3 pr-2 bg-transparent text-theme placeholder:text-theme-muted text-sm outline-none disabled:opacity-60 theme-transition"
-          aria-label="일정 추가·수정·삭제"
+          aria-label="일정 추가·수정·짜조 계획"
         />
 
         <button
@@ -117,6 +180,37 @@ export default function MagicBar() {
             <Check className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500" />
           ) : null}
           <span>{message.text}</span>
+        </div>
+      )}
+
+      {/* 고스트 일정이 있을 때만 플로팅 액션 바 */}
+      {ghostPlans.length > 0 && (
+        <div className="mt-3 flex items-center justify-center gap-2 flex-wrap animate-fadeIn">
+          <button
+            type="button"
+            onClick={handleConfirmGhost}
+            className="touch-target flex items-center gap-2 px-4 py-2 rounded-neu bg-primary-500 text-white font-medium text-sm hover:bg-primary-600 active:scale-[0.98] transition-all"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            확정
+          </button>
+          <button
+            type="button"
+            onClick={handleRegenerateGhost}
+            disabled={loading || !lastPlannerCommand}
+            className="touch-target flex items-center gap-2 px-4 py-2 rounded-neu neu-float-sm text-theme font-medium text-sm hover:shadow-neu-inset-hover active:scale-[0.98] transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            다시 생성
+          </button>
+          <button
+            type="button"
+            onClick={handleCancelGhost}
+            className="touch-target flex items-center gap-2 px-4 py-2 rounded-neu neu-float-sm text-theme-muted font-medium text-sm hover:shadow-neu-inset-hover active:scale-[0.98] transition-all"
+          >
+            <X className="w-4 h-4" />
+            취소
+          </button>
         </div>
       )}
     </div>
