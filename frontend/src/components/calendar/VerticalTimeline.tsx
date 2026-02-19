@@ -320,7 +320,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
 
       const initialStartPixel = timeToPixels(task.startTime)
       const initialEndPixel = timeToPixels(task.endTime)
-      const MIN_BLOCK_HEIGHT = 40
+      const MIN_BLOCK_HEIGHT = 72
 
       const handleMove = (ev: MouseEvent | TouchEvent) => {
         const clientY =
@@ -425,6 +425,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     }
 
     const baseHeight = endPixel - startPixel
+    const isCompactHeight = baseHeight < 72
     const isPast = isSelectedDateToday && endPixel < currentTimePosition
     const isCurrent = isSelectedDateToday && startPixel <= currentTimePosition && currentTimePosition < endPixel
     const isFuture = isSelectedDateToday && startPixel > currentTimePosition
@@ -445,8 +446,9 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         animate={isJustCreated ? { scale: 1, opacity: 1 } : { opacity: 1 }}
         transition={isJustCreated ? { type: 'spring', stiffness: 380, damping: 26 } : undefined}
         className={`
-          task-card group absolute left-0 right-0 mx-3 sm:mx-4 cursor-pointer active:cursor-grabbing overflow-hidden touch-none
+          task-card group absolute left-0 right-0 mx-auto w-[99%] max-w-[1200px] cursor-pointer active:cursor-grabbing overflow-hidden touch-none
           bg-theme-card theme-transition
+          border border-theme-muted/50 hover:border-theme-muted/70
           ${isEditingThisTask ? 'rounded-2xl shadow-neu-float-date' : 'rounded-neu'}
           ${isCurrent ? 'task-card-active' : ''}
           ${!isCurrent && !isEditingThisTask
@@ -578,7 +580,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
             </div>
           </>
         )}
-        <div className="relative z-10 p-4">
+        <div className="relative z-10 h-full px-6 py-4 flex flex-col items-center justify-center text-center">
           <div className="absolute top-2 right-2 z-20 flex items-center gap-1">
             {isEditingThisTask && (
               <button
@@ -612,10 +614,6 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
             </button>
           </div>
 
-          <div className="text-sm font-medium mb-2 text-theme-muted">
-            {task.startTime} - {task.endTime}
-          </div>
-
           {isEditingThisTask ? (
             <input
               ref={titleInputRef}
@@ -638,17 +636,30 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="min-w-0 w-full sm:w-[25%] pr-12 text-lg font-semibold mb-2 leading-tight neu-inset-sm rounded px-2 py-1 focus:outline-none focus:ring-0 focus-visible:ring-0 theme-transition text-theme placeholder-theme-muted"
+              className="min-w-0 w-full sm:w-[25%] text-lg font-semibold mb-2 leading-tight neu-inset-sm rounded px-4 py-1 focus:outline-none focus:ring-0 focus-visible:ring-0 theme-transition text-theme placeholder-theme-muted text-center placeholder:text-center"
               placeholder="제목"
             />
           ) : (
             <>
-              <div className="text-lg font-semibold mb-2 leading-tight pr-12 text-theme">
-                {task.title}
-              </div>
-              {task.title === '새 일정' && (
-                <div className="text-xs text-theme-muted">연필 아이콘을 눌러 제목을 입력하세요</div>
-              )}
+              <>
+                <div
+                  className={`${
+                    isCompactHeight ? 'text-xs mb-1' : 'text-base mb-2'
+                  } font-semibold text-theme-muted w-full flex items-center justify-center`}
+                >
+                  {task.startTime} - {task.endTime}
+                </div>
+                <div
+                  className={`${
+                    isCompactHeight ? 'text-lg' : 'text-2xl'
+                  } font-bold leading-tight text-theme w-full flex items-center justify-center`}
+                >
+                  {task.title}
+                </div>
+                {!isCompactHeight && task.title === '새 일정' && (
+                  <div className="text-xs text-theme-muted">연필 아이콘을 눌러 제목을 입력하세요</div>
+                )}
+              </>
             </>
           )}
 
