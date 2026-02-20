@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Sparkles, Plus, Clock, CheckCircle2, Circle } from 'lucide-react'
+import { Sparkles, Plus, Clock, CheckSquare, Square } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import type { Todo } from '@/types/calendar'
 import AddTodoModal from './AddTodoModal'
@@ -17,11 +17,11 @@ export default function AiTodosSidebar() {
   const getStatusIcon = (status: Todo['status']) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle2 className="w-4 h-4 text-green-500" />
+        return <CheckSquare className="w-4 h-4 text-primary-500" />
       case 'in-progress':
         return <Clock className="w-4 h-4 text-blue-500" />
       default:
-        return <Circle className="w-4 h-4 text-gray-400" />
+        return <Square className="w-4 h-4 text-gray-400" />
     }
   }
   

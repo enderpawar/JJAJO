@@ -82,24 +82,24 @@ export function GoalList({ variant = 'default', onBackwardsPlanClick, onEditGoal
     return (
       <div
         className={cn(
-          'rounded-2xl p-6 text-center theme-transition',
+          'rounded-2xl p-6 text-center theme-transition relative overflow-hidden empty-state-pattern',
           isNotion
             ? 'bg-theme-card shadow-neu-float-date rounded-neu'
             : 'bg-white shadow-lg p-8'
         )}
       >
         <div className={cn(
-          'w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3',
+          'w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 relative z-10',
           isNotion ? 'bg-red-500/10' : 'bg-gray-100'
         )}>
           <Target
             className={cn('w-6 h-6', isNotion ? 'text-red-500/90' : 'text-gray-400')}
           />
         </div>
-        <p className={cn('text-sm font-medium', isNotion ? 'text-theme' : 'text-gray-600 dark:text-theme')}>
+        <p className={cn('text-sm font-medium relative z-10', isNotion ? 'text-theme' : 'text-gray-600 dark:text-theme')}>
           설정된 목표가 없습니다
         </p>
-        <p className={cn('text-xs mt-1', isNotion ? 'text-theme-muted' : 'text-gray-400 dark:text-theme-muted')}>
+        <p className={cn('text-xs mt-1 relative z-10', isNotion ? 'text-theme-muted' : 'text-gray-400 dark:text-theme-muted')}>
           새 목표를 만들어 체계적으로 달성해보세요
         </p>
       </div>

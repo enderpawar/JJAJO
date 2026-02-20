@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Menu } from '@headlessui/react'
-import { Settings, X, Moon, Sun, Copy, Calendar, CalendarDays, LogIn, RotateCcw, MoreVertical } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Settings, X, Moon, Sun, Copy, Calendar, CalendarDays, LogIn, RotateCcw, MoreVertical, ChevronDown, ChevronUp } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
-import { useSettingsStore } from '@/stores/settingsStore'
+import { useSettingsStore, type AccentColor } from '@/stores/settingsStore'
 import { TimeSlotSettings } from '@/components/settings/TimeSlotSettings'
 import { ApiKeySettings } from '@/components/settings/ApiKeySettings'
 import { ScheduleDataSettings } from '@/components/settings/ScheduleDataSettings'
@@ -16,14 +17,25 @@ import { ConfirmModal } from '@/components/ConfirmModal'
 import { cn } from '@/utils/cn'
 
 interface HeaderProps {
-  onOpenMonthlyCalendar?: () => void
   onOpenImportTimetable?: () => void
+  /** 월간→주간 전환 시 호출 (주간 타임라인 자동 스크롤 스킵용) */
+  onSwitchToWeekView?: () => void
+  /** 주간 모드에서 주간 날짜 strip 펼침 여부 (같은 줄에 "오늘" 버튼 표시용) */
+  weekStripExpanded?: boolean
+  /** 주간 날짜 strip 펼치기/접기 토글 */
+  onToggleWeekStrip?: () => void
 }
 
-export default function Header({ onOpenMonthlyCalendar, onOpenImportTimetable }: HeaderProps) {
-  const { copyTodosFromPreviousDay, addTodos, selectedDate, isBulkSavingTimetable, getTodosByDate, deleteTodo, addTodo } = useCalendarStore()
+export default function Header({ onOpenImportTimetable, onSwitchToWeekView, weekStripExpanded, onToggleWeekStrip }: HeaderProps) {
+  const { copyTodosFromPreviousDay, addTodos, selectedDate, isBulkSavingTimetable, getTodosByDate, deleteTodo, addTodo, viewMode, setViewMode } = useCalendarStore()
   const { addToast } = useToastStore()
-  const { theme, toggleTheme, initTheme } = useSettingsStore()
+  const { theme, toggleTheme, initTheme, accentColor, setAccentColor, bgPattern, setBgPattern } = useSettingsStore()
+  const ACCENT_OPTIONS: { value: AccentColor; label: string; className: string }[] = [
+    { value: 'orange', label: '주황', className: 'bg-orange-500' },
+    { value: 'blue', label: '파랑', className: 'bg-blue-500' },
+    { value: 'purple', label: '보라', className: 'bg-purple-500' },
+    { value: 'green', label: '초록', className: 'bg-emerald-500' },
+  ]
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
   const [showResetDayConfirm, setShowResetDayConfirm] = useState(false)
@@ -36,10 +48,10 @@ export default function Header({ onOpenMonthlyCalendar, onOpenImportTimetable }:
     window.location.href = url
   }
 
-  // 컴포넌트 마운트 시 테마 초기화
+  // 테마·강조색·배경패턴 적용 (마운트 시 + rehydration/설정 변경 시)
   useEffect(() => {
     initTheme()
-  }, [initTheme])
+  }, [initTheme, theme, accentColor, bgPattern])
 
   // 설정 모달 열릴 때 body 스크롤 잠금 (크로스플랫폼)
   useEffect(() => {
@@ -150,13 +162,34 @@ export default function Header({ onOpenMonthlyCalendar, onOpenImportTimetable }:
   return (
     <header className="relative z-30 theme-transition border-b border-[var(--border-color)]" style={{ isolation: 'isolate', backgroundColor: 'var(--bg-color)' }}>
       <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 min-h-[5rem] flex flex-col justify-center">
-        <div className="flex items-center justify-end h-[60px]">
-          <div className="flex items-center gap-0 sm:gap-1">
+        <div className="flex items-center h-[52px] sm:h-[56px] gap-2">
+          {/* 왼쪽 빈 공간: 오른쪽 컨트롤과 대칭으로 화살표가 중앙에 오도록 */}
+          <div className="flex-1 min-w-0" aria-hidden />
+          {/* 중앙: 주간 모드일 때만 화살표 버튼 */}
+          <div className="shrink-0 flex items-center justify-center">
+            {onToggleWeekStrip ? (
+              <button
+                type="button"
+                onClick={onToggleWeekStrip}
+                className="touch-target flex items-center justify-center w-10 h-10 rounded-xl text-theme-muted theme-transition hover:bg-[var(--hover-bg)] hover:text-theme active:scale-[0.98]"
+                aria-expanded={weekStripExpanded ?? false}
+                aria-label={weekStripExpanded ? '주간 날짜 접기' : '주간 날짜 펼치기'}
+              >
+                {weekStripExpanded ? (
+                  <ChevronUp className="w-5 h-5 shrink-0" aria-hidden />
+                ) : (
+                  <ChevronDown className="w-5 h-5 shrink-0" aria-hidden />
+                )}
+              </button>
+            ) : null}
+          </div>
+          {/* 오른쪽: 일정, 주간|월간, 테마, 설정 (flex-1 + justify-end로 오른쪽 정렬) */}
+          <div className="flex-1 min-w-0 flex items-center justify-end gap-1 sm:gap-2">
             {/* 일정 메뉴 (복사·초기화·시간표) */}
             <Menu as="div" className="relative">
               <Menu.Button
                 type="button"
-                className="neu-btn touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] rounded-neu text-xs font-medium cursor-pointer"
+                className="neu-btn touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] h-10 rounded-xl text-xs font-medium cursor-pointer transition-colors hover:opacity-90"
                 style={{ color: 'var(--text-main)' }}
                 title="일정 복사·초기화·시간표"
                 aria-label="일정 메뉴"
@@ -238,28 +271,61 @@ export default function Header({ onOpenMonthlyCalendar, onOpenImportTimetable }:
               </Menu.Items>
             </Menu>
 
-            <span className="hidden sm:block w-px h-5 mx-0.5 shrink-0" style={{ backgroundColor: 'var(--border-color)' }} aria-hidden />
+            <span className="w-px h-6 shrink-0 opacity-60" style={{ backgroundColor: 'var(--border-color)' }} aria-hidden />
 
-            {onOpenMonthlyCalendar && (
-              <button
-                type="button"
-                onClick={onOpenMonthlyCalendar}
-                className="neu-btn touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] rounded-neu text-xs font-medium cursor-pointer"
-                style={{ color: 'var(--text-main)' }}
-                title="월간 일정 보기"
+            {/* 주간 ↔ 월간 슬라이드 토글 (메뉴 전체 클릭 시 주간↔월간 전환) */}
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label={viewMode === 'week' ? '월간으로 전환' : '주간으로 전환'}
+              className="view-toggle-track relative flex overflow-hidden min-w-[100px] sm:min-w-[120px] cursor-pointer"
+              onClick={() => {
+                const nextMode = viewMode === 'week' ? 'month' : 'week'
+                if (nextMode === 'week') onSwitchToWeekView?.()
+                setViewMode(nextMode)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  const nextMode = viewMode === 'week' ? 'month' : 'week'
+                  if (nextMode === 'week') onSwitchToWeekView?.()
+                  setViewMode(nextMode)
+                }
+              }}
+            >
+              <motion.div
+                className="view-toggle-pill absolute top-1 bottom-1 w-[calc(50%-4px)] pointer-events-none"
+                style={{ left: 4 }}
+                animate={{ x: viewMode === 'week' ? 0 : '100%' }}
+                transition={{ type: 'tween', duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+              />
+              <span
+                className={cn(
+                  'relative z-10 flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs min-w-0 transition-colors pointer-events-none',
+                  viewMode === 'week' ? 'font-semibold text-[var(--text-main)]' : 'font-medium text-[var(--text-muted)]'
+                )}
               >
-                <Calendar className="w-4 h-4" />
+                <CalendarDays className="w-4 h-4 flex-shrink-0" />
+                <span className="hidden sm:inline">주간</span>
+              </span>
+              <span
+                className={cn(
+                  'relative z-10 flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs min-w-0 transition-colors pointer-events-none',
+                  viewMode === 'month' ? 'font-semibold text-[var(--text-main)]' : 'font-medium text-[var(--text-muted)]'
+                )}
+              >
+                <Calendar className="w-4 h-4 flex-shrink-0" />
                 <span className="hidden sm:inline">월간</span>
-              </button>
-            )}
+              </span>
+            </div>
 
-            <span className="hidden sm:block w-px h-5 mx-0.5 shrink-0" style={{ backgroundColor: 'var(--border-color)' }} aria-hidden />
+            <span className="w-px h-6 shrink-0 opacity-60" style={{ backgroundColor: 'var(--border-color)' }} aria-hidden />
 
             {/* 테마 토글 */}
             <button
               type="button"
               onClick={toggleTheme}
-              className="theme-toggle-switch touch-target"
+              className="theme-toggle-switch touch-target rounded-xl"
               title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
               aria-label={theme === 'dark' ? '라이트 모드' : '다크 모드'}
             >
@@ -269,7 +335,7 @@ export default function Header({ onOpenMonthlyCalendar, onOpenImportTimetable }:
             <button
               type="button"
               onClick={() => setIsSettingsOpen(true)}
-              className="neu-btn touch-target flex items-center justify-center p-2 min-w-[44px] rounded-neu cursor-pointer"
+              className="neu-btn touch-target flex items-center justify-center p-2 min-w-[44px] min-h-[44px] rounded-xl cursor-pointer transition-colors hover:opacity-90"
               style={{ color: 'var(--text-main)' }}
               title="설정"
               aria-label="설정"
@@ -321,6 +387,41 @@ export default function Header({ onOpenMonthlyCalendar, onOpenImportTimetable }:
             </div>
 
             <div className="p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-8 bg-theme-card theme-transition">
+              <div className="pb-6 border-b border-theme">
+                <h3 className="text-sm font-semibold text-theme mb-3">테마</h3>
+                <p className="text-xs text-theme-muted mb-2">강조 색상</p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {ACCENT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setAccentColor(opt.value)}
+                      className={cn(
+                        'touch-target w-9 h-9 rounded-full border-2 transition-all',
+                        opt.className,
+                        accentColor === opt.value ? 'ring-2 ring-theme ring-offset-2 ring-offset-theme-card scale-110' : 'opacity-80 hover:opacity-100 hover:scale-105',
+                        accentColor === opt.value ? 'border-theme' : 'border-transparent'
+                      )}
+                      title={opt.label}
+                      aria-label={opt.label}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-theme-muted mb-2">배경 패턴</p>
+                <button
+                  type="button"
+                  onClick={() => setBgPattern(!bgPattern)}
+                  className={cn(
+                    'touch-target flex items-center gap-2 px-3 py-2 rounded-neu text-sm font-medium theme-transition',
+                    bgPattern ? 'neu-date-selected' : 'neu-float-sm'
+                  )}
+                >
+                  <span className="w-4 h-4 rounded border border-theme flex items-center justify-center">
+                    {bgPattern ? <span className="text-primary-500">✓</span> : null}
+                  </span>
+                  {bgPattern ? '패턴 켜짐' : '패턴 끔'}
+                </button>
+              </div>
               <div className="pb-6 border-b border-theme">
                 <h3 className="text-sm font-semibold text-theme mb-2">계정</h3>
                 <button

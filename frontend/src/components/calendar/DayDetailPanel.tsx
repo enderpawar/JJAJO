@@ -1,13 +1,12 @@
-import { useState, useEffect } from 'react'
-import { Calendar, Clock, Plus, Edit2, Trash2, Trash } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Clock, Plus, Edit2, Trash2, Check, MoreHorizontal } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useToastStore } from '@/stores/toastStore'
-import { deleteSchedule } from '@/services/scheduleService'
+import { deleteSchedule, updateSchedule } from '@/services/scheduleService'
 import { formatDate, formatDateWithDay } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
 import type { Todo } from '@/types/calendar'
 import AddTodoModal from './AddTodoModal'
-import EditTodoPanel from './EditTodoPanel'
 import { ConfirmModal } from '@/components/ConfirmModal'
 
 interface DayDetailPanelProps {
@@ -20,13 +19,16 @@ interface DayDetailPanelProps {
 }
 
 export default function DayDetailPanel({ embedded = false, openAddModal = false, onAddModalOpened }: DayDetailPanelProps = {}) {
-  const { selectedDate, getTodosByDate, deleteTodo, addTodo } = useCalendarStore()
+  const { selectedDate, getTodosByDate, deleteTodo, addTodo, updateTodo } = useCalendarStore()
   const { addToast } = useToastStore()
   const [deleteConfirmTodo, setDeleteConfirmTodo] = useState<Todo | null>(null)
   const [deleteAllTodayConfirm, setDeleteAllTodayConfirm] = useState(false)
   const [isDeletingAllToday, setIsDeletingAllToday] = useState(false)
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
+  const [editForm, setEditForm] = useState({ title: '', startTime: '', endTime: '', description: '' })
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
+  const titleInputRef = useRef<HTMLInputElement>(null)
 
   const dateStr = formatDate(selectedDate)
   const isTodaySelected = dateStr === formatDate(new Date())
@@ -37,6 +39,13 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
       onAddModalOpened?.()
     }
   }, [openAddModal])
+
+  // 편집 모드 진입 시 제목 input에 포커스
+  useEffect(() => {
+    if (!editingTodo) return
+    const t = setTimeout(() => titleInputRef.current?.focus(), 0)
+    return () => clearTimeout(t)
+  }, [editingTodo?.id])
 
   /** 낙관적 삭제: 즉시 UI에서 제거한 뒤 백그라운드에서 API 호출. 실패 시 롤백. */
   const performDeleteTodo = (todo: Todo) => {
@@ -90,179 +99,227 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
     return a.startTime.localeCompare(b.startTime)
   })
   
-  const getPriorityColor = (priority: Todo['priority']) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-red-500'
-      case 'medium':
-        return 'bg-yellow-500'
-      case 'low':
-        return 'bg-green-500'
+  /** 완료 토글 (취소된 일정은 제외) */
+  const handleToggleComplete = (todo: Todo) => {
+    if (todo.status === 'cancelled') return
+    const nextStatus = todo.status === 'completed' ? 'pending' : 'completed'
+    updateTodo(todo.id, { status: nextStatus, updatedAt: new Date().toISOString() })
+    if (!todo.id.startsWith('opt-')) {
+      updateSchedule(todo.id, { status: nextStatus }).catch((e) => {
+        updateTodo(todo.id, { status: todo.status })
+        addToast(`저장 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
+      })
     }
   }
-  
-  const getStatusLabel = (status: Todo['status']) => {
-    switch (status) {
-      case 'completed':
-        return '완료'
-      case 'in-progress':
-        return '진행중'
-      case 'pending':
-        return '대기'
-      case 'cancelled':
-        return '취소'
+
+  /** 인라인 편집 시작 */
+  const startEditing = (todo: Todo) => {
+    setEditingTodo(todo)
+    setEditForm({
+      title: todo.title,
+      startTime: todo.startTime ?? '',
+      endTime: todo.endTime ?? '',
+      description: todo.description ?? '',
+    })
+  }
+
+  /** 인라인 편집 저장 */
+  const saveInlineEdit = async () => {
+    if (!editingTodo) return
+    const { title, startTime, endTime, description } = editForm
+    const prev = { ...editingTodo }
+    updateTodo(editingTodo.id, {
+      title: title.trim() || editingTodo.title,
+      startTime: startTime || undefined,
+      endTime: endTime || undefined,
+      description: description.trim() || undefined,
+      updatedAt: new Date().toISOString(),
+    })
+    setEditingTodo(null)
+    if (editingTodo.id.startsWith('opt-')) return
+    try {
+      const updated = await updateSchedule(editingTodo.id, {
+        title: title.trim() || editingTodo.title,
+        startTime: startTime || undefined,
+        endTime: endTime || undefined,
+        description: description.trim() || undefined,
+      })
+      updateTodo(editingTodo.id, { updatedAt: updated.updatedAt ?? new Date().toISOString() })
+    } catch (e) {
+      updateTodo(editingTodo.id, prev)
+      addToast(`저장 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
     }
   }
-  
+
+  /** 인라인 편집 취소 */
+  const cancelInlineEdit = () => {
+    setEditingTodo(null)
+  }
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && editingTodo) cancelInlineEdit()
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [editingTodo])
+
   return (
-    <div
-      className={cn(
-        'flex flex-col min-h-0 flex-1 overflow-hidden',
-        embedded ? 'p-0 max-h-none' : 'neu-float rounded-2xl p-4 sm:p-6 max-h-[60vh] sm:max-h-[70vh]'
-      )}
-    >
-      {/* 헤더 (모바일 캘린더 하단 embedded일 때는 생략 — 날짜는 캘린더에서 이미 보임) */}
-      {!embedded && (
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar className="w-5 h-5 text-primary-500" />
-            <h3 className="text-lg font-bold text-theme">
-              {formatDateWithDay(selectedDate)}
-            </h3>
-          </div>
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <p className="text-sm text-theme-muted">
-              <span className={todos.length > 0 ? 'text-primary-400 font-medium' : ''}>{todos.length}개</span>의 일정
-            </p>
-            {isTodaySelected && todos.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setDeleteAllTodayConfirm(true)}
-                disabled={isDeletingAllToday}
-                className="text-xs text-red-500 hover:text-red-400 font-medium flex items-center gap-1.5 py-1.5 px-2 rounded-neu hover:bg-red-500/10 transition-colors disabled:opacity-50"
-                title="오늘 배치된 일정 전체 삭제"
-              >
-                <Trash className="w-3.5 h-3.5" />
-                <span>오늘 일정 전체 삭제</span>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-      
-      {/* 일정 목록 */}
-      <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-        {todos.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 neu-inset rounded-full flex items-center justify-center mx-auto mb-3">
-              <Calendar className="w-8 h-8 text-primary-500/80" />
-            </div>
-            <p className="text-sm font-medium text-theme">
-              등록된 일정이 없습니다
-            </p>
-            <p className="text-xs text-theme-muted mt-1">
-              새 일정을 추가해보세요
-            </p>
-          </div>
-        ) : (
-          sortedTodos.map((todo) => (
-            <div
-              key={todo.id}
-              className={cn(
-                'p-4 rounded-neu bg-theme-card theme-transition',
-                  todo.createdBy === 'ai' 
-                  ? 'shadow-neu-float-date ring-2 ring-primary-500/10' 
-                  : 'shadow-neu-float-date'
-              )}
-            >
-              <div className="flex items-start gap-3">
-                {/* 우선순위 표시 */}
-                <div className={cn('w-1 h-full rounded-full', getPriorityColor(todo.priority))} />
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h4 className="font-semibold text-theme">
-                      {todo.title}
-                    </h4>
-                    <div className="flex gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setEditingTodo(todo)
-                        }}
-                        className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2.5 rounded-neu"
-                        title="편집"
-                      >
-                        <Edit2 className="w-4 h-4 text-theme-muted" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeleteConfirmTodo(todo)
-                        }}
-                        className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2.5 rounded-neu hover:shadow-neu-inset-hover"
-                        title="삭제"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {todo.description && (
-                    <p className="text-sm text-theme-muted mb-2">
-                      {todo.description}
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center gap-3 text-xs text-theme-muted">
-                    {todo.startTime && (
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{todo.startTime}</span>
-                        {todo.endTime && <span>~ {todo.endTime}</span>}
-                      </div>
-                    )}
-                    
-                    <span className={cn(
-                      'px-2 py-0.5 rounded-full text-xs',
-                      todo.status === 'completed' && 'bg-green-500/20 text-green-400',
-                      todo.status === 'in-progress' && 'bg-primary-500/20 text-primary-400',
-                      todo.status === 'pending' && 'bg-[var(--hover-bg)] text-theme-muted',
-                      todo.status === 'cancelled' && 'bg-red-500/20 text-red-400'
-                    )}>
-                      {getStatusLabel(todo.status)}
-                    </span>
-                    
-                    {todo.createdBy === 'ai' && (
-                      <span className="px-2 py-0.5 rounded-full bg-primary-500/20 text-primary-400">
-                        AI
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))
+    <div className={cn('flex flex-col min-h-0 flex-1 overflow-hidden', embedded && 'p-0 max-h-none')}>
+      {/* 심플 헤더: 선택한 날짜 + 개수 */}
+      <div className="flex items-baseline justify-between gap-2 mb-4">
+        <h3 className="text-base font-semibold text-theme">
+          {formatDateWithDay(selectedDate)}
+          {isTodaySelected && (
+            <span className="ml-2 text-xs font-medium text-primary-500">오늘</span>
+          )}
+        </h3>
+        {todos.length > 0 && (
+          <span className="text-xs text-theme-muted tabular-nums">{todos.length}개</span>
         )}
       </div>
-      
-      {/* 모바일(embedded): 롱프레스 안내 문구 / 데스크톱: 일정 추가 버튼 */}
-      {embedded ? (
-        <p className="text-xs text-theme-muted text-center py-3">
-          원하는 일자를 길게 눌러 일정을 추가하세요
-        </p>
-      ) : (
+      {isTodaySelected && todos.length > 0 && (
         <button
           type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="btn-primary w-full flex items-center justify-center gap-2"
+          onClick={() => setDeleteAllTodayConfirm(true)}
+          disabled={isDeletingAllToday}
+          className="text-xs text-red-500/80 hover:text-red-500 mb-3"
+          title="오늘 일정 전체 삭제"
         >
-          <Plus className="w-5 h-5" />
-          <span>이 날에 일정 추가</span>
+          오늘 일정 전체 삭제
         </button>
       )}
+
+      {/* 플랫 리스트 — 체크 + 제목 + 시간, ... 메뉴 */}
+      <div className="flex-1 overflow-y-auto space-y-0 mb-5">
+        {todos.length === 0 ? (
+          <div className="py-10 text-center">
+            <p className="text-sm text-theme-muted mb-4">이 날 일정이 없어요</p>
+          </div>
+        ) : (
+          sortedTodos.map((todo) => {
+            const isEditing = editingTodo?.id === todo.id
+            const isCompleted = todo.status === 'completed'
+            return (
+              <div
+                key={todo.id}
+                className={cn(
+                  'flex items-center gap-3 py-3 border-b border-black/6 dark:border-white/8 last:border-0',
+                  isEditing && 'bg-black/5 dark:bg-white/5 -mx-2 px-2 rounded-lg'
+                )}
+              >
+                {!isEditing && todo.status !== 'cancelled' && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleToggleComplete(todo) }}
+                    className={cn(
+                      'shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50',
+                      isCompleted ? 'border-primary-500 bg-primary-500/20 text-primary-500' : 'border-theme-muted/50'
+                    )}
+                    title={isCompleted ? '완료 해제' : '완료'}
+                    aria-label={isCompleted ? '완료 해제' : '완료'}
+                  >
+                    {isCompleted && <Check className="w-3 h-3" strokeWidth={2.5} />}
+                  </button>
+                )}
+                <div className="flex-1 min-w-0">
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <input
+                        ref={titleInputRef}
+                        type="text"
+                        value={editForm.title}
+                        onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveInlineEdit()
+                          if (e.key === 'Escape') cancelInlineEdit()
+                        }}
+                        className="w-full px-2 py-1.5 rounded-md border border-black/10 dark:border-white/10 bg-transparent text-theme text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-500"
+                        placeholder="제목"
+                      />
+                      <div className="flex gap-2 items-center">
+                        <input
+                          type="time"
+                          value={editForm.startTime}
+                          onChange={(e) => setEditForm((f) => ({ ...f, startTime: e.target.value }))}
+                          className="px-2 py-1 rounded-md border border-black/10 dark:border-white/10 bg-transparent text-theme text-xs"
+                        />
+                        <span className="text-theme-muted">~</span>
+                        <input
+                          type="time"
+                          value={editForm.endTime}
+                          onChange={(e) => setEditForm((f) => ({ ...f, endTime: e.target.value }))}
+                          className="px-2 py-1 rounded-md border border-black/10 dark:border-white/10 bg-transparent text-theme text-xs"
+                        />
+                        <button type="button" onClick={cancelInlineEdit} className="text-xs text-theme-muted">취소</button>
+                        <button type="button" onClick={saveInlineEdit} className="text-xs text-primary-500 font-medium">저장</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className={cn('text-sm text-theme truncate', isCompleted && 'line-through text-theme-muted')}>
+                        {todo.title}
+                      </p>
+                      {(todo.startTime || todo.description) && (
+                        <p className="text-xs text-theme-muted mt-0.5 truncate flex items-center gap-1">
+                          {todo.startTime && (
+                            <>
+                              <Clock className="w-3 h-3 shrink-0" />
+                              {todo.startTime}{todo.endTime ? `–${todo.endTime}` : ''}
+                            </>
+                          )}
+                          {todo.startTime && todo.description && ' · '}
+                          {todo.description}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+                {!isEditing && (
+                  <div className="shrink-0 relative">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === todo.id ? null : todo.id) }}
+                      className="p-1.5 rounded text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10"
+                      title="더보기"
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </button>
+                    {menuOpenId === todo.id && (
+                      <>
+                        <div className="fixed inset-0 z-10" aria-hidden onClick={() => setMenuOpenId(null)} />
+                        <div className="absolute right-0 top-full mt-0.5 z-20 py-1 rounded-lg bg-theme-card border border-black/10 dark:border-white/10 shadow-lg min-w-[96px]">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); startEditing(todo) }} className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-theme hover:bg-black/5 dark:hover:bg-white/10">
+                            <Edit2 className="w-3.5 h-3.5" /> 편집
+                          </button>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); setDeleteConfirmTodo(todo) }} className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-red-500 hover:bg-red-500/10">
+                            <Trash2 className="w-3.5 h-3.5" /> 삭제
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* 일정 추가 — 심플 버튼 */}
+      {embedded ? (
+        <p className="text-xs text-theme-muted text-center py-2">
+          날짜를 <strong className="text-theme">길게 누르면</strong> 일정 추가
+        </p>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => setIsModalOpen(true)}
+        className="w-full py-3 rounded-xl text-sm font-medium text-primary-500 hover:bg-primary-500/10 dark:hover:bg-primary-500/15 transition-colors flex items-center justify-center gap-2"
+      >
+        <Plus className="w-4 h-4" />
+        이 날에 추가
+      </button>
 
       {/* 일정 추가 모달 */}
       <AddTodoModal 
@@ -295,11 +352,6 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
         danger
       />
 
-      {/* 일정 편집 패널 (월간 모달 내에서도 z-index로 최상단 표시) */}
-      <EditTodoPanel
-        todo={editingTodo}
-        onClose={() => setEditingTodo(null)}
-      />
     </div>
   )
 }
