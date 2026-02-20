@@ -45,25 +45,38 @@ export function isSameDay(date1: Date, date2: Date): boolean {
 
 /**
  * 특정 월의 모든 날짜를 가져옴 (이전/다음 월 포함)
+ * @param weekStartsMonday true면 월요일 시작 (dew 스타일), false면 일요일 시작
  */
-export function getCalendarDays(year: number, month: number): Date[] {
+export function getCalendarDays(year: number, month: number, weekStartsMonday = false): Date[] {
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
-  
+
+  if (weekStartsMonday) {
+    // 월요일 시작: 그리드 첫 칸 = 해당 주 월요일
+    const daysFromMonday = (firstDay.getDay() + 6) % 7
+    const startDate = new Date(year, month, 1 - daysFromMonday)
+    const totalCells = 42
+    const days: Date[] = []
+    const current = new Date(startDate)
+    for (let i = 0; i < totalCells; i++) {
+      days.push(new Date(current))
+      current.setDate(current.getDate() + 1)
+    }
+    return days
+  }
+
   const startDate = new Date(firstDay)
-  startDate.setDate(startDate.getDate() - firstDay.getDay()) // 일요일부터 시작
-  
+  startDate.setDate(startDate.getDate() - firstDay.getDay())
+
   const endDate = new Date(lastDay)
   endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()))
-  
+
   const days: Date[] = []
   const current = new Date(startDate)
-  
   while (current <= endDate) {
     days.push(new Date(current))
     current.setDate(current.getDate() + 1)
   }
-  
   return days
 }
 

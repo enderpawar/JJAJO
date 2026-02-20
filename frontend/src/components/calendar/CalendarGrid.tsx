@@ -1,39 +1,15 @@
 import { useRef, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { formatDate, formatYearMonth, getCalendarDays, isSameDay } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
-import type { Todo, TodoPriority } from '@/types/calendar'
 
-/** 우선순위별로 그룹화한 일정 개수·완료 개수 */
-function getTodosByPriority(dateTodos: Todo[]) {
-  const groups: Record<TodoPriority, { count: number; completed: number }> = {
-    high: { count: 0, completed: 0 },
-    medium: { count: 0, completed: 0 },
-    low: { count: 0, completed: 0 },
-  }
-  dateTodos.forEach((t) => {
-    if (t.status === 'cancelled') return
-    groups[t.priority].count += 1
-    if (t.status === 'completed') groups[t.priority].completed += 1
-  })
-  return groups
-}
-
-const PRIORITY_COLORS: Record<TodoPriority, string> = {
-  high: 'bg-red-500 text-white',
-  medium: 'bg-amber-500 text-white',
-  low: 'bg-emerald-500 text-white',
-}
+const WEEK_STARTS_MONDAY = true
 
 interface CalendarGridProps {
-  /** 날짜 클릭 시 호출 (데스크톱 등에서 선택일 영역 포커스용) */
   onDateSelect?: () => void
-  /** 날짜 더블클릭/더블탭 시 호출 (모바일 모달에서 해당일 일정 패널 열기) */
   onDateDoubleClick?: () => void
-  /** 날짜 롱프레스 시 호출 (해당 날짜로 일정 추가 모달 열기 등) */
   onDateLongPress?: (date: Date) => void
-  /** true면 높이 제한 완화, 모달 내부 스크롤로 한 달 전체 표시 */
   allowFullHeight?: boolean
 }
 
@@ -57,20 +33,20 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
 
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
-  const days = getCalendarDays(year, month)
-  
+  const days = getCalendarDays(year, month, WEEK_STARTS_MONDAY)
+
   const handlePrevMonth = () => {
     const newDate = new Date(currentMonth)
     newDate.setMonth(newDate.getMonth() - 1)
     setCurrentMonth(newDate)
   }
-  
+
   const handleNextMonth = () => {
     const newDate = new Date(currentMonth)
     newDate.setMonth(newDate.getMonth() + 1)
     setCurrentMonth(newDate)
   }
-  
+
   const handleDateClick = (date: Date) => {
     if (longPressFiredRef.current) {
       longPressFiredRef.current = false
@@ -119,136 +95,106 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
       setTimeout(() => { touchActiveRef.current = false }, 400)
     }
   }
-  
-  const weekDays = ['일', '월', '화', '수', '목', '금', '토']
-  
+
+  const weekDays = WEEK_STARTS_MONDAY ? ['월', '화', '수', '목', '금', '토', '일'] : ['일', '월', '화', '수', '목', '금', '토']
+
+  /** 일정 제목을 셀 안에서 쓸 수 있도록 짧게 자름 (한 줄 스택용, 한글 기준 약 5글자) */
+  const truncateTitle = (title: string, maxLen = 5) => {
+    const t = (title || '').trim()
+    if (!t) return ''
+    return t.length <= maxLen ? t : t.slice(0, maxLen) + '·'
+  }
+
   return (
     <div
       className={cn(
-        'neu-float p-4 sm:p-6 flex flex-col h-full',
-        allowFullHeight ? 'min-h-0 flex-1 overflow-auto max-h-none' : 'max-h-[50vh] sm:max-h-[60vh] xl:max-h-[750px]'
+        'flex flex-col',
+        allowFullHeight ? 'min-h-0 flex-1' : ''
       )}
     >
-      {/* 월 네비게이션 - 시각적 계층 강화 */}
-      <div className="flex items-center justify-between mb-5 flex-shrink-0">
+      {/* 월 네비게이션 — 심플: 화살표 + 연월만 */}
+      <div className="flex items-center justify-between mb-6">
         <button
           type="button"
           onClick={handlePrevMonth}
-          className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-xl text-theme-muted hover:text-theme transition-colors"
+          className="p-2 -m-2 rounded-full text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
           title="이전 달"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
-        
-        <h2 className="text-lg sm:text-xl font-bold text-theme tracking-tight">
+        <span className="text-lg font-semibold text-theme tabular-nums">
           {formatYearMonth(currentMonth)}
-        </h2>
-        
+        </span>
         <button
           type="button"
           onClick={handleNextMonth}
-          className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-xl text-theme-muted hover:text-theme transition-colors"
+          className="p-2 -m-2 rounded-full text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
           title="다음 달"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
-      
-      {/* 요일 헤더 */}
-      <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 flex-shrink-0">
-        {weekDays.map((day, index) => (
-          <div
-            key={day}
-            className={cn(
-              'text-center text-[11px] sm:text-xs font-semibold py-1.5 rounded-lg',
-              index === 0 ? 'text-red-500/90' : index === 6 ? 'text-primary-500/90' : 'text-theme-muted'
-            )}
-          >
+
+      {/* 요일 */}
+      <div className="grid grid-cols-7 mb-2">
+        {weekDays.map((day) => (
+          <div key={day} className="text-center text-[11px] font-medium text-theme-muted py-1">
             {day}
           </div>
         ))}
       </div>
-      
-      {/* 날짜 그리드 - 해당 월 일자만 표시, 이전/다음 달 칸은 빈 칸 */}
-      <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5 flex-1 min-h-0">
+
+      {/* 날짜 그리드 — 숫자만, 선택/오늘/일정 유무만 표시 */}
+      <div className="grid grid-cols-7 gap-px">
         {days.map((date) => {
           const isCurrentMonthDay = date.getMonth() === month
           if (!isCurrentMonthDay) {
-            return (
-              <div
-                key={`empty-${date.getTime()}`}
-                className="w-full min-h-[48px] sm:min-h-[52px] rounded-[14px] border border-[var(--calendar-cell-border)] bg-theme-card/30 opacity-60"
-                aria-hidden
-              />
-            )
+            return <div key={`empty-${date.getTime()}`} className="aspect-square min-h-[40px]" aria-hidden />
           }
           const dateStr = formatDate(date)
-          const dateTodos = getTodosByDate(dateStr)
+          const dateTodos = getTodosByDate(dateStr).filter((t) => t.status !== 'cancelled')
           const isSelected = isSameDay(date, selectedDate)
           const isToday = dateStr === formatDate(new Date())
-          const byPriority = getTodosByPriority(dateTodos)
-          const indicators = (['high', 'medium', 'low'] as const).filter(
-            (p) => byPriority[p].count > 0
-          )
+          const hasEvents = dateTodos.length > 0
+
           return (
             <button
               key={dateStr}
               type="button"
               onClick={() => handleDateClick(date)}
-              onTouchStart={() => {
-                if (onDateLongPress) startLongPress(date, true)
-              }}
+              onTouchStart={() => onDateLongPress && startLongPress(date, true)}
               onTouchEnd={endLongPress}
               onTouchCancel={endLongPress}
               onMouseDown={() => {
-                if (touchActiveRef.current) return
-                onDateLongPress && startLongPress(date, false)
+                if (!touchActiveRef.current) onDateLongPress && startLongPress(date, false)
               }}
               onMouseUp={endLongPress}
               onMouseLeave={endLongPress}
-              title={onDateLongPress ? '클릭: 선택 · 길게 누르기: 일정 추가' : undefined}
+              title={onDateLongPress ? '길게 누르면 일정 추가' : dateTodos.map((t) => t.title).join(', ') || undefined}
               className={cn(
-                'calendar-date-cell w-full h-full min-h-[48px] sm:min-h-[52px] p-1.5 sm:p-2 theme-transition',
-                'relative flex flex-col items-center justify-center bg-theme-card',
+                'aspect-square min-h-[40px] flex flex-col items-center justify-start pt-0.5 rounded-xl transition-colors',
                 'text-theme',
-                isSelected ? 'neu-date-selected shadow-[var(--shadow-inset-sm)]' : 'neu-float-sm',
-                isToday && !isSelected && 'calendar-date-today',
-                !isSelected && 'hover:shadow-neu-inset-hover'
+                isSelected && 'bg-primary-500/15 text-primary-600 dark:text-primary-400 font-semibold ring-1 ring-primary-500/30',
+                !isSelected && 'hover:bg-black/5 dark:hover:bg-white/5',
+                isToday && !isSelected && 'font-semibold text-primary-500 dark:text-primary-400'
               )}
             >
-              {/* 날짜 셀 상단: 우선순위별 인디케이터(개수 + 완료 시 체크) */}
-              {indicators.length > 0 ? (
-                <div className="flex gap-0.5 sm:gap-1 justify-center items-center mb-0.5 min-h-[18px] shrink-0 flex-wrap">
-                  {indicators.map((priority) => {
-                    const { count, completed } = byPriority[priority]
-                    const allDone = count > 0 && completed === count
-                    return (
-                      <div
-                        key={priority}
-                        className={cn(
-                          'flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-bold shadow-sm',
-                          PRIORITY_COLORS[priority]
-                        )}
-                        title={`${priority} 우선순위 ${count}개${allDone ? ' (완료)' : ''}`}
+              <span className="text-[13px] sm:text-sm tabular-nums shrink-0">{date.getDate()}</span>
+              {hasEvents && (
+                <span className="mt-0.5 px-0.5 w-full min-h-0 flex-1 flex flex-col items-stretch justify-start gap-0 overflow-hidden">
+                  {dateTodos
+                    .slice(0, 3)
+                    .map((t) => (
+                      <span
+                        key={t.id}
+                        className="text-[9px] sm:text-[10px] text-theme-muted leading-tight truncate text-left w-full"
+                        title={t.title}
                       >
-                        {allDone ? (
-                          <Check className="w-3 h-3" strokeWidth={2.5} />
-                        ) : (
-                          count
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="min-h-[18px] shrink-0" aria-hidden />
+                        {truncateTitle(t.title)}
+                      </span>
+                    ))}
+                </span>
               )}
-              <span className={cn(
-                'text-[11px] sm:text-sm font-semibold tabular-nums',
-                isSelected && 'underline decoration-2 decoration-primary-500 underline-offset-2'
-              )}>
-                {date.getDate()}
-              </span>
             </button>
           )
         })}

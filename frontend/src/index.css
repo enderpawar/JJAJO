@@ -681,6 +681,26 @@ html.dark .empty-state-pattern::before {
   html.dark .monthly-planner-card::before {
     opacity: 0.5;
   }
+
+  /* ========== dew 플래너 스타일 ========== */
+  .dew-inactive-cell {
+    background-color: color-mix(in srgb, var(--text-muted) 12%, var(--card-bg));
+    border: none;
+  }
+  html.dark .dew-inactive-cell {
+    background-color: color-mix(in srgb, var(--text-muted) 18%, var(--card-bg));
+  }
+  .dew-date-cell {
+    border: none;
+  }
+  .dew-date-selected {
+    background-color: color-mix(in srgb, var(--primary-point) 10%, var(--card-bg)) !important;
+    box-shadow: 0 0 0 1px var(--primary-point-ring) !important;
+  }
+  html.dark .dew-date-selected {
+    background-color: color-mix(in srgb, var(--primary-point) 18%, var(--card-bg)) !important;
+  }
+
   /* 테마 토글 스위치: 소프트 미니멀, 부드러운 전환 */
   .theme-toggle-switch {
     display: inline-flex;

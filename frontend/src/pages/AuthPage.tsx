@@ -71,10 +71,10 @@ export default function AuthPage() {
       <div className="max-w-md w-full">
         {/* 헤더 */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">
+          <h1 className="text-3xl font-bold mb-2 text-theme">
             짜조에 오신 것을 환영해요!
           </h1>
-          <p className="text-sm text-notion-text-secondary">
+          <p className="text-sm text-theme-muted">
             먼저 계정을 연결한 뒤, 안에서 설정을 통해 Gemini API 키를 입력할 수 있어요.
           </p>
         </div>
@@ -82,7 +82,7 @@ export default function AuthPage() {
         <div className="card space-y-4">
           {/* 로그인 상태 확인 중 표시 */}
           {checking && (
-            <p className="text-xs text-notion-text-secondary mb-2">
+            <p className="text-xs text-theme-muted mb-2">
               로그인 상태를 확인하고 있어요...
             </p>
           )}
@@ -101,10 +101,10 @@ export default function AuthPage() {
             <span>Google 계정으로 시작하기</span>
           </a>
 
-          {/* 안내 문구 */}
-          <div className="mt-2 p-4 neu-inset rounded-neu text-sm text-notion-muted">
-            <p className="mb-1 text-notion-text">
-              로그인 후 오른쪽 상단 <strong className="text-notion-text">설정</strong> 버튼에서 Gemini API 키를 설정하면
+          {/* 안내 문구 - 다크 모드에서도 가독성 확보 (테마 색상 사용) */}
+          <div className="mt-2 p-4 neu-inset rounded-neu text-sm text-theme-muted">
+            <p className="mb-1 text-theme">
+              로그인 후 오른쪽 상단 <strong className="text-theme">설정</strong> 버튼에서 Gemini API 키를 설정하면
               AI 플래너 기능이 활성화됩니다.
             </p>
           </div>
@@ -113,7 +113,7 @@ export default function AuthPage() {
           <button
             type="button"
             onClick={handleEnterPlanner}
-            className="w-full text-xs text-notion-text-secondary hover:text-notion-text-primary underline-offset-2 hover:underline mt-2"
+            className="w-full text-xs text-theme-muted hover:text-theme underline-offset-2 hover:underline mt-2 transition-colors"
           >
             이미 로그인하셨나요? 플래너로 이동하기
           </button>

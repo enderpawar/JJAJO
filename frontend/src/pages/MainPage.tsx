@@ -100,49 +100,18 @@ export default function MainPage() {
         {viewMode === 'month' && (
           <div className="flex-1 overflow-auto theme-transition bg-theme flex flex-col min-h-0">
             <div className="flex-1 overflow-auto min-h-0">
-              <div className="max-w-[1600px] mx-auto p-4 sm:p-6 xl:p-8">
-                {/* 섹션 타이틀: 월간 플래너에 대한 기대감 */}
-                <div className="mb-4 sm:mb-6">
-                  <h2 className="text-theme font-bold text-lg sm:text-xl tracking-tight">
-                    이번 달 일정
-                  </h2>
-                  <p className="text-theme-muted text-xs sm:text-sm mt-0.5">
-                    날짜를 눌러 일정을 확인하고, 길게 눌러 추가하세요
-                  </p>
-                </div>
-
-                {/* 모바일: 캘린더 + 선택한 날짜 일정을 하단에 표시 */}
-                <div className="xl:hidden flex-1 min-h-0 flex flex-col">
-                  <div className="monthly-planner-card neu-float rounded-2xl p-4 sm:p-6 flex flex-col min-h-0 overflow-hidden">
-                    <CalendarGrid
-                      allowFullHeight
-                      onDateLongPress={() => setTriggerAddModalInMonthly(true)}
-                    />
-                    <div className="border-t border-theme mt-4 pt-4 flex flex-col min-h-[140px] max-h-[38vh] shrink-0 overflow-hidden">
-                      <DayDetailPanel
-                        embedded
-                        openAddModal={triggerAddModalInMonthly}
-                        onAddModalOpened={() => setTriggerAddModalInMonthly(false)}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 데스크톱: 상하 배치 (캘린더 위 + 일정 패널 아래) */}
-                <div className="hidden xl:flex xl:flex-col gap-6 xl:gap-8">
-                  <div className="shrink-0">
-                    <div className="monthly-planner-card neu-float rounded-2xl p-8">
-                      <CalendarGrid onDateLongPress={() => setTriggerAddModalInMonthly(true)} />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-h-0 flex flex-col overflow-y-auto pr-2">
-                    <div className="monthly-planner-card neu-float rounded-2xl flex flex-col min-h-0">
-                      <DayDetailPanel
-                        openAddModal={triggerAddModalInMonthly}
-                        onAddModalOpened={() => setTriggerAddModalInMonthly(false)}
-                      />
-                    </div>
-                  </div>
+              <div className="max-w-md mx-auto px-4 py-6 sm:py-8">
+                {/* 한 흐름: 캘린더 → 선택한 날 일정 (카드 없이) */}
+                <CalendarGrid
+                  allowFullHeight
+                  onDateLongPress={() => setTriggerAddModalInMonthly(true)}
+                />
+                <div className="mt-8 pt-8 border-t border-black/8 dark:border-white/10">
+                  <DayDetailPanel
+                    embedded
+                    openAddModal={triggerAddModalInMonthly}
+                    onAddModalOpened={() => setTriggerAddModalInMonthly(false)}
+                  />
                 </div>
               </div>
             </div>
