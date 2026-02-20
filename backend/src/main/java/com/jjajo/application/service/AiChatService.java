@@ -118,17 +118,24 @@ public class AiChatService implements ProcessAiChatUseCase, ParseScheduleUseCase
     public PlannerScheduleResponse planSchedule(PlannerScheduleRequest request, String apiKey) {
         log.info("짜조 플래너 요청: {}", request.getUserText());
         var slots = request.getAvailableSlots() != null ? request.getAvailableSlots() : List.<PlannerScheduleRequest.TimeSlotDto>of();
-        var categoryAndPlans = geminiChatAdapter.detectCategoryAndPlans(request.getUserText(), apiKey);
+        var categoryAndPlans = geminiChatAdapter.detectCategoryAndPlans(
+                request.getUserText(), apiKey, request.getTemplateCategory());
         int currentTimeMinutes = parseTimeToMinutes(request.getCurrentTime());
         var plansWithDuration = categoryAndPlans.plans().stream()
-                .map(p -> new PlannerPlacementService.PlanWithDuration(p.title(), p.durationMinutes()))
+                .map(p -> new PlannerPlacementService.PlanWithDuration(
+                        p.title(), p.durationMinutes(), p.breakMinutesAfter(), p.note()))
                 .toList();
+        boolean fromTemplate = request.getTemplateCategory() != null && !request.getTemplateCategory().isBlank();
         var placed = plannerPlacementService.placePlans(
                 categoryAndPlans.category(),
                 plansWithDuration,
                 slots,
-                currentTimeMinutes);
-        return PlannerScheduleResponse.builder().plans(placed).build();
+                currentTimeMinutes,
+                !fromTemplate); // 템플릿으로 생성 시 휴식 계획카드 미삽입
+        return PlannerScheduleResponse.builder()
+                .plans(placed)
+                .summary(categoryAndPlans.summary())
+                .build();
     }
 
     private static int parseTimeToMinutes(String time) {

@@ -6,41 +6,64 @@ import { createSchedule, deleteSchedule } from '@/services/scheduleService'
 
 type JjajoTemplateCategory = 'study' | 'workout' | 'coding' | 'rest'
 
-/** 구체적인 예시로 입력 가이드 제공 */
-const PLACEHOLDER = '예: 내일 오후 3시 회의, 다음 주 월요일 2시간 스터디'
-const JJAJO_PLACEHOLDER = '예: 오늘 6시간 공부 짜줘, 할 일 계획해줘'
-const JJAJO_TEMPLATES: Record<JjajoTemplateCategory, string> = {
+export interface TemplateParams {
+  start: number
+  end: number
+  blockMax: number
+  breakMin: number
+}
+
+const DEFAULT_TEMPLATE_PARAMS: Record<JjajoTemplateCategory, TemplateParams> = {
+  study: { start: 13, end: 23, blockMax: 90, breakMin: 15 },
+  workout: { start: 18, end: 22, blockMax: 60, breakMin: 10 },
+  coding: { start: 14, end: 22, blockMax: 90, breakMin: 10 },
+  rest: { start: 19, end: 23, blockMax: 60, breakMin: 0 },
+}
+
+const JJAJO_TEMPLATE_STRINGS: Record<JjajoTemplateCategory, string> = {
   study: [
-    '오늘 13~23시 공부 플랜 짜줘. ',
-    '상황: CS 시험 D-7, 오후(13~17시)에 집중 잘 되고 밤에는 집중이 떨어져. ',
-    '해야 할 일: ① 알고리즘 문제 3문제(중요도5, 난이도5) ② CS 이론 복습 2시간(5,4) ③ 기출 풀이 2시간(4,4). ',
-    '제약: 고집중 블록(난이도≥4)은 최대 90분, 각 블록 뒤 15분 휴식. 밤 21시 이후에는 난이도≤3 작업만 배치. ',
-    '출력: 30분 단위 시각표로 `시간대-활동-세부 목표-예상 피로도(1~5)` 형식으로 정리하고, 맨 위에 최우선 할 일 TOP3도 bullets로 요약해줘.'
+    '오늘 {{start}}~{{end}}시 공부 플랜 짜줘. ',
+    '상황: 시험/과제가 있고, 오후에 집중이 잘 되고 밤에는 집중이 떨어져. ',
+    '해야 할 일: (사용자가 적은 목표 또는) ① 고난이도 과제 ② 이론 복습 ③ 기출/연습. ',
+    '제약: 고집중 블록은 최대 {{blockMax}}분, 각 블록 뒤 {{breakMin}}분 휴식. 밤 21시 이후에는 난이도 낮은 작업만 배치. ',
+    '출력: 30분 단위로 시간대-활동-세부 목표-예상 피로도(1~5) 형식으로 정리하고, summary에 오늘 최우선 할 일 2~3가지를 한 줄로 요약해줘.'
   ].join(''),
   workout: [
-    '오늘 18~22시 기준으로 운동 중심 플랜 짜줘. ',
-    '상황: 주 3회 웨이트를 하는 초보자, 오늘은 하체/유산소 위주로 하고 싶어. ',
+    '오늘 {{start}}~{{end}}시 운동 플랜 짜줘. ',
+    '상황: 주 3회 웨이트 초보자, 하체/유산소 위주로 하고 싶어. ',
     '목표: 부상 없이 체력 기르기, 과훈련 방지. ',
     '구성 희망: 워밍업 → 메인 운동(스쿼트·런지 등) → 코어 → 가벼운 유산소 → 스트레칭. ',
-    '제약: 고강도 세트는 연속 40분 이내, 세트 사이 휴식 2~3분, 전체 운동 시간 90분 이내. ',
-    '출력: 10~20분 단위 블록으로 `시간대-운동 내용-세트/횟수-난이도(1~5)` 형식으로 짜주고, 과한 부분이 있으면 코멘트로 조정 의견도 적어줘.'
+    '제약: 고강도 세트는 {{blockMax}}분 이내, 세트 사이 휴식 {{breakMin}}분, 전체 90분 이내. ',
+    '출력: 10~20분 단위 블록으로 시간대-운동 내용-세트/횟수-난이도(1~5) 형식으로 짜주고, summary에 오늘 운동 목표 한 줄 요약해줘.'
   ].join(''),
   coding: [
-    '오늘 14~22시 사이드 프로젝트 코딩 플랜 짜줘. ',
-    '상황: 프론트엔드 리팩토링과 버그 수정이 섞여 있고, 깊이 몰입하는 시간은 오후 2~6시가 좋아. ',
-    '해야 할 일: ① 매직바 짜조 모드 리팩토링(중요도5, 난이도4) ② 캘린더 버그 3개 수정(4,4) ③ 단위 테스트 보강 1시간(3,3) ④ 문서 정리 1시간(3,2). ',
-    '제약: 딥워크 코딩 블록은 90분 이내, 블록 사이 10~15분 휴식. 회의나 가벼운 작업은 에너지 낮은 시간대(저녁)에 배치. ',
-    '출력: 60분 이하 블록들로 `시간대-작업-구체 목표(PR 단위)-예상 난이도/피로도(1~5)`를 적고, 맨 아래에 “오늘 반드시 끝낼 것 3개”를 다시 정리해줘.'
+    '오늘 {{start}}~{{end}}시 사이드 프로젝트/업무 코딩 플랜 짜줘. ',
+    '상황: 리팩토링·버그 수정·신규 개발이 섞여 있고, 깊이 몰입하는 시간은 오후가 좋아. ',
+    '해야 할 일: (사용자가 적은 목표 또는) ① 핵심 리팩토링 ② 버그 수정 ③ 테스트/문서. ',
+    '제약: 딥워크 블록은 {{blockMax}}분 이내, 블록 사이 {{breakMin}}분 휴식. 가벼운 작업은 저녁에 배치. ',
+    '출력: 60분 이하 블록으로 시간대-작업-구체 목표(PR 단위)-난이도/피로도(1~5) 적고, summary에 오늘 반드시 끝낼 것 2~3가지 한 줄로 요약해줘.'
   ].join(''),
   rest: [
-    '오늘 19~23시 회복/휴식 중심 플랜 짜줘. ',
-    '상황: 낮에 과하게 일해서 정신적으로 피곤하고, 내일 아침 일찍 중요한 일이 있어. ',
-    '목표: 과로를 더 키우지 않고, 수면의 질을 최대한 올리기. ',
+    '오늘 {{start}}~{{end}}시 회복/휴식 플랜 짜줘. ',
+    '상황: 낮에 과하게 일해서 피곤하고, 내일 아침 중요한 일이 있어. ',
+    '목표: 과로를 더 키우지 않고, 수면의 질을 올리기. ',
     '희망 활동: 가벼운 산책, 스트레칭, 독서, 일기/리뷰, 내일 준비. ',
-    '제약: 카페인·자극적인 콘텐츠는 21시 이후 금지, 디지털 기기는 취침 1시간 전까지만 사용. ',
-    '출력: 30분 단위로 `시간대-활동-목적(휴식/정리/준비 등)-수면에 미치는 영향(+)`을 적고, 맨 아래에 오늘을 3줄로 돌아보는 리캡 프롬프트도 만들어줘.'
+    '제약: 카페인·자극 콘텐츠 21시 이후 금지, 디지털 기기는 취침 1시간 전까지만. ',
+    '출력: 30분 단위로 시간대-활동-목적(휴식/정리/준비)-수면 영향(+) 적고, summary에 오늘 회복 목표 한 줄 요약해줘.'
   ].join(''),
 }
+
+function fillTemplate(category: JjajoTemplateCategory, params: TemplateParams): string {
+  const raw = JJAJO_TEMPLATE_STRINGS[category]
+  return raw
+    .replace(/\{\{start\}\}/g, String(params.start))
+    .replace(/\{\{end\}\}/g, String(params.end))
+    .replace(/\{\{blockMax\}\}/g, String(params.blockMax))
+    .replace(/\{\{breakMin\}\}/g, String(params.breakMin))
+}
+
+const PLACEHOLDER = '예: 내일 오후 3시 회의, 다음 주 월요일 2시간 스터디'
+const JJAJO_PLACEHOLDER = "할일 목록을 ',' 로 구분하여 넣어주세요. 예: 과제, 오답노트, 이론 복습"
 
 const TEMPLATE_OPTIONS: { key: JjajoTemplateCategory; label: string }[] = [
   { key: 'study', label: '공부 템플릿' },
@@ -56,6 +79,7 @@ export default function MagicBar() {
   const [editMode, setEditMode] = useState(false)
   const [selectedTemplateCategory, setSelectedTemplateCategory] = useState<JjajoTemplateCategory | null>(null)
   const [lastPlannerCommand, setLastPlannerCommand] = useState<string | null>(null)
+  const [lastPlannerSummary, setLastPlannerSummary] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const ghostPlans = useCalendarStore((s) => s.ghostPlans)
@@ -68,13 +92,19 @@ export default function MagicBar() {
     setLoading(true)
     setMessage(null)
 
-    const result = await submitMagicBarCommand(trimmed, { editMode })
+    const result = await submitMagicBarCommand(trimmed, {
+      editMode,
+      templateCategory: selectedTemplateCategory ?? undefined,
+    })
 
     setLoading(false)
     if (result.success) {
       setInput('')
       if ('isGhost' in result && result.isGhost && 'plansCount' in result) {
         setLastPlannerCommand(trimmed)
+        setLastPlannerSummary(
+          result && 'summary' in result && typeof result.summary === 'string' ? result.summary : null
+        )
         setMessage({ type: 'success', text: `짜조가 ${result.plansCount}개 일정을 제안했어요. 확정하거나 수정해 보세요.` })
       } else if ('appliedCount' in result) {
         setMessage({ type: 'success', text: `${result.appliedCount}개 일정 적용됨` })
@@ -83,7 +113,7 @@ export default function MagicBar() {
     } else {
       setMessage({ type: 'error', text: result.message })
     }
-  }, [input, loading, editMode])
+  }, [input, loading, editMode, selectedTemplateCategory])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
@@ -99,12 +129,23 @@ export default function MagicBar() {
     requestAnimationFrame(() => inputRef.current?.focus())
   }, [])
 
+  const [templateParams, setTemplateParams] = useState<TemplateParams | null>(null)
+
   const handleApplyTemplate = useCallback((category: JjajoTemplateCategory) => {
     setEditMode(true)
     setSelectedTemplateCategory(category)
-    setInput(JJAJO_TEMPLATES[category])
+    const params = DEFAULT_TEMPLATE_PARAMS[category]
+    setTemplateParams(params)
+    setInput(fillTemplate(category, params))
     requestAnimationFrame(() => inputRef.current?.focus())
   }, [])
+
+  const applyTemplateParams = useCallback(
+    (category: JjajoTemplateCategory, params: TemplateParams) => {
+      setInput(fillTemplate(category, params))
+    },
+    []
+  )
 
   const handleConfirmGhost = useCallback(async () => {
     const { applied, removed } = applyGhostPlansReplaceDate()
@@ -145,6 +186,7 @@ export default function MagicBar() {
   const handleCancelGhost = useCallback(() => {
     clearGhostPlans()
     setLastPlannerCommand(null)
+    setLastPlannerSummary(null)
   }, [clearGhostPlans])
 
   const handleRegenerateGhost = useCallback(async () => {
@@ -228,23 +270,90 @@ export default function MagicBar() {
       </div>
 
       {editMode && (
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-          <span className="text-theme-muted">짜조 템플릿:</span>
-          {TEMPLATE_OPTIONS.map((opt) => (
-            <button
-              key={opt.key}
-              type="button"
-              onClick={() => handleApplyTemplate(opt.key)}
-              className={`inline-flex items-center justify-center px-2 py-1 rounded-neu neu-float-sm transition-all
-                ${selectedTemplateCategory === opt.key
-                  ? 'bg-primary-500/10 text-primary-500 ring-1 ring-primary-500/40'
-                  : 'text-theme-muted hover:shadow-neu-inset-hover hover:text-theme'
-                }
-              `}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="mt-2 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="text-theme-muted">짜조 템플릿:</span>
+            {TEMPLATE_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => handleApplyTemplate(opt.key)}
+                className={`inline-flex items-center justify-center px-2 py-1 rounded-neu neu-float-sm transition-all
+                  ${selectedTemplateCategory === opt.key
+                    ? 'bg-primary-500/10 text-primary-500 ring-1 ring-primary-500/40'
+                    : 'text-theme-muted hover:shadow-neu-inset-hover hover:text-theme'
+                  }
+                `}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {selectedTemplateCategory && templateParams && (
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-theme-muted">
+              <span>시간대</span>
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={templateParams.start}
+                onChange={(e) => {
+                  const v = Math.max(0, Math.min(23, Number(e.target.value) || 0))
+                  const next = { ...templateParams, start: v }
+                  setTemplateParams(next)
+                  applyTemplateParams(selectedTemplateCategory, next)
+                }}
+                className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
+              />
+              <span>~</span>
+              <input
+                type="number"
+                min={0}
+                max={24}
+                value={templateParams.end}
+                onChange={(e) => {
+                  const v = Math.max(0, Math.min(24, Number(e.target.value) || 0))
+                  const next = { ...templateParams, end: v }
+                  setTemplateParams(next)
+                  applyTemplateParams(selectedTemplateCategory, next)
+                }}
+                className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
+              />
+              <span>시</span>
+              <span className="ml-1">블록</span>
+              <input
+                type="number"
+                min={15}
+                max={180}
+                step={15}
+                value={templateParams.blockMax}
+                onChange={(e) => {
+                  const v = Math.max(15, Math.min(180, Number(e.target.value) || 60))
+                  const next = { ...templateParams, blockMax: v }
+                  setTemplateParams(next)
+                  applyTemplateParams(selectedTemplateCategory, next)
+                }}
+                className="w-12 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
+              />
+              <span>분</span>
+              <span className="ml-1">휴식</span>
+              <input
+                type="number"
+                min={0}
+                max={30}
+                step={5}
+                value={templateParams.breakMin}
+                onChange={(e) => {
+                  const v = Math.max(0, Math.min(30, Number(e.target.value) || 0))
+                  const next = { ...templateParams, breakMin: v }
+                  setTemplateParams(next)
+                  applyTemplateParams(selectedTemplateCategory, next)
+                }}
+                className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
+              />
+              <span>분</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -265,7 +374,13 @@ export default function MagicBar() {
 
       {/* 고스트 일정이 있을 때만 플로팅 액션 바 */}
       {ghostPlans.length > 0 && (
-        <div className="mt-3 flex items-center justify-center gap-2 flex-wrap animate-fadeIn">
+        <div className="mt-3 space-y-2 animate-fadeIn">
+          {lastPlannerSummary && (
+            <p className="text-xs text-theme-muted text-center px-2 py-1.5 rounded-neu bg-theme-bg/80 border border-theme-border/50">
+              📌 {lastPlannerSummary}
+            </p>
+          )}
+          <div className="flex items-center justify-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={handleConfirmGhost}
@@ -291,6 +406,7 @@ export default function MagicBar() {
             <X className="w-4 h-4" />
             취소
           </button>
+          </div>
         </div>
       )}
     </div>

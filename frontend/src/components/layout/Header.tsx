@@ -1,15 +1,19 @@
 import { useState, useEffect, useRef } from 'react'
-import { Settings, X, Moon, Sun, Copy, Calendar, CalendarDays, LogIn } from 'lucide-react'
+import { Menu } from '@headlessui/react'
+import { Settings, X, Moon, Sun, Copy, Calendar, CalendarDays, LogIn, RotateCcw, MoreVertical } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { TimeSlotSettings } from '@/components/settings/TimeSlotSettings'
 import { ApiKeySettings } from '@/components/settings/ApiKeySettings'
 import { ScheduleDataSettings } from '@/components/settings/ScheduleDataSettings'
 import { getApiBase } from '@/utils/api'
-import { createSchedule } from '@/services/scheduleService'
+import { createSchedule, deleteSchedule } from '@/services/scheduleService'
 import { useToastStore } from '@/stores/toastStore'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { formatDate, isToday } from '@/utils/dateUtils'
+import { ConfirmModal } from '@/components/ConfirmModal'
+import { cn } from '@/utils/cn'
 
 interface HeaderProps {
   onOpenMonthlyCalendar?: () => void
@@ -17,11 +21,13 @@ interface HeaderProps {
 }
 
 export default function Header({ onOpenMonthlyCalendar, onOpenImportTimetable }: HeaderProps) {
-  const { copyTodosFromPreviousDay, addTodos, selectedDate, isBulkSavingTimetable } = useCalendarStore()
+  const { copyTodosFromPreviousDay, addTodos, selectedDate, isBulkSavingTimetable, getTodosByDate, deleteTodo, addTodo } = useCalendarStore()
   const { addToast } = useToastStore()
   const { theme, toggleTheme, initTheme } = useSettingsStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
+  const [showResetDayConfirm, setShowResetDayConfirm] = useState(false)
+  const [isResettingDay, setIsResettingDay] = useState(false)
   const settingsScrollRef = useRef<HTMLDivElement>(null)
 
   const handleGoogleLogin = () => {
@@ -109,23 +115,131 @@ export default function Header({ onOpenMonthlyCalendar, onOpenImportTimetable }:
     }
   }
 
+  /** 선택한 날짜의 일정 전체 삭제 (하루 일정 초기화) */
+  const handleResetDay = async () => {
+    const dateStr = formatDate(selectedDate)
+    const toDelete = getTodosByDate(dateStr)
+    if (toDelete.length === 0) {
+      setShowResetDayConfirm(false)
+      addToast('해당 날짜에 일정이 없어요.')
+      return
+    }
+    const copies = toDelete.map((t) => ({ ...t }))
+    setIsResettingDay(true)
+    setShowResetDayConfirm(false)
+    toDelete.forEach((t) => deleteTodo(t.id))
+    const serverIds = toDelete.filter((t) => !t.id.startsWith('opt-'))
+    const results = await Promise.allSettled(serverIds.map((t) => deleteSchedule(t.id)))
+    const failed = results.filter((r) => r.status === 'rejected') as PromiseRejectedResult[]
+    if (failed.length > 0) {
+      copies.forEach((t) => addTodo(t))
+      const msg = failed[0].reason instanceof Error ? failed[0].reason.message : String(failed[0].reason)
+      addToast(`일정 일부 삭제 실패: ${msg}`)
+    } else if (toDelete.length > 0) {
+      addToast(`${format(selectedDate, 'M월 d일', { locale: ko })} 일정 ${toDelete.length}개를 초기화했어요`)
+    }
+    setIsResettingDay(false)
+  }
+
+  const dateStr = formatDate(selectedDate)
+  const todosOnSelectedDay = getTodosByDate(dateStr)
+  const menuTitleLabel = isToday(selectedDate)
+    ? '오늘의 일정'
+    : `${format(selectedDate, 'M월 d일', { locale: ko })} 일정`
+
   return (
     <header className="relative z-30 theme-transition border-b border-[var(--border-color)]" style={{ isolation: 'isolate', backgroundColor: 'var(--bg-color)' }}>
       <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 min-h-[5rem] flex flex-col justify-center">
         <div className="flex items-center justify-end h-[60px]">
-          {/* 우측 메뉴 - 어제 일정 복사 | 월간 | 테마 토글 | 설정 */}
-          <div className="flex items-center gap-1 sm:gap-2">
-            <button
-              type="button"
-              onClick={handleCopyPreviousDay}
-              disabled={isCopying}
-              className="neu-btn touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] rounded-neu text-xs font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ color: 'var(--text-main)' }}
-              title={isCopying ? '복사 중…' : `선택한 날짜(${format(selectedDate, 'M월 d일', { locale: ko })})로 어제 일정 복사`}
-            >
-              <Copy className="w-4 h-4 flex-shrink-0" />
-              <span className="hidden sm:inline">{isCopying ? '복사 중…' : '어제 일정 복사'}</span>
-            </button>
+          <div className="flex items-center gap-0 sm:gap-1">
+            {/* 일정 메뉴 (복사·초기화·시간표) */}
+            <Menu as="div" className="relative">
+              <Menu.Button
+                type="button"
+                className="neu-btn touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] rounded-neu text-xs font-medium cursor-pointer"
+                style={{ color: 'var(--text-main)' }}
+                title="일정 복사·초기화·시간표"
+                aria-label="일정 메뉴"
+              >
+                <MoreVertical className="w-4 h-4 flex-shrink-0" />
+                <span className="hidden sm:inline">일정</span>
+              </Menu.Button>
+              <Menu.Items
+                className={cn(
+                  'absolute right-0 mt-2 w-52 origin-top-right rounded-neu border focus:outline-none z-20 theme-transition',
+                  'bg-[var(--bg-color)] border-[var(--border-color)]'
+                )}
+                style={{ boxShadow: 'var(--shadow-style)' }}
+              >
+                <div className="px-3 pt-2.5 pb-1.5 border-b border-[var(--border-color)]">
+                  <p className="text-xs font-medium truncate" style={{ color: 'var(--text-muted)' }}>{menuTitleLabel}</p>
+                </div>
+                <div className="p-1.5">
+                  <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>가져오기</p>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        type="button"
+                        onClick={handleCopyPreviousDay}
+                        disabled={isCopying}
+                        className={cn(
+                          'w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                          'disabled:opacity-50 disabled:cursor-not-allowed',
+                          active ? 'bg-[var(--hover-bg)]' : '',
+                          'text-[var(--text-main)]'
+                        )}
+                        title={isCopying ? '복사 중…' : '어제 일정을 선택한 날로 가져오기'}
+                      >
+                        <Copy className="w-4 h-4 flex-shrink-0" />
+                        {isCopying ? '가져오는 중…' : '어제 일정 가져오기'}
+                      </button>
+                    )}
+                  </Menu.Item>
+                  {onOpenImportTimetable && (
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          type="button"
+                          onClick={onOpenImportTimetable}
+                          className={cn(
+                            'w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                            active ? 'bg-[var(--hover-bg)]' : '',
+                            'text-[var(--text-main)]'
+                          )}
+                          title="시간표 이미지로 불러오기"
+                        >
+                          <CalendarDays className="w-4 h-4 flex-shrink-0" />
+                          시간표 불러오기
+                        </button>
+                      )}
+                    </Menu.Item>
+                  )}
+                  <p className="px-2.5 pt-2.5 pb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>정리</p>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        type="button"
+                        onClick={() => setShowResetDayConfirm(true)}
+                        disabled={isResettingDay || todosOnSelectedDay.length === 0}
+                        className={cn(
+                          'w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                          'disabled:opacity-50 disabled:cursor-not-allowed',
+                          active ? 'bg-[var(--hover-bg)]' : '',
+                          'text-[var(--text-main)]'
+                        )}
+                        title={todosOnSelectedDay.length === 0 ? '선택한 날짜에 일정이 없어요' : '이 날 일정 전체 삭제'}
+                      >
+                        <RotateCcw className="w-4 h-4 flex-shrink-0" />
+                        {isResettingDay ? '비우는 중…' : '이 날 일정 비우기'}
+                      </button>
+                    )}
+                  </Menu.Item>
+                </div>
+              </Menu.Items>
+            </Menu>
+
+            <span className="hidden sm:block w-px h-5 mx-0.5 shrink-0" style={{ backgroundColor: 'var(--border-color)' }} aria-hidden />
+
             {onOpenMonthlyCalendar && (
               <button
                 type="button"
@@ -138,20 +252,10 @@ export default function Header({ onOpenMonthlyCalendar, onOpenImportTimetable }:
                 <span className="hidden sm:inline">월간</span>
               </button>
             )}
-            {onOpenImportTimetable && (
-              <button
-                type="button"
-                onClick={onOpenImportTimetable}
-                className="neu-btn touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] rounded-neu text-xs font-medium cursor-pointer"
-                style={{ color: 'var(--text-main)' }}
-                title="시간표 이미지로 불러오기"
-              >
-                <CalendarDays className="w-4 h-4" />
-                <span className="hidden sm:inline">시간표</span>
-              </button>
-            )}
 
-            {/* 테마 토글 스위치 (설정 옆, Sun/Moon 교체 · 소프트 미니멀) */}
+            <span className="hidden sm:block w-px h-5 mx-0.5 shrink-0" style={{ backgroundColor: 'var(--border-color)' }} aria-hidden />
+
+            {/* 테마 토글 */}
             <button
               type="button"
               onClick={toggleTheme}
@@ -168,6 +272,7 @@ export default function Header({ onOpenMonthlyCalendar, onOpenImportTimetable }:
               className="neu-btn touch-target flex items-center justify-center p-2 min-w-[44px] rounded-neu cursor-pointer"
               style={{ color: 'var(--text-main)' }}
               title="설정"
+              aria-label="설정"
             >
               <Settings className="w-4 h-4 flex-shrink-0" />
             </button>
@@ -240,6 +345,17 @@ export default function Header({ onOpenMonthlyCalendar, onOpenImportTimetable }:
           </div>
         </div>
       )}
+
+      {/* 하루 일정 초기화 확인 모달 */}
+      <ConfirmModal
+        isOpen={showResetDayConfirm}
+        onClose={() => setShowResetDayConfirm(false)}
+        onConfirm={handleResetDay}
+        title="하루 일정 초기화"
+        message={`선택한 날짜(${format(selectedDate, 'M월 d일', { locale: ko })})의 일정 ${todosOnSelectedDay.length}개를 모두 삭제할까요? 되돌릴 수 없어요.`}
+        confirmLabel="전체 삭제"
+        danger
+      />
     </header>
   )
 }

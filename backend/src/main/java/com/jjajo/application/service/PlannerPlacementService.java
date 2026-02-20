@@ -19,39 +19,56 @@ import java.util.List;
 public class PlannerPlacementService {
 
     /**
-     * Gemini가 반환한 plans(제목+소요분)를 availableSlots에 배치.
-     * preferredSlots와 겹치는 가용 슬롯을 우선 사용하고, 없으면 가장 가까운 가용 시간 사용.
+     * Gemini가 반환한 plans(제목+소요분+휴식+메모)를 availableSlots에 배치.
+     * preferredSlots 우선 배치. insertRestCards가 true일 때만 breakMinutesAfter에 따라 휴식 일정 자동 삽입.
+     * 템플릿으로 일정 생성 시에는 휴식 계획카드를 넣지 않음(insertRestCards=false).
      */
     public List<PlannerScheduleResponse.PlanItem> placePlans(
             String category,
             List<PlanWithDuration> plans,
             List<PlannerScheduleRequest.TimeSlotDto> availableSlots,
-            int currentTimeMinutes) {
+            int currentTimeMinutes,
+            boolean insertRestCards) {
         if (plans == null || plans.isEmpty() || availableSlots == null || availableSlots.isEmpty()) {
             return List.of();
         }
 
-        var template = RoutineTemplates.get(category);
-        var preferredRanges = parsePreferredRanges(template.preferredSlots());
+        var routine = RoutineTemplates.get(category);
+        var preferredRanges = parsePreferredRanges(routine.preferredSlots());
         var slots = toSlotList(availableSlots, currentTimeMinutes);
         if (slots.isEmpty()) return List.of();
 
         List<PlannerScheduleResponse.PlanItem> result = new ArrayList<>();
         for (PlanWithDuration plan : plans) {
-            int dur = Math.min(Math.max(plan.durationMinutes(), 10), template.sessionMaxMinutes());
+            int dur = Math.min(Math.max(plan.durationMinutes(), 10), routine.sessionMaxMinutes());
+            int breakMin = Math.max(0, plan.breakMinutesAfter() > 0 ? plan.breakMinutesAfter() : routine.breakMinutesDefault());
             var placed = placeOne(slots, preferredRanges, plan.title(), dur);
             if (placed != null) {
-                result.add(placed);
-                consumeSlot(slots, placed);
+                result.add(new PlannerScheduleResponse.PlanItem(plan.title(), placed.getStart(), placed.getEnd(), plan.note()));
+                // 휴식 지정 분만큼 일정 뒤에 최소 텀 보장(다음 일정이 이 시간 이전에 시작하지 않도록)
+                consumeSlot(slots, placed, breakMin);
+                if (insertRestCards && breakMin >= 5) {
+                    var restPlaced = placeOne(slots, preferredRanges, "휴식", breakMin);
+                    if (restPlaced != null) {
+                        result.add(new PlannerScheduleResponse.PlanItem("휴식", restPlaced.getStart(), restPlaced.getEnd(), null));
+                        consumeSlot(slots, restPlaced, 0);
+                    }
+                }
             }
         }
         return result;
     }
 
     private static int timeToMinutes(String time) {
+        if (time == null || time.isBlank()) return 0;
         String[] p = time.split(":");
-        int h = p.length > 0 ? Integer.parseInt(p[0].trim()) : 0;
-        int m = p.length > 1 ? Integer.parseInt(p[1].trim()) : 0;
+        int h = 0, m = 0;
+        try {
+            h = p.length > 0 ? Integer.parseInt(p[0].trim()) : 0;
+            m = p.length > 1 ? Integer.parseInt(p[1].trim()) : 0;
+        } catch (NumberFormatException e) {
+            return 0;
+        }
         return h * 60 + m;
     }
 
@@ -92,6 +109,7 @@ public class PlannerPlacementService {
         List<Slot> list = new ArrayList<>();
         for (var d : dtos) {
             if (d.getStart() == null || d.getEnd() == null) continue;
+            if (d.getStart().isBlank() || d.getEnd().isBlank()) continue;
             int s = timeToMinutes(d.getStart());
             int e = timeToMinutes(d.getEnd());
             if (e <= s) continue;
@@ -130,23 +148,31 @@ public class PlannerPlacementService {
                 .toList();
         if (sorted.isEmpty()) return null;
         Slot best = sorted.get(0);
-        return new PlannerScheduleResponse.PlanItem(title, minutesToTime(best.start), minutesToTime(best.start + durationMinutes));
+        return new PlannerScheduleResponse.PlanItem(title, minutesToTime(best.start), minutesToTime(best.start + durationMinutes), null);
     }
 
-    private static void consumeSlot(List<Slot> slots, PlannerScheduleResponse.PlanItem placed) {
+    /** 배치된 일정만큼 슬롯을 소비. reserveMinutesAfter: 일정 종료 후 최소 휴식 텀(다음 일정은 이 시간 이후부터만 배치 가능). */
+    private static void consumeSlot(List<Slot> slots, PlannerScheduleResponse.PlanItem placed, int reserveMinutesAfter) {
         int start = timeToMinutes(placed.getStart());
         int end = timeToMinutes(placed.getEnd());
+        int nextAvailable = end + Math.max(0, reserveMinutesAfter);
+        final int minSlotMinutes = 10;
         for (int i = 0; i < slots.size(); i++) {
             Slot s = slots.get(i);
             if (s.start <= start && s.end >= end) {
                 slots.remove(i);
-                if (start - s.start >= 10) slots.add(i, new Slot(s.start, start));
-                if (s.end - end >= 10) slots.add(i + 1, new Slot(end, s.end));
+                boolean addedBefore = start - s.start >= minSlotMinutes;
+                if (addedBefore) slots.add(i, new Slot(s.start, start));
+                if (s.end - nextAvailable >= minSlotMinutes) slots.add(addedBefore ? i + 1 : i, new Slot(nextAvailable, s.end));
                 return;
             }
         }
     }
 
-    public record PlanWithDuration(String title, int durationMinutes) {
+    /** 고도화: 블록 뒤 휴식(분), 세부 메모(선택) */
+    public record PlanWithDuration(String title, int durationMinutes, int breakMinutesAfter, String note) {
+        public PlanWithDuration(String title, int durationMinutes) {
+            this(title, durationMinutes, 0, null);
+        }
     }
 }

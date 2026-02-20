@@ -545,23 +545,35 @@ public class GeminiChatAdapter {
 
     private static final ObjectMapper PLANNER_JSON = new ObjectMapper();
 
+    private static final List<String> PLANNER_CATEGORIES = List.of("study", "workout", "work", "rest", "default");
+
     /**
-     * 짜조 플래너: 사용자 입력에서 카테고리(study/workout/work/rest) 판별 + 일정 목록(제목, 소요분) 반환.
-     * 실제 배치는 PlannerPlacementService에서 preferredSlots 우선으로 수행.
+     * 짜조 플래너: 사용자 입력(+ 템플릿 카테고리 힌트)에서 카테고리·일정·요약 추출.
+     * 카테고리별 제약(블록 길이, 휴식)을 반영한 균형 잡힌 계획 생성.
      */
     public CategoryAndPlans detectCategoryAndPlans(String userText, String apiKey) {
-        try {
-            log.debug("짜조 카테고리·일정 추출: userText={}", userText);
+        return detectCategoryAndPlans(userText, apiKey, null);
+    }
 
+    public CategoryAndPlans detectCategoryAndPlans(String userText, String apiKey, String templateCategoryHint) {
+        try {
+            log.debug("짜조 카테고리·일정 추출: userText={}, hint={}", userText, templateCategoryHint);
+
+            String categoryGuidance = buildCategoryGuidance(templateCategoryHint);
             String systemPrompt = """
-                너는 플래너 비서 '짜조'야.
-                사용자 입력을 분석해서 다음 JSON만 출력해. 다른 설명 없이 JSON 객체 하나만 출력해.
+                너는 플래너 비서 '짜조'야. 사용자 입력을 분석해서 아래 JSON만 출력해. 다른 설명 없이 JSON 객체 하나만 출력해.
+                """ + categoryGuidance + """
                 {
                   "category": "study|workout|work|rest|default",
-                  "plans": [{ "title": "제목", "durationMinutes": 숫자 }, ...]
+                  "summary": "오늘 반드시 할 핵심 2~3가지를 한 줄로 요약한 문장 (선택)",
+                  "plans": [
+                    { "title": "제목", "durationMinutes": 숫자, "breakMinutesAfter": 숫자(선택, 블록 뒤 휴식 분), "note": "세부 목표 한 줄(선택)" }
+                  ]
                 }
-                - category: study(공부/스터디), workout(운동/헬스), work(업무/회의), rest(휴식/독서), default(기타)
-                - plans: 해야 할 필수 일정만. 쉬는시간·식사시간은 넣지 마. durationMinutes는 분 단위(예: 90).
+                - category: study(공부/스터디), workout(운동/헬스), work(업무/코딩/회의), rest(휴식/독서), default(기타)
+                - plans: 해야 할 일정만. 쉬는시간·식사시간은 넣지 마. durationMinutes는 분 단위.
+                - breakMinutesAfter: 생략 시 0. 고집중 블록 뒤에는 10~15분 권장.
+                - note: 해당 블록의 구체적 목표(예: "알고리즘 3문제", "PR 1개")를 짧게.
                 """;
 
             String userPrompt = "사용자 요청: " + (userText != null ? userText : "");
@@ -616,8 +628,14 @@ public class GeminiChatAdapter {
 
             JsonNode root = PLANNER_JSON.readTree(json);
             String category = root.has("category") ? root.get("category").asText().trim().toLowerCase() : "default";
-            if (!List.of("study", "workout", "work", "rest", "default").contains(category)) {
+            if (!PLANNER_CATEGORIES.contains(category)) {
                 category = "default";
+            }
+
+            String summary = null;
+            if (root.has("summary") && !root.get("summary").isNull()) {
+                String s = root.get("summary").asText().trim();
+                if (!s.isEmpty()) summary = s;
             }
 
             List<CategoryAndPlans.PlanWithDuration> plans = new ArrayList<>();
@@ -626,20 +644,53 @@ public class GeminiChatAdapter {
                 for (JsonNode node : plansNode) {
                     String title = node.has("title") ? node.get("title").asText().trim() : null;
                     int dur = node.has("durationMinutes") ? node.get("durationMinutes").asInt(60) : 60;
+                    int breakAfter = node.has("breakMinutesAfter") ? node.get("breakMinutesAfter").asInt(0) : 0;
+                    String note = null;
+                    if (node.has("note") && !node.get("note").isNull()) {
+                        String n = node.get("note").asText().trim();
+                        if (!n.isEmpty()) note = n;
+                    }
                     if (title != null && !title.isEmpty() && dur > 0) {
-                        plans.add(new CategoryAndPlans.PlanWithDuration(title, Math.min(dur, 240)));
+                        plans.add(new CategoryAndPlans.PlanWithDuration(
+                                title, Math.min(dur, 240), Math.min(Math.max(breakAfter, 0), 30), note));
                     }
                 }
             }
-            log.debug("짜조 카테고리={}, plans={}건", category, plans.size());
-            return new CategoryAndPlans(category, plans);
+            log.debug("짜조 카테고리={}, plans={}건, summary={}", category, plans.size(), summary != null);
+            return new CategoryAndPlans(category, plans, summary);
         } catch (Exception e) {
             log.error("짜조 플래너 처리 실패", e);
             throw new RuntimeException("일정을 생성하지 못했어요. 가용 시간과 목표를 확인해 주세요.", e);
         }
     }
 
-    public record CategoryAndPlans(String category, List<PlanWithDuration> plans) {
-        public record PlanWithDuration(String title, int durationMinutes) {}
+    private static String buildCategoryGuidance(String hint) {
+        if (hint == null || hint.isBlank()) return "";
+        return switch (hint.toLowerCase()) {
+            case "study" -> """
+                [공부 모드] 고집중 블록은 90분 이내로 나누고, 블록 뒤 휴식 10~15분을 breakMinutesAfter로 넣어줘. 밤 시간대에는 난이도 낮은 작업을 배치해줘.
+                """;
+            case "workout" -> """
+                [운동 모드] 고강도 세트는 40분 이내, 세트 사이 휴식 2~3분 반영. 워밍업·스트레칭 포함해 블록을 나누고 breakMinutesAfter로 휴식 분을 넣어줘.
+                """;
+            case "work", "coding" -> """
+                [업무/코딩 모드] 딥워크 블록은 90분 이내, 블록 사이 10~15분 휴식(breakMinutesAfter). note에 PR 단위·구체 목표를 짧게 적어줘.
+                """;
+            case "rest" -> """
+                [휴식 모드] 30분 단위로 가벼운 활동을 나누고, 수면 전 자극 줄이기. breakMinutesAfter는 0으로 두고 note에 목적(휴식/정리 등)을 적어줘.
+                """;
+            default -> "";
+        };
+    }
+
+    public record CategoryAndPlans(String category, List<PlanWithDuration> plans, String summary) {
+        public CategoryAndPlans(String category, List<PlanWithDuration> plans) {
+            this(category, plans, null);
+        }
+        public record PlanWithDuration(String title, int durationMinutes, int breakMinutesAfter, String note) {
+            public PlanWithDuration(String title, int durationMinutes) {
+                this(title, durationMinutes, 0, null);
+            }
+        }
     }
 }

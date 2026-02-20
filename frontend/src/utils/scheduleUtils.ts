@@ -103,6 +103,60 @@ export function getAvailableSlotsForDay(
   }))
 }
 
+/** 플래너용: 아침·점심·저녁 각 1시간은 무조건 비워둠(분 단위) */
+const MEAL_BLOCKS_MINUTES: Array<{ start: number; end: number }> = [
+  { start: 8 * 60, end: 9 * 60 },   // 아침 08:00–09:00
+  { start: 12 * 60, end: 13 * 60 }, // 점심 12:00–13:00
+  { start: 18 * 60, end: 19 * 60 }, // 저녁 18:00–19:00
+]
+
+/**
+ * 가용 슬롯에서 아침·점심·저녁 시간(각 1시간)을 제외.
+ * 플래너 일정 생성 시 식사 시간을 무조건 비워두기 위해 사용.
+ */
+export function excludeMealBlocksFromSlots(
+  slots: Array<{ start: string; end: string }>
+): Array<{ start: string; end: string }> {
+  const result: Array<{ start: string; end: string }> = []
+  const minSlotMinutes = 10
+
+  for (const slot of slots) {
+    let s = timeToMinutes(slot.start)
+    const e = timeToMinutes(slot.end)
+    const busy: Array<{ start: number; end: number }> = []
+
+    for (const meal of MEAL_BLOCKS_MINUTES) {
+      if (meal.end <= s || meal.start >= e) continue
+      busy.push({
+        start: Math.max(s, meal.start),
+        end: Math.min(e, meal.end),
+      })
+    }
+    busy.sort((a, b) => a.start - b.start)
+    const merged: Array<{ start: number; end: number }> = []
+    for (const b of busy) {
+      if (merged.length > 0 && b.start <= merged[merged.length - 1].end) {
+        merged[merged.length - 1].end = Math.max(merged[merged.length - 1].end, b.end)
+      } else {
+        merged.push({ ...b })
+      }
+    }
+
+    let from = s
+    for (const m of merged) {
+      if (from < m.start && m.start - from >= minSlotMinutes) {
+        result.push({ start: minutesToTime(from), end: minutesToTime(m.start) })
+      }
+      from = Math.max(from, m.end)
+    }
+    if (from < e && e - from >= minSlotMinutes) {
+      result.push({ start: minutesToTime(from), end: minutesToTime(e) })
+    }
+  }
+
+  return result
+}
+
 /**
  * 시간대 우선순위에 따라 정렬
  */

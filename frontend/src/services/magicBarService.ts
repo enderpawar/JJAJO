@@ -1,7 +1,7 @@
 import { format, addDays, subDays } from 'date-fns'
 import { useApiKeyStore } from '@/stores/apiKeyStore'
 import { useSettingsStore } from '@/stores/settingsStore'
-import { suggestSchedulePlacement, timeToMinutes, minutesToTime, getAvailableSlotsForDay } from '@/utils/scheduleUtils'
+import { suggestSchedulePlacement, timeToMinutes, minutesToTime, getAvailableSlotsForDay, excludeMealBlocksFromSlots } from '@/utils/scheduleUtils'
 
 /** 타임라인 필터와 맞추기 위해 날짜를 yyyy-MM-dd, 시간을 HH:mm으로 정규화 */
 function normalizeDateStr(s: string | undefined): string {
@@ -182,19 +182,34 @@ function isJjajoPlannerIntent(command: string): boolean {
   return JJAJO_PLANNER_KEYWORDS.test(command.trim()) || /\d+\s*시간/.test(command.trim())
 }
 
+/** 콤마로 구분된 할일 목록이면 배치 요청 문장으로 감싸서 Gemini가 여러 plan으로 파싱하도록 함 */
+function wrapCommaListForPlanner(text: string): string {
+  const t = text.trim()
+  if (!t.includes(',')) return t
+  const parts = t.split(',').map((s) => s.trim()).filter(Boolean)
+  if (parts.length < 2) return t
+  if (isJjajoPlannerIntent(t)) return t
+  return `오늘 할 일을 순서대로 배치해줘: ${t}`
+}
+
 export interface JjajoPlannerResult {
   success: true
   plansCount: number
+  summary?: string
 }
 export type SubmitMagicBarResult =
   | { success: true; appliedCount: number }
-  | { success: true; plansCount: number; isGhost: true }
+  | { success: true; plansCount: number; isGhost: true; summary?: string }
   | { success: false; message: string }
 
 /**
- * 짜조 플래너 API 호출: 가용 시간대 내에서 일정 제안 → ghostPlans로 설정
+ * 짜조 플래너 API 호출: 가용 시간대 내에서 일정 제안 → ghostPlans로 설정.
+ * templateCategory 전달 시 백엔드에서 카테고리별 제약(블록/휴식) 반영.
  */
-export async function requestJjajoPlanner(command: string): Promise<JjajoPlannerResult | { success: false; message: string }> {
+export async function requestJjajoPlanner(
+  command: string,
+  options?: { templateCategory?: string }
+): Promise<JjajoPlannerResult | { success: false; message: string }> {
   const { apiKey } = useApiKeyStore.getState()
   if (!apiKey?.trim()) {
     return { success: false, message: '설정에서 Gemini API 키를 먼저 입력해주세요.' }
@@ -206,12 +221,14 @@ export async function requestJjajoPlanner(command: string): Promise<JjajoPlanner
   const now = new Date()
   const isToday = format(now, 'yyyy-MM-dd') === dateStr
   const currentTimeMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : 0
-  const availableSlots = getAvailableSlotsForDay(
+  const rawSlots = getAvailableSlotsForDay(
     dateStr,
     todos,
     isToday ? currentTimeMinutes : 0,
     settings.timeSlotPreferences,
   )
+  // 아침·점심·저녁 각 1시간은 무조건 비워두고 플래너 가용 슬롯 계산
+  const availableSlots = excludeMealBlocksFromSlots(rawSlots)
   const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 
   if (availableSlots.length === 0) {
@@ -227,6 +244,7 @@ export async function requestJjajoPlanner(command: string): Promise<JjajoPlanner
       },
       body: JSON.stringify({
         userText: command.trim(),
+        ...(options?.templateCategory && { templateCategory: options.templateCategory }),
         currentTime,
         date: dateStr,
         availableSlots: availableSlots.map((s) => ({ start: s.start, end: s.end })),
@@ -238,15 +256,20 @@ export async function requestJjajoPlanner(command: string): Promise<JjajoPlanner
       const errText = await response.text()
       let message = '일정을 생성하지 못했어요.'
       try {
-        const errJson = JSON.parse(errText)
-        if (errJson.message) message = errJson.message
+        const errJson = JSON.parse(errText) as { message?: string; exceptionClass?: string }
+        if (errJson.message) {
+          message = errJson.exceptionClass ? `[${errJson.exceptionClass}] ${errJson.message}` : errJson.message
+        }
       } catch {
         if (response.status === 401) message = '로그인이 필요해요.'
       }
       return { success: false, message }
     }
 
-    const data: { plans?: Array<{ title: string; start: string; end: string }> } = await response.json()
+    const data: {
+      plans?: Array<{ title: string; start: string; end: string; note?: string }>
+      summary?: string
+    } = await response.json()
     const plans = data.plans ?? []
     if (plans.length === 0) {
       return { success: false, message: '생성된 일정이 없어요. 목표를 조금 더 구체적으로 적어 주세요.' }
@@ -255,6 +278,7 @@ export async function requestJjajoPlanner(command: string): Promise<JjajoPlanner
     const ghostTodos: Todo[] = plans.map((p, i) => ({
       id: `ghost-${Date.now()}-${i}`,
       title: p.title,
+      description: p.note ?? undefined,
       date: dateStr,
       startTime: p.start,
       endTime: p.end,
@@ -266,7 +290,7 @@ export async function requestJjajoPlanner(command: string): Promise<JjajoPlanner
       isGhost: true,
     }))
     setGhostPlans(ghostTodos)
-    return { success: true, plansCount: ghostTodos.length }
+    return { success: true, plansCount: ghostTodos.length, summary: data.summary ?? undefined }
   } catch (e) {
     const message = e instanceof Error ? e.message : '네트워크 오류가 났어요.'
     return { success: false, message }
@@ -278,17 +302,25 @@ export async function requestJjajoPlanner(command: string): Promise<JjajoPlanner
  */
 export async function submitMagicBarCommand(
   command: string,
-  options?: { editMode?: boolean }
+  options?: { editMode?: boolean; templateCategory?: string }
 ): Promise<SubmitMagicBarResult> {
   const trimmed = command.trim()
   if (!trimmed) {
     return { success: false, message: '한 줄로 입력해 주세요.' }
   }
 
-  if (options?.editMode && isJjajoPlannerIntent(trimmed)) {
-    const result = await requestJjajoPlanner(trimmed)
+  if (options?.editMode) {
+    const plannerText = wrapCommaListForPlanner(trimmed)
+    const result = await requestJjajoPlanner(plannerText, {
+      templateCategory: options.templateCategory,
+    })
     if (result.success) {
-      return { success: true, plansCount: result.plansCount, isGhost: true }
+      return {
+        success: true,
+        plansCount: result.plansCount,
+        isGhost: true,
+        ...(result.summary != null && { summary: result.summary }),
+      }
     }
     return { success: false, message: result.message }
   }

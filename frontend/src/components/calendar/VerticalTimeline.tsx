@@ -645,14 +645,14 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
                 <div
                   className={`${
                     isCompactHeight ? 'text-xs mb-1' : 'text-base mb-2'
-                  } font-semibold text-theme-muted w-full flex items-center justify-center`}
+                  } font-semibold text-theme-muted w-full flex items-center justify-center text-center`}
                 >
                   {task.startTime} - {task.endTime}
                 </div>
                 <div
                   className={`${
                     isCompactHeight ? 'text-lg' : 'text-2xl'
-                  } font-bold leading-tight text-theme w-full flex items-center justify-center`}
+                  } font-bold leading-tight text-theme w-full flex items-center justify-center text-center`}
                 >
                   {task.title}
                 </div>
@@ -663,14 +663,8 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
             </>
           )}
 
-          {task.description && (
-            <div className="text-sm mb-3 text-theme-muted">
-              {task.description}
-            </div>
-          )}
-
           {isCurrent && (
-            <div className="text-xs text-theme-muted mt-2">
+            <div className="text-xs text-theme-muted mt-2 w-full flex items-center justify-center">
               🔥 진행 중 <span className="font-semibold text-theme">{Math.round(progress)}%</span>
             </div>
           )}
