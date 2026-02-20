@@ -1,7 +1,7 @@
 import { format, addDays, subDays } from 'date-fns'
 import { useApiKeyStore } from '@/stores/apiKeyStore'
 import { useSettingsStore } from '@/stores/settingsStore'
-import { suggestSchedulePlacement, timeToMinutes, minutesToTime } from '@/utils/scheduleUtils'
+import { suggestSchedulePlacement, timeToMinutes, minutesToTime, getAvailableSlotsForDay, excludeMealBlocksFromSlots } from '@/utils/scheduleUtils'
 
 /** 타임라인 필터와 맞추기 위해 날짜를 yyyy-MM-dd, 시간을 HH:mm으로 정규화 */
 function normalizeDateStr(s: string | undefined): string {
@@ -29,6 +29,11 @@ function getParseScheduleUrl(): string {
 function getEditScheduleUrl(): string {
   const base = getApiBase()
   return base ? `${base}/api/v1/ai/edit-schedule` : '/api/v1/ai/edit-schedule'
+}
+
+function getPlannerScheduleUrl(): string {
+  const base = getApiBase()
+  return base ? `${base}/api/v1/ai/planner-schedule` : '/api/v1/ai/planner-schedule'
 }
 
 /** API 응답 연산 (백엔드 필드명) */
@@ -170,20 +175,163 @@ function isPureAddIntent(command: string): boolean {
   return true
 }
 
+/** 짜조 플래너 의도: 목표·시간량·할일 짜줘 등 */
+const JJAJO_PLANNER_KEYWORDS = /짜줘|짜조|플랜|계획|시간\s*공부|시간\s*할|일정\s*잡|오늘\s*할|공부\s*해|해줘/
+
+function isJjajoPlannerIntent(command: string): boolean {
+  return JJAJO_PLANNER_KEYWORDS.test(command.trim()) || /\d+\s*시간/.test(command.trim())
+}
+
+/** 콤마로 구분된 할일 목록이면 배치 요청 문장으로 감싸서 Gemini가 여러 plan으로 파싱하도록 함 */
+function wrapCommaListForPlanner(text: string): string {
+  const t = text.trim()
+  if (!t.includes(',')) return t
+  const parts = t.split(',').map((s) => s.trim()).filter(Boolean)
+  if (parts.length < 2) return t
+  if (isJjajoPlannerIntent(t)) return t
+  return `오늘 할 일을 순서대로 배치해줘: ${t}`
+}
+
+export interface JjajoPlannerResult {
+  success: true
+  plansCount: number
+  summary?: string
+}
+export type SubmitMagicBarResult =
+  | { success: true; appliedCount: number }
+  | { success: true; plansCount: number; isGhost: true; summary?: string }
+  | { success: false; message: string }
+
 /**
- * 매직 바 통합 제출: 순수 추가는 parse-schedule 우선, 그 외엔 edit-schedule
+ * 짜조 플래너 API 호출: 가용 시간대 내에서 일정 제안 → ghostPlans로 설정.
+ * templateCategory 전달 시 백엔드에서 카테고리별 제약(블록/휴식) 반영.
+ */
+export async function requestJjajoPlanner(
+  command: string,
+  options?: { templateCategory?: string }
+): Promise<JjajoPlannerResult | { success: false; message: string }> {
+  const { apiKey } = useApiKeyStore.getState()
+  if (!apiKey?.trim()) {
+    return { success: false, message: '설정에서 Gemini API 키를 먼저 입력해주세요.' }
+  }
+
+  const { selectedDate, todos, setGhostPlans } = useCalendarStore.getState()
+  const { settings } = useSettingsStore.getState()
+  const dateStr = format(selectedDate, 'yyyy-MM-dd')
+  const now = new Date()
+  const isToday = format(now, 'yyyy-MM-dd') === dateStr
+  const currentTimeMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : 0
+  const rawSlots = getAvailableSlotsForDay(
+    dateStr,
+    todos,
+    isToday ? currentTimeMinutes : 0,
+    settings.timeSlotPreferences,
+  )
+  // 아침·점심·저녁 각 1시간은 무조건 비워두고 플래너 가용 슬롯 계산
+  const availableSlots = excludeMealBlocksFromSlots(rawSlots)
+  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+
+  if (availableSlots.length === 0) {
+    return { success: false, message: '가용 시간대가 없어요. 오늘 일정을 비워두거나 다른 날을 선택해 주세요.' }
+  }
+
+  try {
+    const response = await fetch(getPlannerScheduleUrl(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Gemini-API-Key': apiKey,
+      },
+      body: JSON.stringify({
+        userText: command.trim(),
+        ...(options?.templateCategory && { templateCategory: options.templateCategory }),
+        currentTime,
+        date: dateStr,
+        availableSlots: availableSlots.map((s) => ({ start: s.start, end: s.end })),
+      }),
+      credentials: 'include',
+    })
+
+    if (!response.ok) {
+      const errText = await response.text()
+      let message = '일정을 생성하지 못했어요.'
+      try {
+        const errJson = JSON.parse(errText) as { message?: string; exceptionClass?: string }
+        if (errJson.message) {
+          message = errJson.exceptionClass ? `[${errJson.exceptionClass}] ${errJson.message}` : errJson.message
+        }
+      } catch {
+        if (response.status === 401) message = '로그인이 필요해요.'
+      }
+      return { success: false, message }
+    }
+
+    const data: {
+      plans?: Array<{ title: string; start: string; end: string; note?: string }>
+      summary?: string
+    } = await response.json()
+    const plans = data.plans ?? []
+    if (plans.length === 0) {
+      return { success: false, message: '생성된 일정이 없어요. 목표를 조금 더 구체적으로 적어 주세요.' }
+    }
+
+    const ghostTodos: Todo[] = plans.map((p, i) => ({
+      id: `ghost-${Date.now()}-${i}`,
+      title: p.title,
+      description: p.note ?? undefined,
+      date: dateStr,
+      startTime: p.start,
+      endTime: p.end,
+      status: 'pending' as const,
+      priority: 'medium' as const,
+      createdBy: 'ai' as const,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isGhost: true,
+    }))
+    setGhostPlans(ghostTodos)
+    return { success: true, plansCount: ghostTodos.length, summary: data.summary ?? undefined }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : '네트워크 오류가 났어요.'
+    return { success: false, message }
+  }
+}
+
+/**
+ * 매직 바 통합 제출: 짜조 모드(editMode)면 플래너 호출 → 고스트 표시, 아니면 기존 parse/edit
  */
 export async function submitMagicBarCommand(
-  command: string
-): Promise<{ success: true; appliedCount: number } | { success: false; message: string }> {
-  if (isPureAddIntent(command)) {
-    const parseResult = await parseAndAddSchedule(command)
+  command: string,
+  options?: { editMode?: boolean; templateCategory?: string }
+): Promise<SubmitMagicBarResult> {
+  const trimmed = command.trim()
+  if (!trimmed) {
+    return { success: false, message: '한 줄로 입력해 주세요.' }
+  }
+
+  if (options?.editMode) {
+    const plannerText = wrapCommaListForPlanner(trimmed)
+    const result = await requestJjajoPlanner(plannerText, {
+      templateCategory: options.templateCategory,
+    })
+    if (result.success) {
+      return {
+        success: true,
+        plansCount: result.plansCount,
+        isGhost: true,
+        ...(result.summary != null && { summary: result.summary }),
+      }
+    }
+    return { success: false, message: result.message }
+  }
+
+  if (isPureAddIntent(trimmed)) {
+    const parseResult = await parseAndAddSchedule(trimmed)
     if (parseResult.success) {
       return { success: true, appliedCount: 1 }
     }
-    // 파싱 실패 시 edit API로 폴백 (복합 명령일 수 있음)
   }
-  return editScheduleByNaturalLanguage(command)
+  return editScheduleByNaturalLanguage(trimmed)
 }
 
 /**

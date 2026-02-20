@@ -2,6 +2,7 @@ package com.jjajo.presentation.controller;
 
 import com.jjajo.application.port.in.EditScheduleUseCase;
 import com.jjajo.application.port.in.ParseScheduleUseCase;
+import com.jjajo.application.port.in.PlannerScheduleUseCase;
 import com.jjajo.application.port.in.ProcessAiChatUseCase;
 import com.jjajo.application.service.BackwardsPlanningService;
 import com.jjajo.presentation.dto.AiChatRequest;
@@ -9,6 +10,8 @@ import com.jjajo.presentation.dto.AiChatResponse;
 import com.jjajo.presentation.dto.EditScheduleRequest;
 import com.jjajo.presentation.dto.EditScheduleResponse;
 import com.jjajo.presentation.dto.ParseScheduleRequest;
+import com.jjajo.presentation.dto.PlannerScheduleRequest;
+import com.jjajo.presentation.dto.PlannerScheduleResponse;
 import com.jjajo.presentation.dto.BackwardsPlanRequest;
 import com.jjajo.presentation.dto.BackwardsPlanResponse;
 import jakarta.validation.Valid;
@@ -18,10 +21,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Map;
 
 /**
  * AI 채팅 컨트롤러
@@ -35,6 +38,7 @@ public class AiChatController {
     private final ProcessAiChatUseCase processAiChatUseCase;
     private final ParseScheduleUseCase parseScheduleUseCase;
     private final EditScheduleUseCase editScheduleUseCase;
+    private final PlannerScheduleUseCase plannerScheduleUseCase;
     private final BackwardsPlanningService backwardsPlanningService;
 
     @Value("${agent.log.path:}")
@@ -99,6 +103,20 @@ public class AiChatController {
             log.warn("대화형 일정 수정 실패", e);
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage() != null ? e.getMessage() : "일정 수정을 처리하지 못했어요."));
         }
+    }
+
+    /**
+     * 짜조 플래너: 가용 시간대 내에서 사용자 목표를 일정으로 쪼개서 고스트 일정 제안
+     * Input: userText, currentTime, date, availableSlots
+     * Output: plans [{ title, start, end }]
+     */
+    @PostMapping("/planner-schedule")
+    public ResponseEntity<PlannerScheduleResponse> plannerSchedule(
+            @Valid @RequestBody PlannerScheduleRequest request,
+            @RequestHeader("X-Gemini-API-Key") String apiKey) {
+        log.info("짜조 플래너 요청: {}", request.getUserText());
+        PlannerScheduleResponse response = plannerScheduleUseCase.planSchedule(request, apiKey);
+        return ResponseEntity.ok(response);
     }
 
     /**

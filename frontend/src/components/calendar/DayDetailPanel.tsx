@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Calendar, Clock, Plus, Edit2, Trash2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Calendar, Clock, Plus, Edit2, Trash2, Trash } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useToastStore } from '@/stores/toastStore'
 import { deleteSchedule } from '@/services/scheduleService'
@@ -7,13 +7,36 @@ import { formatDate, formatDateWithDay } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
 import type { Todo } from '@/types/calendar'
 import AddTodoModal from './AddTodoModal'
+import EditTodoPanel from './EditTodoPanel'
 import { ConfirmModal } from '@/components/ConfirmModal'
 
-export default function DayDetailPanel() {
+interface DayDetailPanelProps {
+  /** 캘린더 하단 등 한 블록 안에 묶여 있을 때 true (카드 스타일 생략) */
+  embedded?: boolean
+  /** true로 바뀌면 일정 추가 모달을 연다 (캘린더 롱프레스 등 외부 트리거) */
+  openAddModal?: boolean
+  /** 일정 추가 모달을 연 뒤 호출 (openAddModal 플래그 초기화용) */
+  onAddModalOpened?: () => void
+}
+
+export default function DayDetailPanel({ embedded = false, openAddModal = false, onAddModalOpened }: DayDetailPanelProps = {}) {
   const { selectedDate, getTodosByDate, deleteTodo, addTodo } = useCalendarStore()
   const { addToast } = useToastStore()
   const [deleteConfirmTodo, setDeleteConfirmTodo] = useState<Todo | null>(null)
+  const [deleteAllTodayConfirm, setDeleteAllTodayConfirm] = useState(false)
+  const [isDeletingAllToday, setIsDeletingAllToday] = useState(false)
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const dateStr = formatDate(selectedDate)
+  const isTodaySelected = dateStr === formatDate(new Date())
+
+  useEffect(() => {
+    if (openAddModal) {
+      setIsModalOpen(true)
+      onAddModalOpened?.()
+    }
+  }, [openAddModal])
 
   /** 낙관적 삭제: 즉시 UI에서 제거한 뒤 백그라운드에서 API 호출. 실패 시 롤백. */
   const performDeleteTodo = (todo: Todo) => {
@@ -32,7 +55,32 @@ export default function DayDetailPanel() {
     })
   }
 
-  const dateStr = formatDate(selectedDate)
+  /** 오늘 배치된 일정 전체 삭제: 낙관적 UI 후 서버 삭제, 실패 시 롤백 */
+  const performDeleteAllToday = async () => {
+    const todayStr = formatDate(new Date())
+    const toDelete = getTodosByDate(todayStr)
+    if (toDelete.length === 0) {
+      setDeleteAllTodayConfirm(false)
+      return
+    }
+    const copies = toDelete.map((t) => ({ ...t }))
+    setIsDeletingAllToday(true)
+    toDelete.forEach((t) => deleteTodo(t.id))
+    setDeleteAllTodayConfirm(false)
+
+    const serverIds = toDelete.filter((t) => !t.id.startsWith('opt-'))
+    const results = await Promise.allSettled(serverIds.map((id) => deleteSchedule(id.id)))
+    const failed = results.filter((r) => r.status === 'rejected') as PromiseRejectedResult[]
+    if (failed.length > 0) {
+      copies.forEach((t) => addTodo(t))
+      const msg = failed[0].reason instanceof Error ? failed[0].reason.message : String(failed[0].reason)
+      addToast(`일정 일부 삭제 실패: ${msg}`)
+    } else if (toDelete.length > 0) {
+      addToast(`오늘 일정 ${toDelete.length}개를 삭제했어요`)
+    }
+    setIsDeletingAllToday(false)
+  }
+
   const todos = getTodosByDate(dateStr)
   
   // 시간별로 정렬
@@ -67,19 +115,40 @@ export default function DayDetailPanel() {
   }
   
   return (
-    <div className="neu-float rounded-2xl p-4 sm:p-6 flex flex-col min-h-0 flex-1 max-h-[60vh] sm:max-h-[70vh]">
-      {/* 헤더 */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Calendar className="w-5 h-5 text-primary-500" />
-          <h3 className="text-lg font-bold text-theme">
-            {formatDateWithDay(selectedDate)}
-          </h3>
+    <div
+      className={cn(
+        'flex flex-col min-h-0 flex-1 overflow-hidden',
+        embedded ? 'p-0 max-h-none' : 'neu-float rounded-2xl p-4 sm:p-6 max-h-[60vh] sm:max-h-[70vh]'
+      )}
+    >
+      {/* 헤더 (모바일 캘린더 하단 embedded일 때는 생략 — 날짜는 캘린더에서 이미 보임) */}
+      {!embedded && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <Calendar className="w-5 h-5 text-primary-500" />
+            <h3 className="text-lg font-bold text-theme">
+              {formatDateWithDay(selectedDate)}
+            </h3>
+          </div>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="text-sm text-theme-muted">
+              <span className={todos.length > 0 ? 'text-primary-400 font-medium' : ''}>{todos.length}개</span>의 일정
+            </p>
+            {isTodaySelected && todos.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setDeleteAllTodayConfirm(true)}
+                disabled={isDeletingAllToday}
+                className="text-xs text-red-500 hover:text-red-400 font-medium flex items-center gap-1.5 py-1.5 px-2 rounded-neu hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                title="오늘 배치된 일정 전체 삭제"
+              >
+                <Trash className="w-3.5 h-3.5" />
+                <span>오늘 일정 전체 삭제</span>
+              </button>
+            )}
+          </div>
         </div>
-        <p className="text-sm text-theme-muted">
-          <span className={todos.length > 0 ? 'text-primary-400 font-medium' : ''}>{todos.length}개</span>의 일정
-        </p>
-      </div>
+      )}
       
       {/* 일정 목록 */}
       <div className="flex-1 overflow-y-auto space-y-3 mb-4">
@@ -115,9 +184,13 @@ export default function DayDetailPanel() {
                     <h4 className="font-semibold text-theme">
                       {todo.title}
                     </h4>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 shrink-0">
                       <button
                         type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingTodo(todo)
+                        }}
                         className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2.5 rounded-neu"
                         title="편집"
                       >
@@ -125,7 +198,10 @@ export default function DayDetailPanel() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDeleteConfirmTodo(todo)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteConfirmTodo(todo)
+                        }}
                         className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2.5 rounded-neu hover:shadow-neu-inset-hover"
                         title="삭제"
                       >
@@ -172,14 +248,21 @@ export default function DayDetailPanel() {
         )}
       </div>
       
-      {/* 일정 추가 버튼 */}
-      <button 
-        onClick={() => setIsModalOpen(true)}
-        className="btn-primary w-full flex items-center justify-center gap-2"
-      >
-        <Plus className="w-5 h-5" />
-        <span>이 날에 일정 추가</span>
-      </button>
+      {/* 모바일(embedded): 롱프레스 안내 문구 / 데스크톱: 일정 추가 버튼 */}
+      {embedded ? (
+        <p className="text-xs text-theme-muted text-center py-3">
+          원하는 일자를 길게 눌러 일정을 추가하세요
+        </p>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="btn-primary w-full flex items-center justify-center gap-2"
+        >
+          <Plus className="w-5 h-5" />
+          <span>이 날에 일정 추가</span>
+        </button>
+      )}
 
       {/* 일정 추가 모달 */}
       <AddTodoModal 
@@ -198,6 +281,24 @@ export default function DayDetailPanel() {
         confirmLabel="삭제"
         cancelLabel="취소"
         danger
+      />
+
+      {/* 오늘 일정 전체 삭제 확인 모달 */}
+      <ConfirmModal
+        isOpen={deleteAllTodayConfirm}
+        onClose={() => setDeleteAllTodayConfirm(false)}
+        onConfirm={performDeleteAllToday}
+        title="오늘 일정 전체 삭제"
+        message={`오늘 배치된 일정 ${todos.length}개를 모두 삭제할까요? 이 작업은 되돌릴 수 없어요.`}
+        confirmLabel="전체 삭제"
+        cancelLabel="취소"
+        danger
+      />
+
+      {/* 일정 편집 패널 (월간 모달 내에서도 z-index로 최상단 표시) */}
+      <EditTodoPanel
+        todo={editingTodo}
+        onClose={() => setEditingTodo(null)}
       />
     </div>
   )

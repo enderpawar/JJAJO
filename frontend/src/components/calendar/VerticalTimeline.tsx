@@ -39,7 +39,7 @@ interface VerticalTimelineProps {
 }
 
 export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelineProps = {}) {
-  const { todos, updateTodo, deleteTodo, addTodo, selectedDate } = useCalendarStore()
+  const { todos, updateTodo, deleteTodo, addTodo, selectedDate, ghostPlans } = useCalendarStore()
   const { addToast } = useToastStore()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showPastTime, setShowPastTime] = useState(false)
@@ -134,15 +134,22 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
   }, [])
 
+  const dateStr = useMemo(() => format(selectedDate ?? new Date(), 'yyyy-MM-dd'), [selectedDate])
+
   const selectedDateTodos = useMemo(() => {
-    const dateStr = format(selectedDate, 'yyyy-MM-dd')
     return todos
-      .filter(t => t.date === dateStr && t.startTime && t.endTime)
+      .filter(t => t.date === dateStr && t.startTime && t.endTime && !t.isGhost)
       .sort((a, b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'))
-  }, [todos, selectedDate])
+  }, [todos, dateStr])
 
   const todayTodos = selectedDateTodos
-  const dateStr = useMemo(() => format(selectedDate ?? new Date(), 'yyyy-MM-dd'), [selectedDate])
+
+  /** 선택일 기준 고스트 일정 (짜조 제안), 시간순 정렬 */
+  const ghostPlansForDate = useMemo(() => {
+    return ghostPlans
+      .filter(t => t.date === dateStr && t.startTime && t.endTime)
+      .sort((a, b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'))
+  }, [ghostPlans, dateStr])
 
   const TIMELINE_HEIGHT = 2400
   const timelineHeight = TIMELINE_HEIGHT
@@ -313,7 +320,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
 
       const initialStartPixel = timeToPixels(task.startTime)
       const initialEndPixel = timeToPixels(task.endTime)
-      const MIN_BLOCK_HEIGHT = 40
+      const MIN_BLOCK_HEIGHT = 72
 
       const handleMove = (ev: MouseEvent | TouchEvent) => {
         const clientY =
@@ -418,6 +425,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     }
 
     const baseHeight = endPixel - startPixel
+    const isCompactHeight = baseHeight < 72
     const isPast = isSelectedDateToday && endPixel < currentTimePosition
     const isCurrent = isSelectedDateToday && startPixel <= currentTimePosition && currentTimePosition < endPixel
     const isFuture = isSelectedDateToday && startPixel > currentTimePosition
@@ -438,8 +446,9 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         animate={isJustCreated ? { scale: 1, opacity: 1 } : { opacity: 1 }}
         transition={isJustCreated ? { type: 'spring', stiffness: 380, damping: 26 } : undefined}
         className={`
-          task-card group absolute left-0 right-0 mx-3 sm:mx-4 cursor-pointer active:cursor-grabbing overflow-hidden touch-none
+          task-card group absolute left-0 right-0 mx-auto w-[99%] max-w-[1200px] cursor-pointer active:cursor-grabbing overflow-hidden touch-none
           bg-theme-card theme-transition
+          border border-theme-muted/50 hover:border-theme-muted/70
           ${isEditingThisTask ? 'rounded-2xl shadow-neu-float-date' : 'rounded-neu'}
           ${isCurrent ? 'task-card-active' : ''}
           ${!isCurrent && !isEditingThisTask
@@ -571,7 +580,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
             </div>
           </>
         )}
-        <div className="relative z-10 p-4">
+        <div className="relative z-10 h-full px-6 py-4 flex flex-col items-center justify-center text-center">
           <div className="absolute top-2 right-2 z-20 flex items-center gap-1">
             {isEditingThisTask && (
               <button
@@ -605,10 +614,6 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
             </button>
           </div>
 
-          <div className="text-sm font-medium mb-2 text-theme-muted">
-            {task.startTime} - {task.endTime}
-          </div>
-
           {isEditingThisTask ? (
             <input
               ref={titleInputRef}
@@ -631,28 +636,35 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="min-w-0 w-full sm:w-[25%] pr-12 text-lg font-semibold mb-2 leading-tight neu-inset-sm rounded px-2 py-1 focus:outline-none focus:ring-0 focus-visible:ring-0 theme-transition text-theme placeholder-theme-muted"
+              className="min-w-0 w-full sm:w-[25%] text-lg font-semibold mb-2 leading-tight neu-inset-sm rounded px-4 py-1 focus:outline-none focus:ring-0 focus-visible:ring-0 theme-transition text-theme placeholder-theme-muted text-center placeholder:text-center"
               placeholder="제목"
             />
           ) : (
             <>
-              <div className="text-lg font-semibold mb-2 leading-tight pr-12 text-theme">
-                {task.title}
-              </div>
-              {task.title === '새 일정' && (
-                <div className="text-xs text-theme-muted">연필 아이콘을 눌러 제목을 입력하세요</div>
-              )}
+              <>
+                <div
+                  className={`${
+                    isCompactHeight ? 'text-xs mb-1' : 'text-base mb-2'
+                  } font-semibold text-theme-muted w-full flex items-center justify-center text-center`}
+                >
+                  {task.startTime} - {task.endTime}
+                </div>
+                <div
+                  className={`${
+                    isCompactHeight ? 'text-lg' : 'text-2xl'
+                  } font-bold leading-tight text-theme w-full flex items-center justify-center text-center`}
+                >
+                  {task.title}
+                </div>
+                {!isCompactHeight && task.title === '새 일정' && (
+                  <div className="text-xs text-theme-muted">연필 아이콘을 눌러 제목을 입력하세요</div>
+                )}
+              </>
             </>
           )}
 
-          {task.description && (
-            <div className="text-sm mb-3 text-theme-muted">
-              {task.description}
-            </div>
-          )}
-
           {isCurrent && (
-            <div className="text-xs text-theme-muted mt-2">
+            <div className="text-xs text-theme-muted mt-2 w-full flex items-center justify-center">
               🔥 진행 중 <span className="font-semibold text-theme">{Math.round(progress)}%</span>
             </div>
           )}
@@ -660,6 +672,36 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
       </motion.div>
     )
   }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renameInputValue, handleSaveRename, performDelete, lastCreatedTodoId])
+
+  /** 고스트 일정 블록: 반투명 점선 테두리, 위→아래 0.1초 간격 등장 */
+  const renderGhostBlock = useCallback((task: Todo, index: number) => {
+    if (!task.startTime || !task.endTime) return null
+    const startPixel = timeToPixels(task.startTime)
+    const endPixel = timeToPixels(task.endTime)
+    const baseHeight = endPixel - startPixel
+    return (
+      <motion.div
+        key={task.id}
+        className="ghost-block absolute left-0 right-0 mx-3 sm:mx-4 pointer-events-none rounded-neu border-[1.5px] border-dashed border-orange-400/80 bg-orange-400/5 theme-transition"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1, duration: 0.2 }}
+        style={{
+          top: `${startPixel}px`,
+          height: `${baseHeight}px`,
+          zIndex: 4,
+        }}
+      >
+        <div className="relative z-10 p-4 h-full flex flex-col justify-center">
+          <div className="text-xs text-orange-400/90 font-medium mb-1">짜조 제안</div>
+          <div className="text-sm font-medium text-theme">{task.title}</div>
+          <div className="text-xs text-theme-muted mt-1">
+            {task.startTime} - {task.endTime}
+          </div>
+        </div>
+      </motion.div>
+    )
+  }, [timeToPixels])
 
   const getMinutesDiff = (startPixel: number, endPixel: number) => ((endPixel - startPixel) / 100) * 60
 
@@ -740,6 +782,8 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         </div>
 
         {(showPastTime ? todayTodos : todayTodos.filter(task => timeToPixels(task.endTime!) > currentTimePosition)).map(renderTaskBlock)}
+
+        {(showPastTime ? ghostPlansForDate : ghostPlansForDate.filter(task => timeToPixels(task.endTime!) > currentTimePosition)).map((g, i) => renderGhostBlock(g, i))}
 
         <div className="absolute left-0 right-0 z-50 transition-all duration-1000 ease-linear" style={{ top: `${currentTimePosition}px` }}>
           <div className="relative h-0.5 bg-primary-500">

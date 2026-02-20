@@ -40,6 +40,125 @@ export function getTodosForDate(todos: Todo[], date: string): Todo[] {
 }
 
 /**
+ * 특정 날짜의 빈 시간대(가용 슬롯) 목록. [start분, end분] → { start: "HH:mm", end: "HH:mm" }
+ * - 오늘인 경우 현재 시각 이전은 제외
+ * - 시간대 우선순위 설정이 있으면, 활성화된(timeSlotPreferences.enabled) 구간과 교집합만 사용
+ */
+export function getAvailableSlotsForDay(
+  date: string,
+  todos: Todo[],
+  currentTimeMinutes?: number,
+  timeSlotPreferences?: TimeSlotPreference[],
+): Array<{ start: string; end: string }> {
+  const dayEndMinutes = 24 * 60
+  const dateTodos = getTodosForDate(todos, date).filter((t) => t.startTime && t.endTime && !t.isGhost)
+  const intervals = dateTodos
+    .map((t) => ({ start: timeToMinutes(t.startTime!), end: timeToMinutes(t.endTime!) }))
+    .sort((a, b) => a.start - b.start)
+  const merged: Array<{ start: number; end: number }> = []
+  for (const { start, end } of intervals) {
+    if (merged.length === 0) {
+      merged.push({ start, end })
+      continue
+    }
+    const last = merged[merged.length - 1]
+    if (start <= last.end) {
+      last.end = Math.max(last.end, end)
+    } else {
+      merged.push({ start, end })
+    }
+  }
+  const gaps: Array<{ start: number; end: number }> = []
+  let prevEnd = currentTimeMinutes ?? 0
+  for (const { start, end } of merged) {
+    if (start > prevEnd) gaps.push({ start: prevEnd, end: start })
+    prevEnd = Math.max(prevEnd, end)
+  }
+  if (prevEnd < dayEndMinutes) gaps.push({ start: prevEnd, end: dayEndMinutes })
+
+  // 시간대 우선순위 설정을 반영: 활성화된 슬롯과 교집합만 남김
+  let filtered = gaps
+  if (timeSlotPreferences && timeSlotPreferences.length > 0) {
+    const enabled = sortTimeSlotsByPriority(timeSlotPreferences)
+    const ranges = enabled.map((slot) => ({
+      start: slot.startHour * 60,
+      end: slot.endHour * 60,
+    }))
+    if (ranges.length === 0) {
+      return []
+    }
+    const intersected: Array<{ start: number; end: number }> = []
+    for (const gap of gaps) {
+      for (const r of ranges) {
+        const s = Math.max(gap.start, r.start)
+        const e = Math.min(gap.end, r.end)
+        if (e > s) intersected.push({ start: s, end: e })
+      }
+    }
+    filtered = intersected
+  }
+
+  return filtered.map((g) => ({
+    start: minutesToTime(g.start),
+    end: minutesToTime(g.end),
+  }))
+}
+
+/** 플래너용: 아침·점심·저녁 각 1시간은 무조건 비워둠(분 단위) */
+const MEAL_BLOCKS_MINUTES: Array<{ start: number; end: number }> = [
+  { start: 8 * 60, end: 9 * 60 },   // 아침 08:00–09:00
+  { start: 12 * 60, end: 13 * 60 }, // 점심 12:00–13:00
+  { start: 18 * 60, end: 19 * 60 }, // 저녁 18:00–19:00
+]
+
+/**
+ * 가용 슬롯에서 아침·점심·저녁 시간(각 1시간)을 제외.
+ * 플래너 일정 생성 시 식사 시간을 무조건 비워두기 위해 사용.
+ */
+export function excludeMealBlocksFromSlots(
+  slots: Array<{ start: string; end: string }>
+): Array<{ start: string; end: string }> {
+  const result: Array<{ start: string; end: string }> = []
+  const minSlotMinutes = 10
+
+  for (const slot of slots) {
+    let s = timeToMinutes(slot.start)
+    const e = timeToMinutes(slot.end)
+    const busy: Array<{ start: number; end: number }> = []
+
+    for (const meal of MEAL_BLOCKS_MINUTES) {
+      if (meal.end <= s || meal.start >= e) continue
+      busy.push({
+        start: Math.max(s, meal.start),
+        end: Math.min(e, meal.end),
+      })
+    }
+    busy.sort((a, b) => a.start - b.start)
+    const merged: Array<{ start: number; end: number }> = []
+    for (const b of busy) {
+      if (merged.length > 0 && b.start <= merged[merged.length - 1].end) {
+        merged[merged.length - 1].end = Math.max(merged[merged.length - 1].end, b.end)
+      } else {
+        merged.push({ ...b })
+      }
+    }
+
+    let from = s
+    for (const m of merged) {
+      if (from < m.start && m.start - from >= minSlotMinutes) {
+        result.push({ start: minutesToTime(from), end: minutesToTime(m.start) })
+      }
+      from = Math.max(from, m.end)
+    }
+    if (from < e && e - from >= minSlotMinutes) {
+      result.push({ start: minutesToTime(from), end: minutesToTime(e) })
+    }
+  }
+
+  return result
+}
+
+/**
  * 시간대 우선순위에 따라 정렬
  */
 export function sortTimeSlotsByPriority(
