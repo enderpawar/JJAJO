@@ -39,8 +39,6 @@ interface CalendarStore {
   copyTodosFromPreviousDay: () => { toCopy: Todo[]; excluded: { title: string; startTime: string; endTime: string }[] }
   /** 짜조 고스트 일정 설정 (타임라인 미리보기용) */
   setGhostPlans: (plans: Todo[]) => void
-  /** 고스트 일정 확정: ghostPlans → todos 반영 후 ghostPlans 비우기. 서버 저장용으로 확정된 목록 반환. */
-  confirmGhostPlans: () => Todo[]
   /** 고스트 일정 확정 (해당 날짜 전체 교체): 대상 날짜 기존 todos 제거 후 ghostPlans로 교체. */
   applyGhostPlansReplaceDate: () => { applied: Todo[]; removed: Todo[] }
   /** 고스트 일정 취소: ghostPlans 비우기 */
@@ -99,18 +97,6 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   setIsBulkSavingTimetable: (value) => set({ isBulkSavingTimetable: value }),
 
   setGhostPlans: (plans) => set({ ghostPlans: plans }),
-
-  confirmGhostPlans: () => {
-    const state = get()
-    if (state.ghostPlans.length === 0) return []
-    const confirmed = state.ghostPlans.map((t) => ({
-      ...t,
-      isGhost: false,
-      id: t.id.startsWith('ghost-') ? `opt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}` : t.id,
-    }))
-    set({ ghostPlans: [], todos: [...state.todos, ...confirmed] })
-    return confirmed
-  },
 
   applyGhostPlansReplaceDate: () => {
     const state = get()

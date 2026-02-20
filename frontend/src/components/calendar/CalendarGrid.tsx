@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { formatDate, formatYearMonth, getCalendarDays, isSameDay } from '@/utils/dateUtils'
@@ -24,6 +24,14 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
   const lastClickedTimeRef = useRef<number>(0)
   const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressFiredRef = useRef(false)
+  const touchActiveRef = useRef(false)
+
+  useEffect(() => () => {
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current)
+      longPressTimeoutRef.current = null
+    }
+  }, [])
 
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
@@ -71,7 +79,8 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
     }
   }
 
-  const startLongPress = (date: Date) => {
+  const startLongPress = (date: Date, fromTouch: boolean) => {
+    if (fromTouch) touchActiveRef.current = true
     clearLongPress()
     longPressFiredRef.current = false
     longPressTimeoutRef.current = setTimeout(() => {
@@ -82,7 +91,12 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
     }, LONG_PRESS_MS)
   }
 
-  const endLongPress = () => clearLongPress()
+  const endLongPress = () => {
+    clearLongPress()
+    if (touchActiveRef.current) {
+      setTimeout(() => { touchActiveRef.current = false }, 400)
+    }
+  }
   
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
   
@@ -154,10 +168,15 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
               key={dateStr}
               type="button"
               onClick={() => handleDateClick(date)}
-              onTouchStart={() => onDateLongPress && startLongPress(date)}
+              onTouchStart={() => {
+                if (onDateLongPress) startLongPress(date, true)
+              }}
               onTouchEnd={endLongPress}
               onTouchCancel={endLongPress}
-              onMouseDown={() => onDateLongPress && startLongPress(date)}
+              onMouseDown={() => {
+                if (touchActiveRef.current) return
+                onDateLongPress && startLongPress(date, false)
+              }}
               onMouseUp={endLongPress}
               onMouseLeave={endLongPress}
               title={onDateLongPress ? '클릭: 선택 · 길게 누르기: 일정 추가' : undefined}

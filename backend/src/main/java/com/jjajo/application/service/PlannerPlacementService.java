@@ -41,18 +41,24 @@ public class PlannerPlacementService {
         List<PlannerScheduleResponse.PlanItem> result = new ArrayList<>();
         for (PlanWithDuration plan : plans) {
             int dur = Math.min(Math.max(plan.durationMinutes(), 10), routine.sessionMaxMinutes());
-            int breakMin = Math.max(0, plan.breakMinutesAfter() > 0 ? plan.breakMinutesAfter() : routine.breakMinutesDefault());
+            Integer breakAfter = plan.breakMinutesAfter();
+            int breakMin = Math.max(0, breakAfter == null ? routine.breakMinutesDefault() : breakAfter);
             var placed = placeOne(slots, preferredRanges, plan.title(), dur);
             if (placed != null) {
                 result.add(new PlannerScheduleResponse.PlanItem(plan.title(), placed.getStart(), placed.getEnd(), plan.note()));
-                // 휴식 지정 분만큼 일정 뒤에 최소 텀 보장(다음 일정이 이 시간 이전에 시작하지 않도록)
-                consumeSlot(slots, placed, breakMin);
                 if (insertRestCards && breakMin >= 5) {
+                    consumeSlot(slots, placed, 0);
                     var restPlaced = placeOne(slots, preferredRanges, "휴식", breakMin);
                     if (restPlaced != null) {
                         result.add(new PlannerScheduleResponse.PlanItem("휴식", restPlaced.getStart(), restPlaced.getEnd(), null));
                         consumeSlot(slots, restPlaced, 0);
+                    } else {
+                        int endMin = timeToMinutes(placed.getEnd());
+                        var breakRange = new PlannerScheduleResponse.PlanItem("", minutesToTime(endMin), minutesToTime(endMin + breakMin), null);
+                        consumeSlot(slots, breakRange, 0);
                     }
+                } else {
+                    consumeSlot(slots, placed, breakMin);
                 }
             }
         }
@@ -169,10 +175,10 @@ public class PlannerPlacementService {
         }
     }
 
-    /** 고도화: 블록 뒤 휴식(분), 세부 메모(선택) */
-    public record PlanWithDuration(String title, int durationMinutes, int breakMinutesAfter, String note) {
+    /** 고도화: 블록 뒤 휴식(분). null이면 템플릿 기본값 사용. 세부 메모(선택) */
+    public record PlanWithDuration(String title, int durationMinutes, Integer breakMinutesAfter, String note) {
         public PlanWithDuration(String title, int durationMinutes) {
-            this(title, durationMinutes, 0, null);
+            this(title, durationMinutes, null, null);
         }
     }
 }

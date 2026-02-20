@@ -151,7 +151,8 @@ export default function MagicBar() {
     const { applied, removed } = applyGhostPlansReplaceDate()
     if (applied.length === 0) return
 
-    for (const todo of removed) {
+    const toDeleteOnServer = removed.filter((t) => t.id && !t.id.startsWith('opt-'))
+    for (const todo of toDeleteOnServer) {
       if (!todo.id) continue
       try {
         await deleteSchedule(todo.id)

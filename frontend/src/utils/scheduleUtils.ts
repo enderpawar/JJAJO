@@ -72,7 +72,7 @@ export function getAvailableSlotsForDay(
   let prevEnd = currentTimeMinutes ?? 0
   for (const { start, end } of merged) {
     if (start > prevEnd) gaps.push({ start: prevEnd, end: start })
-    prevEnd = end
+    prevEnd = Math.max(prevEnd, end)
   }
   if (prevEnd < dayEndMinutes) gaps.push({ start: prevEnd, end: dayEndMinutes })
 
@@ -84,17 +84,18 @@ export function getAvailableSlotsForDay(
       start: slot.startHour * 60,
       end: slot.endHour * 60,
     }))
-    if (ranges.length > 0) {
-      const intersected: Array<{ start: number; end: number }> = []
-      for (const gap of gaps) {
-        for (const r of ranges) {
-          const s = Math.max(gap.start, r.start)
-          const e = Math.min(gap.end, r.end)
-          if (e > s) intersected.push({ start: s, end: e })
-        }
-      }
-      filtered = intersected
+    if (ranges.length === 0) {
+      return []
     }
+    const intersected: Array<{ start: number; end: number }> = []
+    for (const gap of gaps) {
+      for (const r of ranges) {
+        const s = Math.max(gap.start, r.start)
+        const e = Math.min(gap.end, r.end)
+        if (e > s) intersected.push({ start: s, end: e })
+      }
+    }
+    filtered = intersected
   }
 
   return filtered.map((g) => ({

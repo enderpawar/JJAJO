@@ -644,15 +644,14 @@ public class GeminiChatAdapter {
                 for (JsonNode node : plansNode) {
                     String title = node.has("title") ? node.get("title").asText().trim() : null;
                     int dur = node.has("durationMinutes") ? node.get("durationMinutes").asInt(60) : 60;
-                    int breakAfter = node.has("breakMinutesAfter") ? node.get("breakMinutesAfter").asInt(0) : 0;
+                    Integer breakAfter = node.has("breakMinutesAfter") ? Math.min(Math.max(node.get("breakMinutesAfter").asInt(0), 0), 30) : null;
                     String note = null;
                     if (node.has("note") && !node.get("note").isNull()) {
                         String n = node.get("note").asText().trim();
                         if (!n.isEmpty()) note = n;
                     }
                     if (title != null && !title.isEmpty() && dur > 0) {
-                        plans.add(new CategoryAndPlans.PlanWithDuration(
-                                title, Math.min(dur, 240), Math.min(Math.max(breakAfter, 0), 30), note));
+                        plans.add(new CategoryAndPlans.PlanWithDuration(title, Math.min(dur, 240), breakAfter, note));
                     }
                 }
             }
@@ -687,9 +686,9 @@ public class GeminiChatAdapter {
         public CategoryAndPlans(String category, List<PlanWithDuration> plans) {
             this(category, plans, null);
         }
-        public record PlanWithDuration(String title, int durationMinutes, int breakMinutesAfter, String note) {
+        public record PlanWithDuration(String title, int durationMinutes, Integer breakMinutesAfter, String note) {
             public PlanWithDuration(String title, int durationMinutes) {
-                this(title, durationMinutes, 0, null);
+                this(title, durationMinutes, null, null);
             }
         }
     }

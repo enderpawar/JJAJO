@@ -22,7 +22,7 @@ export default function MainPage() {
   const [triggerAddModalInMonthly, setTriggerAddModalInMonthly] = useState(false)
   const skipNextScrollToTimeRef = useRef(false)
   const { setGoals } = useGoalStore()
-  const { setTodos, selectedDate } = useCalendarStore()
+  const { setTodos } = useCalendarStore()
   const loadApiKeyForCurrentUser = useApiKeyStore((s) => s.loadApiKeyForCurrentUser)
 
   // 플래너 진입 시 인증 확인 + 회원별 목표·일정 로드
