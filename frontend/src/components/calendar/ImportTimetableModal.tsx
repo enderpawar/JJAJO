@@ -259,7 +259,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
               <p className="text-xs text-notion-muted">
                 에브리타임, 학교 포털, 캘린더 앱 등에서 주간 시간표가 보이도록 캡처한 뒤, PNG/JPG 파일을 올려주세요.
               </p>
-              <label className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-primary-500/80 hover:bg-primary-500 text-white text-sm font-medium cursor-pointer w-fit">
+              <label className="inline-flex items-center justify-center px-4 py-2 rounded-lg border-2 border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white text-sm font-medium cursor-pointer w-fit theme-transition">
                 <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                 {file ? '다른 이미지 선택' : '이미지 선택'}
               </label>

@@ -9,16 +9,21 @@ interface CalendarGridProps {
   onDateSelect?: () => void
   /** 날짜 더블클릭/더블탭 시 호출 (모바일 모달에서 해당일 일정 패널 열기) */
   onDateDoubleClick?: () => void
+  /** 날짜 롱프레스 시 호출 (해당 날짜로 일정 추가 모달 열기 등) */
+  onDateLongPress?: (date: Date) => void
   /** true면 높이 제한 완화, 모달 내부 스크롤로 한 달 전체 표시 */
   allowFullHeight?: boolean
 }
 
 const DOUBLE_TAP_MS = 450
+const LONG_PRESS_MS = 500
 
-export default function CalendarGrid({ onDateSelect, onDateDoubleClick, allowFullHeight }: CalendarGridProps) {
+export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLongPress, allowFullHeight }: CalendarGridProps) {
   const { currentMonth, selectedDate, setCurrentMonth, setSelectedDate, getTodosByDate } = useCalendarStore()
   const lastClickedDateRef = useRef<string>('')
   const lastClickedTimeRef = useRef<number>(0)
+  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressFiredRef = useRef(false)
 
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
@@ -37,6 +42,10 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, allowFul
   }
   
   const handleDateClick = (date: Date) => {
+    if (longPressFiredRef.current) {
+      longPressFiredRef.current = false
+      return
+    }
     const dateStr = formatDate(date)
     const now = Date.now()
     const lastTime = lastClickedTimeRef.current
@@ -54,6 +63,26 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, allowFul
     setSelectedDate(date)
     if (!onDateDoubleClick) onDateSelect?.()
   }
+
+  const clearLongPress = () => {
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current)
+      longPressTimeoutRef.current = null
+    }
+  }
+
+  const startLongPress = (date: Date) => {
+    clearLongPress()
+    longPressFiredRef.current = false
+    longPressTimeoutRef.current = setTimeout(() => {
+      longPressTimeoutRef.current = null
+      longPressFiredRef.current = true
+      setSelectedDate(date)
+      onDateLongPress?.(date)
+    }, LONG_PRESS_MS)
+  }
+
+  const endLongPress = () => clearLongPress()
   
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
   
@@ -125,6 +154,13 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, allowFul
               key={dateStr}
               type="button"
               onClick={() => handleDateClick(date)}
+              onTouchStart={() => onDateLongPress && startLongPress(date)}
+              onTouchEnd={endLongPress}
+              onTouchCancel={endLongPress}
+              onMouseDown={() => onDateLongPress && startLongPress(date)}
+              onMouseUp={endLongPress}
+              onMouseLeave={endLongPress}
+              title={onDateLongPress ? '클릭: 선택 · 길게 누르기: 일정 추가' : undefined}
               className={cn(
                 'calendar-date-cell w-full h-full min-h-[44px] p-1.5 sm:p-2 rounded-neu theme-transition',
                 'relative flex flex-col items-center justify-center bg-theme-card',

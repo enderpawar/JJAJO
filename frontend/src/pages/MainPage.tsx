@@ -19,6 +19,7 @@ export default function MainPage() {
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [showMonthlyCalendar, setShowMonthlyCalendar] = useState(false)
   const [showImportTimetable, setShowImportTimetable] = useState(false)
+  const [triggerAddModalInMonthly, setTriggerAddModalInMonthly] = useState(false)
   const skipNextScrollToTimeRef = useRef(false)
   const { setGoals } = useGoalStore()
   const { setTodos, selectedDate } = useCalendarStore()
@@ -65,9 +66,12 @@ export default function MainPage() {
     return () => window.removeEventListener('keydown', handleEscape)
   }, [showMonthlyCalendar, closeMonthlyCalendar])
 
-  // 월간 모달 열릴 때 body 스크롤 잠금
+  // 월간 모달 열릴 때 body 스크롤 잠금, 닫을 때 롱프레스 트리거 초기화
   useEffect(() => {
-    if (!showMonthlyCalendar) return
+    if (!showMonthlyCalendar) {
+      setTriggerAddModalInMonthly(false)
+      return
+    }
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
@@ -144,9 +148,16 @@ export default function MainPage() {
                   {/* 모바일: 캘린더 + 선택한 날짜 일정을 하단에 표시 (단일 블록) */}
                   <div className="xl:hidden flex-1 min-h-0 flex flex-col">
                     <div className="neu-float rounded-2xl p-4 sm:p-6 flex flex-col min-h-0 overflow-hidden">
-                      <CalendarGrid allowFullHeight />
+                      <CalendarGrid
+                        allowFullHeight
+                        onDateLongPress={() => setTriggerAddModalInMonthly(true)}
+                      />
                       <div className="border-t border-theme mt-4 pt-4 flex flex-col min-h-[140px] max-h-[38vh] shrink-0 overflow-hidden">
-                        <DayDetailPanel embedded />
+                        <DayDetailPanel
+                          embedded
+                          openAddModal={triggerAddModalInMonthly}
+                          onAddModalOpened={() => setTriggerAddModalInMonthly(false)}
+                        />
                       </div>
                     </div>
                   </div>
@@ -155,12 +166,15 @@ export default function MainPage() {
                   <div className="hidden xl:grid grid-cols-12 gap-6 xl:gap-8">
                     <div className="col-span-7 flex flex-col gap-6">
                       <div className="neu-float rounded-2xl p-8">
-                        <CalendarGrid />
+                        <CalendarGrid onDateLongPress={() => setTriggerAddModalInMonthly(true)} />
                       </div>
                     </div>
                     <div className="col-span-5 flex flex-col gap-6 max-h-[75vh] overflow-y-auto pr-2">
                       <div className="neu-float rounded-2xl flex flex-col min-h-0">
-                        <DayDetailPanel />
+                        <DayDetailPanel
+                          openAddModal={triggerAddModalInMonthly}
+                          onAddModalOpened={() => setTriggerAddModalInMonthly(false)}
+                        />
                       </div>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Calendar, Clock, Plus, Edit2, Trash2 } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useToastStore } from '@/stores/toastStore'
@@ -13,14 +13,25 @@ import { ConfirmModal } from '@/components/ConfirmModal'
 interface DayDetailPanelProps {
   /** 캘린더 하단 등 한 블록 안에 묶여 있을 때 true (카드 스타일 생략) */
   embedded?: boolean
+  /** true로 바뀌면 일정 추가 모달을 연다 (캘린더 롱프레스 등 외부 트리거) */
+  openAddModal?: boolean
+  /** 일정 추가 모달을 연 뒤 호출 (openAddModal 플래그 초기화용) */
+  onAddModalOpened?: () => void
 }
 
-export default function DayDetailPanel({ embedded = false }: DayDetailPanelProps = {}) {
+export default function DayDetailPanel({ embedded = false, openAddModal = false, onAddModalOpened }: DayDetailPanelProps = {}) {
   const { selectedDate, getTodosByDate, deleteTodo, addTodo } = useCalendarStore()
   const { addToast } = useToastStore()
   const [deleteConfirmTodo, setDeleteConfirmTodo] = useState<Todo | null>(null)
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+
+  useEffect(() => {
+    if (openAddModal) {
+      setIsModalOpen(true)
+      onAddModalOpened?.()
+    }
+  }, [openAddModal])
 
   /** 낙관적 삭제: 즉시 UI에서 제거한 뒤 백그라운드에서 API 호출. 실패 시 롤백. */
   const performDeleteTodo = (todo: Todo) => {
@@ -193,14 +204,21 @@ export default function DayDetailPanel({ embedded = false }: DayDetailPanelProps
         )}
       </div>
       
-      {/* 일정 추가 버튼 */}
-      <button 
-        onClick={() => setIsModalOpen(true)}
-        className="btn-primary w-full flex items-center justify-center gap-2"
-      >
-        <Plus className="w-5 h-5" />
-        <span>이 날에 일정 추가</span>
-      </button>
+      {/* 모바일(embedded): 롱프레스 안내 문구 / 데스크톱: 일정 추가 버튼 */}
+      {embedded ? (
+        <p className="text-xs text-theme-muted text-center py-3">
+          원하는 일자를 길게 눌러 일정을 추가하세요
+        </p>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="btn-primary w-full flex items-center justify-center gap-2"
+        >
+          <Plus className="w-5 h-5" />
+          <span>이 날에 일정 추가</span>
+        </button>
+      )}
 
       {/* 일정 추가 모달 */}
       <AddTodoModal 
