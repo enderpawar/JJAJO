@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { Settings, X, Moon, Sun, Copy, Calendar, LogIn } from 'lucide-react'
+import { Settings, X, Moon, Sun, Copy, Calendar, CalendarDays, LogIn } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { TimeSlotSettings } from '@/components/settings/TimeSlotSettings'
 import { ApiKeySettings } from '@/components/settings/ApiKeySettings'
+import { ScheduleDataSettings } from '@/components/settings/ScheduleDataSettings'
 import { getApiBase } from '@/utils/api'
 import { createSchedule } from '@/services/scheduleService'
 import { useToastStore } from '@/stores/toastStore'
@@ -12,9 +13,10 @@ import { ko } from 'date-fns/locale'
 
 interface HeaderProps {
   onOpenMonthlyCalendar?: () => void
+  onOpenImportTimetable?: () => void
 }
 
-export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
+export default function Header({ onOpenMonthlyCalendar, onOpenImportTimetable }: HeaderProps) {
   const { copyTodosFromPreviousDay, addTodos, selectedDate, isBulkSavingTimetable } = useCalendarStore()
   const { addToast } = useToastStore()
   const { theme, toggleTheme, initTheme } = useSettingsStore()
@@ -136,6 +138,18 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
                 <span className="hidden sm:inline">월간</span>
               </button>
             )}
+            {onOpenImportTimetable && (
+              <button
+                type="button"
+                onClick={onOpenImportTimetable}
+                className="neu-btn touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] rounded-neu text-xs font-medium cursor-pointer"
+                style={{ color: 'var(--text-main)' }}
+                title="시간표 이미지로 불러오기"
+              >
+                <CalendarDays className="w-4 h-4" />
+                <span className="hidden sm:inline">시간표</span>
+              </button>
+            )}
 
             {/* 테마 토글 스위치 (설정 옆, Sun/Moon 교체 · 소프트 미니멀) */}
             <button
@@ -221,6 +235,7 @@ export default function Header({ onOpenMonthlyCalendar }: HeaderProps) {
               <div className="pt-6 border-t border-theme">
                 <ApiKeySettings />
               </div>
+              <ScheduleDataSettings />
             </div>
           </div>
         </div>

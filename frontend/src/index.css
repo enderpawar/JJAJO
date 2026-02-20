@@ -22,6 +22,8 @@
   --primary-point-ring: rgba(255, 140, 0, 0.28);
   --hover-bg: #F1F3F5;
   --grid-line: rgba(0, 0, 0, 0.06);
+  /* 라이트: 월간 캘린더 날짜 셀 구분용 테두리 */
+  --calendar-cell-border: rgba(0, 0, 0, 0.14);
 }
 
 html.dark {
@@ -43,6 +45,7 @@ html.dark {
   --primary-point-ring: rgba(255, 149, 0, 0.35);
   --hover-bg: #252528;
   --grid-line: rgba(255, 255, 255, 0.06);
+  --calendar-cell-border: rgba(255, 255, 255, 0.06);
 }
 
 /* 테마 전환 시 부드러운 전환 (날짜 카드, 타임라인, 입력창 등) */
@@ -511,6 +514,10 @@ input[type="range"]::-moz-range-thumb:hover {
     background-color: var(--card-bg) !important;
     box-shadow: var(--shadow-inset-sm), 0 0 0 1px var(--primary-point-ring) !important;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  /* 월간 캘린더 날짜 셀: neu-float-sm이 border:none으로 덮지 않도록 테두리 유지 */
+  .calendar-date-cell {
+    border: 1px solid var(--calendar-cell-border) !important;
   }
   /* 테마 토글 스위치: 소프트 미니멀, 부드러운 전환 */
   .theme-toggle-switch {

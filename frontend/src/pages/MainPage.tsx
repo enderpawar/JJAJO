@@ -6,12 +6,10 @@ import CalendarGrid from '@/components/calendar/CalendarGrid'
 import DayDetailPanel from '@/components/calendar/DayDetailPanel'
 import { TopTimeline } from '@/components/calendar/TopTimeline'
 import { VerticalTimeline } from '@/components/calendar/VerticalTimeline'
-import { GoalsAndBackwardsPlanSection } from '@/components/goals/GoalsAndBackwardsPlanSection'
 import { ImportTimetableModal } from '@/components/calendar/ImportTimetableModal'
-import { Target, X, CalendarDays } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useGoalStore } from '@/stores/goalStore'
-import { formatDateWithDay } from '@/utils/dateUtils'
 import { checkAuth, loadGoals } from '@/services/authService'
 import { getSchedules } from '@/services/scheduleService'
 import { useApiKeyStore } from '@/stores/apiKeyStore'
@@ -21,10 +19,6 @@ export default function MainPage() {
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [showMonthlyCalendar, setShowMonthlyCalendar] = useState(false)
   const [showImportTimetable, setShowImportTimetable] = useState(false)
-  const [monthlyModalTab, setMonthlyModalTab] = useState<'calendar' | 'goals'>('calendar')
-  const [showDayPanelInModal, setShowDayPanelInModal] = useState(false)
-  const [modalDragY, setModalDragY] = useState(0)
-  const modalDragStartY = useRef(0)
   const skipNextScrollToTimeRef = useRef(false)
   const { setGoals } = useGoalStore()
   const { setTodos, selectedDate } = useCalendarStore()
@@ -71,14 +65,9 @@ export default function MainPage() {
     return () => window.removeEventListener('keydown', handleEscape)
   }, [showMonthlyCalendar, closeMonthlyCalendar])
 
-  // 월간 모달 열릴 때 body 스크롤 잠금 + 탭 초기화
+  // 월간 모달 열릴 때 body 스크롤 잠금
   useEffect(() => {
-    if (!showMonthlyCalendar) {
-      setModalDragY(0)
-      setShowDayPanelInModal(false)
-      return
-    }
-    setMonthlyModalTab('calendar')
+    if (!showMonthlyCalendar) return
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
@@ -99,7 +88,10 @@ export default function MainPage() {
       {/* 🎨 TopTimeline: 주간 히트맵 */}
       <TopTimeline />
       
-      <Header onOpenMonthlyCalendar={() => setShowMonthlyCalendar(true)} />
+      <Header
+        onOpenMonthlyCalendar={() => setShowMonthlyCalendar(true)}
+        onOpenImportTimetable={() => setShowImportTimetable(true)}
+      />
 
       {/* 매직 바: 한 줄 자연어로 일정 추가 */}
       <div className="shrink-0 theme-transition bg-theme border-b border-theme">
@@ -129,36 +121,12 @@ export default function MainPage() {
           }}
         >
           <div 
-            className="rounded-neu-lg w-full max-w-[1800px] max-h-[min(95vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-hidden flex flex-col transition-transform duration-150 theme-transition bg-theme-card"
-            style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.08)', transform: `translateY(${modalDragY}px)` }}
+            className="rounded-neu-lg w-full max-w-[1800px] max-h-[min(95vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))] overflow-hidden flex flex-col theme-transition bg-theme-card"
+            style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
           >
-            {/* 상단: 모바일은 스와이프 핸들+닫기, 데스크톱은 최소 바(닫기+시간표 불러오기) */}
-            <div className="shrink-0 flex items-center justify-between px-2 py-2 theme-transition bg-theme-card border-b border-theme">
-              <div
-                className="xl:hidden flex-1 flex justify-center touch-none min-h-[44px] items-center"
-                onTouchStart={(e) => { modalDragStartY.current = e.touches[0].clientY }}
-                onTouchMove={(e) => {
-                  const y = e.touches[0].clientY
-                  const delta = y - modalDragStartY.current
-                  if (delta > 0) setModalDragY(delta)
-                }}
-                onTouchEnd={() => {
-                  if (modalDragY > 100) closeMonthlyCalendar()
-                  setModalDragY(0)
-                }}
-              >
-                <div className="w-10 h-1 rounded-full bg-[#9CA3AF]/60 dark:bg-white/30" aria-hidden />
-              </div>
-              <div className="hidden xl:flex items-center gap-2 flex-1">
-                <button
-                  type="button"
-                  onClick={() => setShowImportTimetable(true)}
-                  className="touch-target flex items-center justify-center gap-2 px-3 py-2 rounded-neu neu-float-sm text-theme hover:shadow-neu-inset-hover text-sm font-medium"
-                >
-                  <CalendarDays className="w-4 h-4" />
-                  시간표 이미지로 불러오기
-                </button>
-              </div>
+            {/* 상단: 제목 + 닫기 */}
+            <div className="shrink-0 flex items-center justify-between px-4 py-3 theme-transition bg-theme-card border-b border-theme">
+              <h2 className="text-lg font-semibold text-theme">월간 일정</h2>
               <button
                 type="button"
                 onClick={closeMonthlyCalendar}
@@ -169,81 +137,25 @@ export default function MainPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-
-            {/* 매직 바: 모바일/데스크톱 모두 항상 표시 */}
-            <div className="shrink-0 theme-transition bg-theme border-b border-theme">
-              <MagicBar />
-            </div>
             
             <div className="flex-1 overflow-auto theme-transition bg-theme flex flex-col min-h-0">
-              <div className="xl:hidden shrink-0 theme-transition bg-theme border-b border-theme">
-                <div className="flex max-w-[1600px] mx-auto">
-                  {[
-                    { id: 'calendar' as const, label: '캘린더', icon: CalendarDays },
-                    { id: 'goals' as const, label: '목표', icon: Target },
-                  ].map(({ id, label, icon: Icon }) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setMonthlyModalTab(id)}
-                      className={`touch-target flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium transition-all rounded-neu ${
-                        monthlyModalTab === id
-                          ? 'neu-date-selected text-primary-500'
-                          : 'neu-float-sm text-theme hover:shadow-neu-inset-hover active:scale-[0.98]'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <div className="flex-1 overflow-auto min-h-0">
                 <div className="max-w-[1600px] mx-auto p-4 sm:p-6 xl:p-8">
-                  {/* 모바일: 탭별 단일 패널. 날짜 더블클릭/더블탭 시 일정 패널 오버레이 */}
-                  <div className="xl:hidden relative flex-1 min-h-0 flex flex-col">
-                    {monthlyModalTab === 'calendar' && (
-                      <div className="neu-float rounded-2xl p-4 sm:p-6 flex flex-col min-h-0 flex-1">
-                        <CalendarGrid
-                          onDateDoubleClick={() => setShowDayPanelInModal(true)}
-                          allowFullHeight
-                        />
+                  {/* 모바일: 캘린더 + 선택한 날짜 일정을 하단에 표시 (단일 블록) */}
+                  <div className="xl:hidden flex-1 min-h-0 flex flex-col">
+                    <div className="neu-float rounded-2xl p-4 sm:p-6 flex flex-col min-h-0 overflow-hidden">
+                      <CalendarGrid allowFullHeight />
+                      <div className="border-t border-theme mt-4 pt-4 flex flex-col min-h-[140px] max-h-[38vh] shrink-0 overflow-hidden">
+                        <DayDetailPanel embedded />
                       </div>
-                    )}
-                    {monthlyModalTab === 'goals' && (
-                      <div className="neu-float rounded-2xl p-4 sm:p-5">
-                        <GoalsAndBackwardsPlanSection />
-                      </div>
-                    )}
-                    {/* 더블클릭/더블탭으로 연 일정 패널 오버레이 */}
-                    {showDayPanelInModal && (
-                      <div className="absolute inset-0 z-10 theme-transition bg-theme-card flex flex-col rounded-2xl overflow-hidden neu-float">
-                        <div className="shrink-0 flex items-center justify-between px-4 py-3 theme-transition bg-theme-card border-b border-theme">
-                          <button
-                            type="button"
-                            onClick={() => setShowDayPanelInModal(false)}
-                            className="touch-target flex items-center gap-2 min-h-[44px] px-3 text-sm font-medium text-theme-muted hover:text-theme"
-                          >
-                            ← 뒤로
-                          </button>
-                          <span className="text-sm text-theme-muted">{formatDateWithDay(selectedDate)}</span>
-                        </div>
-                        <div className="flex-1 min-h-0 overflow-auto">
-                          <DayDetailPanel />
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
 
-                  {/* 데스크톱: 기존 2열 그리드 */}
+                  {/* 데스크톱: 2열 그리드 (캘린더 + 일정 패널) */}
                   <div className="hidden xl:grid grid-cols-12 gap-6 xl:gap-8">
                     <div className="col-span-7 flex flex-col gap-6">
                       <div className="neu-float rounded-2xl p-8">
                         <CalendarGrid />
-                      </div>
-                      <div className="neu-float rounded-2xl p-5">
-                        <GoalsAndBackwardsPlanSection />
                       </div>
                     </div>
                     <div className="col-span-5 flex flex-col gap-6 max-h-[75vh] overflow-y-auto pr-2">

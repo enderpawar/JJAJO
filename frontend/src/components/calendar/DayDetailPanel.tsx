@@ -7,12 +7,19 @@ import { formatDate, formatDateWithDay } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
 import type { Todo } from '@/types/calendar'
 import AddTodoModal from './AddTodoModal'
+import EditTodoPanel from './EditTodoPanel'
 import { ConfirmModal } from '@/components/ConfirmModal'
 
-export default function DayDetailPanel() {
+interface DayDetailPanelProps {
+  /** 캘린더 하단 등 한 블록 안에 묶여 있을 때 true (카드 스타일 생략) */
+  embedded?: boolean
+}
+
+export default function DayDetailPanel({ embedded = false }: DayDetailPanelProps = {}) {
   const { selectedDate, getTodosByDate, deleteTodo, addTodo } = useCalendarStore()
   const { addToast } = useToastStore()
   const [deleteConfirmTodo, setDeleteConfirmTodo] = useState<Todo | null>(null)
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   /** 낙관적 삭제: 즉시 UI에서 제거한 뒤 백그라운드에서 API 호출. 실패 시 롤백. */
@@ -67,19 +74,26 @@ export default function DayDetailPanel() {
   }
   
   return (
-    <div className="neu-float rounded-2xl p-4 sm:p-6 flex flex-col min-h-0 flex-1 max-h-[60vh] sm:max-h-[70vh]">
-      {/* 헤더 */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Calendar className="w-5 h-5 text-primary-500" />
-          <h3 className="text-lg font-bold text-theme">
-            {formatDateWithDay(selectedDate)}
-          </h3>
+    <div
+      className={cn(
+        'flex flex-col min-h-0 flex-1 overflow-hidden',
+        embedded ? 'p-0 max-h-none' : 'neu-float rounded-2xl p-4 sm:p-6 max-h-[60vh] sm:max-h-[70vh]'
+      )}
+    >
+      {/* 헤더 (모바일 캘린더 하단 embedded일 때는 생략 — 날짜는 캘린더에서 이미 보임) */}
+      {!embedded && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <Calendar className="w-5 h-5 text-primary-500" />
+            <h3 className="text-lg font-bold text-theme">
+              {formatDateWithDay(selectedDate)}
+            </h3>
+          </div>
+          <p className="text-sm text-theme-muted">
+            <span className={todos.length > 0 ? 'text-primary-400 font-medium' : ''}>{todos.length}개</span>의 일정
+          </p>
         </div>
-        <p className="text-sm text-theme-muted">
-          <span className={todos.length > 0 ? 'text-primary-400 font-medium' : ''}>{todos.length}개</span>의 일정
-        </p>
-      </div>
+      )}
       
       {/* 일정 목록 */}
       <div className="flex-1 overflow-y-auto space-y-3 mb-4">
@@ -115,9 +129,13 @@ export default function DayDetailPanel() {
                     <h4 className="font-semibold text-theme">
                       {todo.title}
                     </h4>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 shrink-0">
                       <button
                         type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingTodo(todo)
+                        }}
                         className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2.5 rounded-neu"
                         title="편집"
                       >
@@ -125,7 +143,10 @@ export default function DayDetailPanel() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDeleteConfirmTodo(todo)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteConfirmTodo(todo)
+                        }}
                         className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2.5 rounded-neu hover:shadow-neu-inset-hover"
                         title="삭제"
                       >
@@ -198,6 +219,12 @@ export default function DayDetailPanel() {
         confirmLabel="삭제"
         cancelLabel="취소"
         danger
+      />
+
+      {/* 일정 편집 패널 (월간 모달 내에서도 z-index로 최상단 표시) */}
+      <EditTodoPanel
+        todo={editingTodo}
+        onClose={() => setEditingTodo(null)}
       />
     </div>
   )
