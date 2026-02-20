@@ -1,8 +1,30 @@
 import { useRef, useEffect } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { formatDate, formatYearMonth, getCalendarDays, isSameDay } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
+import type { Todo, TodoPriority } from '@/types/calendar'
+
+/** 우선순위별로 그룹화한 일정 개수·완료 개수 */
+function getTodosByPriority(dateTodos: Todo[]) {
+  const groups: Record<TodoPriority, { count: number; completed: number }> = {
+    high: { count: 0, completed: 0 },
+    medium: { count: 0, completed: 0 },
+    low: { count: 0, completed: 0 },
+  }
+  dateTodos.forEach((t) => {
+    if (t.status === 'cancelled') return
+    groups[t.priority].count += 1
+    if (t.status === 'completed') groups[t.priority].completed += 1
+  })
+  return groups
+}
+
+const PRIORITY_COLORS: Record<TodoPriority, string> = {
+  high: 'bg-red-500 text-white',
+  medium: 'bg-amber-500 text-white',
+  low: 'bg-emerald-500 text-white',
+}
 
 interface CalendarGridProps {
   /** 날짜 클릭 시 호출 (데스크톱 등에서 선택일 영역 포커스용) */
@@ -107,38 +129,38 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
         allowFullHeight ? 'min-h-0 flex-1 overflow-auto max-h-none' : 'max-h-[50vh] sm:max-h-[60vh] xl:max-h-[750px]'
       )}
     >
-      {/* 월 네비게이션 */}
-      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+      {/* 월 네비게이션 - 시각적 계층 강화 */}
+      <div className="flex items-center justify-between mb-5 flex-shrink-0">
         <button
           type="button"
           onClick={handlePrevMonth}
-          className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-neu"
+          className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-xl text-theme-muted hover:text-theme transition-colors"
           title="이전 달"
         >
-          <ChevronLeft className="w-5 h-5 text-theme-muted" />
+          <ChevronLeft className="w-5 h-5" />
         </button>
         
-        <h2 className="text-xl font-bold text-theme">
+        <h2 className="text-lg sm:text-xl font-bold text-theme tracking-tight">
           {formatYearMonth(currentMonth)}
         </h2>
         
         <button
           type="button"
           onClick={handleNextMonth}
-          className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-neu"
+          className="neu-btn touch-target flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-xl text-theme-muted hover:text-theme transition-colors"
           title="다음 달"
         >
-          <ChevronRight className="w-5 h-5 text-theme-muted" />
+          <ChevronRight className="w-5 h-5" />
         </button>
       </div>
       
-      {/* 요일 헤더 - 모바일에서 gap 축소 */}
+      {/* 요일 헤더 */}
       <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 flex-shrink-0">
         {weekDays.map((day, index) => (
           <div
             key={day}
             className={cn(
-              'text-center text-xs font-semibold py-1',
+              'text-center text-[11px] sm:text-xs font-semibold py-1.5 rounded-lg',
               index === 0 ? 'text-red-500/90' : index === 6 ? 'text-primary-500/90' : 'text-theme-muted'
             )}
           >
@@ -148,14 +170,14 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
       </div>
       
       {/* 날짜 그리드 - 해당 월 일자만 표시, 이전/다음 달 칸은 빈 칸 */}
-      <div className="grid grid-cols-7 gap-1 sm:gap-2 flex-1 min-h-0">
+      <div className="grid grid-cols-7 gap-1.5 sm:gap-2.5 flex-1 min-h-0">
         {days.map((date) => {
           const isCurrentMonthDay = date.getMonth() === month
           if (!isCurrentMonthDay) {
             return (
               <div
                 key={`empty-${date.getTime()}`}
-                className="w-full min-h-[44px] rounded-neu border border-[var(--calendar-cell-border)] bg-transparent"
+                className="w-full min-h-[48px] sm:min-h-[52px] rounded-[14px] border border-[var(--calendar-cell-border)] bg-theme-card/30 opacity-60"
                 aria-hidden
               />
             )
@@ -163,6 +185,11 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
           const dateStr = formatDate(date)
           const dateTodos = getTodosByDate(dateStr)
           const isSelected = isSameDay(date, selectedDate)
+          const isToday = dateStr === formatDate(new Date())
+          const byPriority = getTodosByPriority(dateTodos)
+          const indicators = (['high', 'medium', 'low'] as const).filter(
+            (p) => byPriority[p].count > 0
+          )
           return (
             <button
               key={dateStr}
@@ -181,26 +208,47 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
               onMouseLeave={endLongPress}
               title={onDateLongPress ? '클릭: 선택 · 길게 누르기: 일정 추가' : undefined}
               className={cn(
-                'calendar-date-cell w-full h-full min-h-[44px] p-1.5 sm:p-2 rounded-neu theme-transition',
+                'calendar-date-cell w-full h-full min-h-[48px] sm:min-h-[52px] p-1.5 sm:p-2 theme-transition',
                 'relative flex flex-col items-center justify-center bg-theme-card',
                 'text-theme',
-                isSelected ? 'neu-date-selected' : 'neu-float-sm hover:shadow-neu-inset-hover active:scale-[0.98]'
+                isSelected ? 'neu-date-selected shadow-[var(--shadow-inset-sm)]' : 'neu-float-sm',
+                isToday && !isSelected && 'calendar-date-today',
+                !isSelected && 'hover:shadow-neu-inset-hover'
               )}
             >
-              <div className="text-[10px] sm:text-xs font-medium">{date.getDate()}</div>
-              {dateTodos.length > 0 && (
-                <div className="flex gap-0.5 justify-center mt-0.5 min-h-[14px] items-center shrink-0">
-                  {dateTodos.slice(0, 3).map((todo, index) => (
-                    <div
-                      key={`${todo.id}-${index}`}
-                      className="w-1.5 h-1.5 rounded-full bg-primary-500"
-                    />
-                  ))}
-                  {dateTodos.length > 3 && (
-                    <span className="text-[10px] text-theme-muted ml-0.5">+</span>
-                  )}
+              {/* 날짜 셀 상단: 우선순위별 인디케이터(개수 + 완료 시 체크) */}
+              {indicators.length > 0 ? (
+                <div className="flex gap-0.5 sm:gap-1 justify-center items-center mb-0.5 min-h-[18px] shrink-0 flex-wrap">
+                  {indicators.map((priority) => {
+                    const { count, completed } = byPriority[priority]
+                    const allDone = count > 0 && completed === count
+                    return (
+                      <div
+                        key={priority}
+                        className={cn(
+                          'flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-bold shadow-sm',
+                          PRIORITY_COLORS[priority]
+                        )}
+                        title={`${priority} 우선순위 ${count}개${allDone ? ' (완료)' : ''}`}
+                      >
+                        {allDone ? (
+                          <Check className="w-3 h-3" strokeWidth={2.5} />
+                        ) : (
+                          count
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
+              ) : (
+                <div className="min-h-[18px] shrink-0" aria-hidden />
               )}
+              <span className={cn(
+                'text-[11px] sm:text-sm font-semibold tabular-nums',
+                isSelected && 'underline decoration-2 decoration-primary-500 underline-offset-2'
+              )}>
+                {date.getDate()}
+              </span>
             </button>
           )
         })}

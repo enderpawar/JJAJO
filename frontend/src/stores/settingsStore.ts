@@ -2,15 +2,21 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { UserSettings, TimeSlotPreference, DEFAULT_TIME_SLOTS, DEFAULT_DAYS_OFF, WeekdayCode } from '@/types/settings'
 
+export type AccentColor = 'orange' | 'blue' | 'purple' | 'green'
+
 interface SettingsStore {
   settings: UserSettings
   theme: 'light' | 'dark'
+  accentColor: AccentColor
+  bgPattern: boolean
   updateTimeSlotPreferences: (preferences: TimeSlotPreference[]) => void
   updateWorkHours: (startTime: string, endTime: string) => void
   updateBreakDuration: (minutes: number) => void
   updateDaysOff: (days: WeekdayCode[]) => void
   toggleTheme: () => void
   initTheme: () => void
+  setAccentColor: (color: AccentColor) => void
+  setBgPattern: (on: boolean) => void
   resetToDefaults: () => void
 }
 
@@ -35,13 +41,31 @@ export const useSettingsStore = create<SettingsStore>()(
     (set, get) => ({
       settings: DEFAULT_SETTINGS,
       theme: getSystemTheme(),
+      accentColor: 'orange' as AccentColor,
+      bgPattern: false,
 
       initTheme: () => {
-        const theme = get().theme
+        const { theme, accentColor, bgPattern } = get()
         if (typeof document !== 'undefined') {
           document.documentElement.classList.toggle('dark', theme === 'dark')
+          document.documentElement.setAttribute('data-accent', accentColor === 'orange' ? 'orange' : accentColor)
+          document.body.classList.toggle('bg-pattern', bgPattern)
           const meta = document.querySelector('meta[name="theme-color"]')
           if (meta) meta.setAttribute('content', theme === 'dark' ? '#121214' : '#F8F9FA')
+        }
+      },
+
+      setAccentColor: (color: AccentColor) => {
+        set({ accentColor: color })
+        if (typeof document !== 'undefined') {
+          document.documentElement.setAttribute('data-accent', color === 'orange' ? 'orange' : color)
+        }
+      },
+
+      setBgPattern: (on: boolean) => {
+        set({ bgPattern: on })
+        if (typeof document !== 'undefined') {
+          document.body.classList.toggle('bg-pattern', on)
         }
       },
 

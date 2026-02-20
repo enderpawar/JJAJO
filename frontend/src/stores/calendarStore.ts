@@ -51,7 +51,7 @@ interface CalendarStore {
 export const useCalendarStore = create<CalendarStore>((set, get) => ({
   selectedDate: new Date(),
   currentMonth: new Date(),
-  viewMode: 'month',
+  viewMode: 'week',
   todos: [],
   ghostPlans: [],
   isBulkSavingTimetable: false,

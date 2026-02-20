@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { updateSchedule } from '@/services/scheduleService'
 import { Clock, CheckCircle, PlayCircle, AlertCircle } from 'lucide-react'
@@ -43,11 +43,22 @@ export function FocusSpotlight() {
     }
   }, [todos])
   
-  // 태스크 완료 토글 (원격 DB 동기화)
+  const [justCompletedId, setJustCompletedId] = useState<string | null>(null)
+
+  // 태스크 완료: 짧은 축하 애니메이션 후 상태 반영
   const handleToggleComplete = (taskId: string, completed: boolean) => {
-    const status = completed ? 'completed' : 'pending'
-    updateTodo(taskId, { status })
-    updateSchedule(taskId, { status }).catch(() => {})
+    if (completed) {
+      setJustCompletedId(taskId)
+      setTimeout(() => {
+        setJustCompletedId(null)
+        updateTodo(taskId, { status: 'completed' })
+        updateSchedule(taskId, { status: 'completed' }).catch(() => {})
+      }, 700)
+    } else {
+      const status = 'pending'
+      updateTodo(taskId, { status })
+      updateSchedule(taskId, { status }).catch(() => {})
+    }
   }
   
   // 포커스 태스크가 없을 때
@@ -158,6 +169,25 @@ export function FocusSpotlight() {
             whileHover={{ scale: 1.02 }}
             transition={{ duration: 0.2 }}
           >
+            {/* 완료 시 짧은 축하 오버레이 */}
+            {justCompletedId === focusTask.id && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-primary-500/10 rounded-3xl flex items-center justify-center z-20 pointer-events-none"
+              >
+                <motion.div
+                  initial={{ scale: 0.3, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 22 }}
+                  className="flex flex-col items-center gap-2"
+                >
+                  <CheckCircle className="w-20 h-20 text-primary-500" />
+                  <span className="text-xl font-bold text-primary-600 dark:text-primary-400">완료!</span>
+                </motion.div>
+              </motion.div>
+            )}
             {/* 상태 배지 */}
             <div className="absolute top-6 right-6">
               {isCurrent ? (

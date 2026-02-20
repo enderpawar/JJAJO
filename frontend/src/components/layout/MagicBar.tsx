@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { Wand2, Loader2, Check, Sparkles, CheckCircle2, RefreshCw, X } from 'lucide-react'
+import { Wand2, Loader2, Check, Sparkles, CheckCircle2, RefreshCw, X, BookOpen, Code, Dumbbell, Coffee } from 'lucide-react'
 import { submitMagicBarCommand, requestJjajoPlanner } from '@/services/magicBarService'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { createSchedule, deleteSchedule } from '@/services/scheduleService'
@@ -65,11 +65,11 @@ function fillTemplate(category: JjajoTemplateCategory, params: TemplateParams): 
 const PLACEHOLDER = '예: 내일 오후 3시 회의, 다음 주 월요일 2시간 스터디'
 const JJAJO_PLACEHOLDER = "할일 목록을 ',' 로 구분하여 넣어주세요. 예: 과제, 오답노트, 이론 복습"
 
-const TEMPLATE_OPTIONS: { key: JjajoTemplateCategory; label: string }[] = [
-  { key: 'study', label: '공부 템플릿' },
-  { key: 'coding', label: '코딩/업무 템플릿' },
-  { key: 'workout', label: '운동 템플릿' },
-  { key: 'rest', label: '휴식 템플릿' },
+const TEMPLATE_OPTIONS: { key: JjajoTemplateCategory; label: string; icon: typeof BookOpen; color: string }[] = [
+  { key: 'study', label: '공부 템플릿', icon: BookOpen, color: 'blue' },
+  { key: 'coding', label: '코딩/업무 템플릿', icon: Code, color: 'indigo' },
+  { key: 'workout', label: '운동 템플릿', icon: Dumbbell, color: 'emerald' },
+  { key: 'rest', label: '휴식 템플릿', icon: Coffee, color: 'teal' },
 ]
 
 export default function MagicBar() {
@@ -80,6 +80,7 @@ export default function MagicBar() {
   const [selectedTemplateCategory, setSelectedTemplateCategory] = useState<JjajoTemplateCategory | null>(null)
   const [lastPlannerCommand, setLastPlannerCommand] = useState<string | null>(null)
   const [lastPlannerSummary, setLastPlannerSummary] = useState<string | null>(null)
+  const [showCelebration, setShowCelebration] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const ghostPlans = useCalendarStore((s) => s.ghostPlans)
@@ -100,6 +101,8 @@ export default function MagicBar() {
     setLoading(false)
     if (result.success) {
       setInput('')
+      setShowCelebration(true)
+      setTimeout(() => setShowCelebration(false), 600)
       if ('isGhost' in result && result.isGhost && 'plansCount' in result) {
         setLastPlannerCommand(trimmed)
         setLastPlannerSummary(
@@ -180,6 +183,8 @@ export default function MagicBar() {
       }
     }
     setLastPlannerCommand(null)
+    setShowCelebration(true)
+    setTimeout(() => setShowCelebration(false), 600)
     setMessage({ type: 'success', text: `${applied.length}개 일정 확정됨 (해당 날짜 기존 일정은 대체됨)` })
     setTimeout(() => setMessage(null), 3000)
   }, [applyGhostPlansReplaceDate, deleteTodo, addTodo])
@@ -206,7 +211,14 @@ export default function MagicBar() {
   }, [lastPlannerCommand, clearGhostPlans])
 
   return (
-    <div ref={containerRef} className="w-full max-w-2xl mx-auto px-4 py-3">
+    <div ref={containerRef} className="w-full max-w-2xl mx-auto px-4 py-3 relative">
+      {showCelebration && (
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10" aria-hidden>
+          <div className="celebration-check flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-500/50">
+            <CheckCircle2 className="w-8 h-8 text-emerald-500 animate-celebration-bounce" />
+          </div>
+        </div>
+      )}
       <div
         className={`
           flex items-center gap-3 rounded-neu neu-inset theme-transition
@@ -274,21 +286,31 @@ export default function MagicBar() {
         <div className="mt-2 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2 text-[11px]">
             <span className="text-theme-muted">짜조 템플릿:</span>
-            {TEMPLATE_OPTIONS.map((opt) => (
-              <button
-                key={opt.key}
-                type="button"
-                onClick={() => handleApplyTemplate(opt.key)}
-                className={`inline-flex items-center justify-center px-2 py-1 rounded-neu neu-float-sm transition-all
-                  ${selectedTemplateCategory === opt.key
-                    ? 'bg-primary-500/10 text-primary-500 ring-1 ring-primary-500/40'
-                    : 'text-theme-muted hover:shadow-neu-inset-hover hover:text-theme'
-                  }
-                `}
-              >
-                {opt.label}
-              </button>
-            ))}
+            {TEMPLATE_OPTIONS.map((opt) => {
+              const Icon = opt.icon
+              const isSelected = selectedTemplateCategory === opt.key
+              const colorMap = {
+                blue: { bg: 'bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', ring: 'ring-blue-500/40' },
+                indigo: { bg: 'bg-indigo-500/10', text: 'text-indigo-600 dark:text-indigo-400', ring: 'ring-indigo-500/40' },
+                emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', ring: 'ring-emerald-500/40' },
+                teal: { bg: 'bg-teal-500/10', text: 'text-teal-600 dark:text-teal-400', ring: 'ring-teal-500/40' },
+              } as const
+              const c = colorMap[opt.color as keyof typeof colorMap] ?? colorMap.blue
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => handleApplyTemplate(opt.key)}
+                  className={`group inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-neu neu-float-sm transition-all duration-200
+                    hover:scale-[1.02] active:scale-[0.98]
+                    ${isSelected ? `${c.bg} ${c.text} ring-1 ${c.ring}` : 'text-theme-muted hover:shadow-neu-inset-hover hover:text-theme'}
+                  `}
+                >
+                  <Icon className={`w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 group-hover:rotate-6 ${isSelected ? c.text : ''}`} />
+                  {opt.label}
+                </button>
+              )
+            })}
           </div>
           {selectedTemplateCategory && templateParams && (
             <div className="flex flex-wrap items-center gap-2 text-[11px] text-theme-muted">

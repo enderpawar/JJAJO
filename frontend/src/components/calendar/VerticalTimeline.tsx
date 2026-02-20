@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useRef, useCallback, type MutableRefObjec
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useToastStore } from '@/stores/toastStore'
 import { updateSchedule, deleteSchedule, createSchedule } from '@/services/scheduleService'
-import { Clock, Edit2, Trash2, ChevronDown } from 'lucide-react'
+import { Clock, Edit2, Trash2, ChevronDown, History, CheckSquare, Square } from 'lucide-react'
 import { format } from 'date-fns'
 import { motion } from 'framer-motion'
 import type { Todo } from '../../types/calendar'
@@ -61,6 +61,13 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     }
   }, [editingTodo?.id])
 
+  // 편집 모드 진입 시 제목 input에 포커스 (input이 마운트된 뒤 실행)
+  useEffect(() => {
+    if (!editingTodo) return
+    const t = setTimeout(() => titleInputRef.current?.focus(), 0)
+    return () => clearTimeout(t)
+  }, [editingTodo?.id])
+
   const handleSaveRename = useCallback(async (task: Todo) => {
     const title = renameInputValue.trim()
     if (!title) return
@@ -80,6 +87,18 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
       addToast(`이름 변경 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
     }
   }, [renameInputValue, updateTodo, addToast])
+
+  /** 완료 토글: 낙관적 반영 후 서버 동기화 */
+  const handleToggleComplete = useCallback((task: Todo) => {
+    const nextStatus = task.status === 'completed' ? 'pending' : 'completed'
+    updateTodo(task.id, { status: nextStatus, updatedAt: new Date().toISOString() })
+    if (!task.id.startsWith('opt-')) {
+      updateSchedule(task.id, { status: nextStatus }).catch((e) => {
+        updateTodo(task.id, { status: task.status })
+        addToast(`완료 상태 저장 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
+      })
+    }
+  }, [updateTodo, addToast])
 
   /** 낙관적 삭제: 즉시 UI에서 제거한 뒤 백그라운드에서 API 호출. 실패 시 롤백. */
   const performDelete = useCallback((task: Todo) => {
@@ -302,9 +321,8 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     const t = setTimeout(() => {
       const el = timelineRef.current
       if (!el) return
-      const rect = el.getBoundingClientRect()
-      const absoluteTop = rect.top + window.scrollY
-      window.scrollTo({ top: absoluteTop + scrollPosition, behavior: 'smooth' })
+      // 타임라인 div가 스크롤 컨테이너이므로 window가 아닌 el 기준으로 스크롤 (월간→주간 전환 시 window가 끝까지 내려가는 현상 방지)
+      el.scrollTo({ top: scrollPosition, behavior: 'smooth' })
       hasAutoScrolled.current = true
     }, 300)
     return () => clearTimeout(t)
@@ -436,6 +454,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     const isEditingThisTask = editingTodo?.id === task.id
 
     const isJustCreated = task.id === lastCreatedTodoId
+    const isCompleted = task.status === 'completed'
     const styleOpacity = isEditingThisTask ? 1 : (isFuture ? 0.92 : 1)
 
     return (
@@ -448,12 +467,9 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         className={`
           task-card group absolute left-0 right-0 mx-auto w-[99%] max-w-[1200px] cursor-pointer active:cursor-grabbing overflow-hidden touch-none
           bg-theme-card theme-transition
-          border border-theme-muted/50 hover:border-theme-muted/70
-          ${isEditingThisTask ? 'rounded-2xl shadow-neu-float-date' : 'rounded-neu'}
+          ${isEditingThisTask ? 'rounded-xl' : ''}
           ${isCurrent ? 'task-card-active' : ''}
-          ${!isCurrent && !isEditingThisTask
-            ? 'shadow-neu-float-date hover:shadow-neu-inset-hover transition-all duration-200'
-            : ''}
+          ${isCompleted && !isCurrent ? 'task-card-completed' : ''}
         `}
         style={{
           top: `${startPixel}px`,
@@ -581,6 +597,27 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
           </>
         )}
         <div className="relative z-10 h-full px-6 py-4 flex flex-col items-center justify-center text-center">
+          {/* 완료 체크: 왼쪽 */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              if (!isDraggingRef.current) handleToggleComplete(task)
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 flex items-center justify-center rounded-md transition-colors touch-target
+              text-theme-muted hover:bg-primary-500/15 hover:text-primary-600 dark:hover:text-primary-400
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+            title={isCompleted ? '완료 해제' : '완료로 표시'}
+            aria-label={isCompleted ? '완료 해제' : '완료로 표시'}
+          >
+            {isCompleted ? (
+              <CheckSquare className="w-6 h-6 text-primary-600 dark:text-primary-400 fill-primary-500/20 dark:fill-primary-400/20" />
+            ) : (
+              <Square className="w-6 h-6 stroke-[2] text-[var(--text-muted)]" strokeWidth={2} aria-hidden />
+            )}
+          </button>
           <div className="absolute top-2 right-2 z-20 flex items-center gap-1">
             {isEditingThisTask && (
               <button
@@ -607,10 +644,10 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
                 }
               }}
               onPointerDown={(e) => e.stopPropagation()}
-              className="w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer neu-float-sm hover:bg-primary-500/20 group"
+              className="w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer neu-float-sm hover:bg-primary-500/15 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
               title={isEditingThisTask ? '편집 모드 해제' : task.title === '새 일정' ? '클릭하여 이름 입력' : '편집'}
             >
-              <Edit2 className="w-3.5 h-3.5 text-theme-muted group-hover:text-primary-500" />
+              <Edit2 className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-primary-600 dark:group-hover:text-primary-400" />
             </button>
           </div>
 
@@ -636,42 +673,46 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="min-w-0 w-full sm:w-[25%] text-lg font-semibold mb-2 leading-tight neu-inset-sm rounded px-4 py-1 focus:outline-none focus:ring-0 focus-visible:ring-0 theme-transition text-theme placeholder-theme-muted text-center placeholder:text-center"
+              className={`min-w-0 w-full sm:w-[25%] mb-2 leading-snug neu-inset-sm rounded px-4 py-1.5 focus:outline-none focus:ring-0 focus-visible:ring-0 theme-transition text-theme placeholder-theme-muted text-center placeholder:text-center ${
+                isCompactHeight ? 'text-lg font-semibold' : 'text-xl sm:text-2xl font-bold'
+              }`}
               placeholder="제목"
             />
           ) : (
             <>
               <>
-                <div
-                  className={`${
-                    isCompactHeight ? 'text-xs mb-1' : 'text-base mb-2'
-                  } font-semibold text-theme-muted w-full flex items-center justify-center text-center`}
-                >
-                  {task.startTime} - {task.endTime}
+                <div className={`w-full flex justify-center ${isCompactHeight ? 'mb-1' : 'mb-2'}`}>
+                  <span className={`plan-card-time ${isCompactHeight ? 'text-xs' : ''}`}>
+                    <Clock className={isCompactHeight ? 'w-2.5 h-2.5 opacity-80' : 'w-3 h-3 opacity-80'} aria-hidden />
+                    {task.startTime} – {task.endTime}
+                  </span>
                 </div>
                 <div
                   className={`${
-                    isCompactHeight ? 'text-lg' : 'text-2xl'
-                  } font-bold leading-tight text-theme w-full flex items-center justify-center text-center`}
+                    isCompactHeight ? 'text-lg' : 'text-xl sm:text-2xl'
+                  } font-bold leading-snug w-full flex items-center justify-center text-center px-1 ${isCompleted ? 'line-through opacity-70' : ''}`}
+                  style={{ color: isCompleted ? 'var(--text-muted)' : 'var(--text-main)' }}
                 >
                   {task.title}
                 </div>
                 {!isCompactHeight && task.title === '새 일정' && (
-                  <div className="text-xs text-theme-muted">연필 아이콘을 눌러 제목을 입력하세요</div>
+                  <div className="flex flex-col items-center gap-1 mt-1">
+                    <span className="text-xs text-theme-muted">연필 아이콘을 눌러 제목을 입력하세요</span>
+                  </div>
                 )}
               </>
             </>
           )}
 
           {isCurrent && (
-            <div className="text-xs text-theme-muted mt-2 w-full flex items-center justify-center">
-              🔥 진행 중 <span className="font-semibold text-theme">{Math.round(progress)}%</span>
+            <div className="text-xs mt-2 w-full flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
+              진행 중 <span className="font-semibold" style={{ color: 'var(--text-main)' }}>{Math.round(progress)}%</span>
             </div>
           )}
         </div>
       </motion.div>
     )
-  }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renameInputValue, handleSaveRename, performDelete, lastCreatedTodoId])
+  }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renameInputValue, handleSaveRename, performDelete, handleToggleComplete, lastCreatedTodoId])
 
   /** 고스트 일정 블록: 반투명 점선 테두리, 위→아래 0.1초 간격 등장 */
   const renderGhostBlock = useCallback((task: Todo, index: number) => {
@@ -682,7 +723,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     return (
       <motion.div
         key={task.id}
-        className="ghost-block absolute left-0 right-0 mx-3 sm:mx-4 pointer-events-none rounded-neu border-[1.5px] border-dashed border-orange-400/80 bg-orange-400/5 theme-transition"
+        className="ghost-block ghost-block-pattern absolute left-0 right-0 mx-3 sm:mx-4 pointer-events-none rounded-neu border-[1.5px] border-dashed border-orange-400/80 bg-orange-400/5 theme-transition"
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.1, duration: 0.2 }}
@@ -693,7 +734,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         }}
       >
         <div className="relative z-10 p-4 h-full flex flex-col justify-center">
-          <div className="text-xs text-orange-400/90 font-medium mb-1">짜조 제안</div>
+          <span className="inline-flex items-center w-fit px-2 py-0.5 rounded-md text-[10px] font-semibold bg-orange-400/20 text-orange-500 border border-orange-400/40 mb-2">짜조 제안</span>
           <div className="text-sm font-medium text-theme">{task.title}</div>
           <div className="text-xs text-theme-muted mt-1">
             {task.startTime} - {task.endTime}
@@ -729,21 +770,38 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         const hours = Math.floor(pastMinutes / 60)
         const minutes = Math.round(pastMinutes % 60)
         const timeLabel = hours > 0 ? `${hours}시간 ${minutes > 0 ? minutes + '분' : ''}` : `${minutes}분`
+        const dayTotalPx = 24 * 100
+        const elapsedPercent = Math.min(100, (currentTimePosition / dayTotalPx) * 100)
         return (
           <div
             role="button"
             tabIndex={0}
             onClick={() => setShowPastTime(true)}
             onKeyDown={(e) => e.key === 'Enter' && setShowPastTime(true)}
-            className="touch-target mx-3 sm:mx-4 mb-0 rounded-neu cursor-pointer overflow-hidden shadow-neu-float-date hover:shadow-neu-inset-hover active:scale-[0.98] min-h-[300px] flex items-center justify-center transition-all duration-200"
+            className="touch-target mx-3 sm:mx-4 mb-0 rounded-neu cursor-pointer overflow-hidden shadow-neu-float-date hover:shadow-neu-inset-hover active:scale-[0.98] min-h-[300px] flex flex-col items-stretch justify-center transition-all duration-200"
             style={{ position: 'relative', zIndex: 100 }}
           >
-            <Clock className="w-5 h-5 text-primary-500 animate-pulse" />
-              <div className="text-left ml-3">
-              <div className="text-sm font-bold text-theme">
-                📜 이전 기록: {timeLabel} ({pastTodos.length === 0 ? '일정 없음' : `${pastTodos.length}개 일정`})
+            <div className="flex items-center justify-center gap-3 px-4 py-3">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-500/10 flex items-center justify-center">
+                <History className="w-5 h-5 text-primary-500" aria-hidden />
               </div>
-              <div className="text-xs text-theme font-medium">00:00 ~ {format(currentTime, 'HH:mm')} · <span className="text-primary-500">👆 클릭하여 이전 시간대 보기</span></div>
+              <div className="text-left flex-1 min-w-0">
+                <div className="text-sm font-bold text-theme">
+                  이전 기록: {timeLabel} ({pastTodos.length === 0 ? '일정 없음' : `${pastTodos.length}개 일정`})
+                </div>
+                <div className="text-xs text-theme font-medium mt-0.5">
+                  00:00 ~ {format(currentTime, 'HH:mm')} · <span className="text-primary-500">👆 클릭하여 이전 시간대 보기</span>
+                </div>
+              </div>
+            </div>
+            <div className="px-4 pb-3 pt-0">
+              <div className="h-1.5 rounded-full bg-theme-card overflow-hidden shadow-neu-inset-sm">
+                <div
+                  className="h-full bg-primary-500/80 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${elapsedPercent}%` }}
+                />
+              </div>
+              <div className="text-[10px] text-theme-muted mt-1 text-right">오늘의 흐른 시간 {elapsedPercent.toFixed(0)}%</div>
             </div>
           </div>
         )

@@ -1,5 +1,5 @@
-/* Inter 폰트 불러오기 */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Inter + 디스플레이용 한글 폰트 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,23 +7,26 @@
 
 /* ========== 테마 CSS Variables (라이트 / 다크) ========== */
 :root {
-  --bg-color: #F8F9FA;
+  --bg-color: #F5F6F8;
   --card-bg: #FFFFFF;
-  --text-main: #212529;
-  --text-muted: #6B7280;
-  --border-color: rgba(0, 0, 0, 0.08);
-  /* 라이트: 아주 은은한 그림자 */
-  --shadow-style: 0 1px 3px rgba(0, 0, 0, 0.04);
-  --shadow-float: 5px 5px 20px rgba(0, 0, 0, 0.03), -4px -4px 12px rgba(255, 255, 255, 0.65);
-  --shadow-float-sm: 2px 2px 24px rgba(0, 0, 0, 0.02), -2px -2px 12px rgba(255, 255, 255, 0.6);
-  --shadow-inset: inset 4px 4px 12px rgba(0, 0, 0, 0.03), inset -4px -4px 10px rgba(255, 255, 255, 0.5);
-  --shadow-inset-sm: inset 3px 3px 10px rgba(0, 0, 0, 0.03), inset -3px -3px 8px rgba(255, 255, 255, 0.5);
+  --text-main: #1a1d21;
+  --text-muted: #5c636a;
+  --border-color: rgba(0, 0, 0, 0.12);
+  /* 라이트: 단순한 그림자 */
+  --shadow-style: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-float: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-float-sm: 0 1px 4px rgba(0, 0, 0, 0.05);
+  --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-inset-sm: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   --primary-point: #FF8C00;
   --primary-point-ring: rgba(255, 140, 0, 0.28);
-  --hover-bg: #F1F3F5;
-  --grid-line: rgba(0, 0, 0, 0.06);
-  /* 라이트: 월간 캘린더 날짜 셀 구분용 테두리 (연하게) */
-  --calendar-cell-border: rgba(0, 0, 0, 0.09);
+  --hover-bg: #EBECEF;
+  /* 개인화 강조색은 [data-accent]로 덮어씀 */
+  --grid-line: rgba(0, 0, 0, 0.08);
+  --calendar-cell-border: rgba(0, 0, 0, 0.1);
+  /* 플랜 카드 전용 — 라이트 시인성 */
+  --card-border: #E2E4E8;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 html.dark {
@@ -47,6 +50,28 @@ html.dark {
   --grid-line: rgba(255, 255, 255, 0.06);
   /* 다크: 월간 캘린더 날짜 셀 테두리 (연하게) */
   --calendar-cell-border: rgba(255, 255, 255, 0.05);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* 개인화: 강조색 선택 (설정에서 변경) */
+[data-accent="orange"] { --primary-point: #FF8C00; --primary-point-ring: rgba(255, 140, 0, 0.28); }
+[data-accent="blue"] { --primary-point: #2563eb; --primary-point-ring: rgba(37, 99, 235, 0.28); }
+[data-accent="purple"] { --primary-point: #7c3aed; --primary-point-ring: rgba(124, 58, 237, 0.28); }
+[data-accent="green"] { --primary-point: #059669; --primary-point-ring: rgba(5, 150, 105, 0.28); }
+html.dark[data-accent="orange"] { --primary-point: #FF9500; --primary-point-ring: rgba(255, 149, 0, 0.35); }
+html.dark[data-accent="blue"] { --primary-point: #3b82f6; --primary-point-ring: rgba(59, 130, 246, 0.35); }
+html.dark[data-accent="purple"] { --primary-point: #8b5cf6; --primary-point-ring: rgba(139, 92, 246, 0.35); }
+html.dark[data-accent="green"] { --primary-point: #10b981; --primary-point-ring: rgba(16, 185, 129, 0.35); }
+
+/* 배경 패턴 (설정에서 켜기) */
+body.bg-pattern {
+  background-image: radial-gradient(circle at 1px 1px, var(--grid-line) 1px, transparent 0);
+  background-size: 24px 24px;
+  background-position: 0 0;
+}
+html.dark body.bg-pattern {
+  background-image: radial-gradient(circle at 1px 1px, var(--grid-line) 1px, transparent 0);
 }
 
 /* 테마 전환 시 부드러운 전환 (날짜 카드, 타임라인, 입력창 등) */
@@ -136,6 +161,12 @@ html.dark {
     letter-spacing: -0.01em;
   }
 
+  /* 로고·날짜 등 포인트 문구용 디스플레이 폰트 */
+  .font-display {
+    font-family: 'Noto Sans KR', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    letter-spacing: -0.02em;
+  }
+
   /* iOS 등 모바일: input 포커스 시 자동 줌 방지 (font-size 16px 미만이면 줌 발생) */
   @media (max-width: 768px) {
     input,
@@ -161,8 +192,9 @@ html.dark {
     display: none;
   }
 
-  /* 타임라인 등 상하 스크롤 부드럽게: GPU 레이어 + 터치 모멘텀 */
+  /* 타임라인 등 상하 스크롤: 이 컨테이너가 스크롤되므로 window가 아닌 el.scrollTo 사용 */
   .timeline-scroll {
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     transform: translateZ(0);
     contain: paint;
@@ -224,19 +256,63 @@ html.dark {
   animation: particle 1.5s ease-out infinite;
 }
 
-/* 🎯 Vertical Timeline 스타일 (Notion 버전) */
+/* 🎯 플랜 카드 — 단순·세련·라이트 시인성 */
 
-/* 1. 현재 태스크 강조 (진행 중 - 흰 배경 + 주황 테두리 포인트) */
-.task-card-active {
-  background: var(--card-bg) !important;
-  border: 2px solid var(--primary-point) !important;
-  box-shadow: var(--shadow-float-sm), 0 0 0 1px var(--primary-point-ring) !important;
-  transition: background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+/* 기본 카드: 선 하나 + 가벼운 그림자 */
+.task-card:not(.task-card-active):not(.task-card-completed) {
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* 2. 과거 태스크 (불투명도만) */
+.task-card:not(.task-card-active):not(.task-card-completed):hover {
+  border-color: rgba(0, 0, 0, 0.18);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
+}
+
+html.dark .task-card:not(.task-card-active):not(.task-card-completed) {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .task-card:not(.task-card-active):not(.task-card-completed):hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* 진행 중 */
+.task-card-active {
+  border-radius: 12px !important;
+  background: var(--card-bg) !important;
+  border: 2px solid var(--primary-point) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* 과거 */
 .task-card-past {
-  opacity: 0.4;
+  opacity: 0.5;
+}
+
+/* 완료: 초록 띠 없음, 체크 아이콘·취소선으로만 표시 */
+.task-card-completed {
+  border-radius: 12px !important;
+  background: var(--card-bg) !important;
+}
+
+/* 시간 — 뱃지 제거, 텍스트만 (시인성) */
+.plan-card-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
+}
+
+html.dark .plan-card-time {
+  color: var(--text-muted);
 }
 
 /* 3. 빈 시간 슬롯 (Hover - 주황 포인트) */
@@ -465,10 +541,48 @@ input[type="range"]::-moz-range-thumb:hover {
   animation: float-soft 2.2s ease-in-out infinite;
 }
 
+/* 적용/확정 성공 시 짧은 축하 애니메이션 */
+@keyframes celebration-bounce {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.15); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-celebration-bounce {
+  animation: celebration-bounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
 .compressed-gap:hover {
   box-shadow: var(--shadow-inset-sm), 0 0 0 1px var(--primary-point-ring);
   transform: scale(1.01);
   cursor: pointer;
+}
+
+/* 빈 상태 배경 패턴 (목표 없음 등) */
+.empty-state-pattern::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 20% 30%, var(--primary-point-ring) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(0, 0, 0, 0.03) 0%, transparent 35%);
+  pointer-events: none;
+}
+
+html.dark .empty-state-pattern::before {
+  background-image: radial-gradient(circle at 20% 30%, var(--primary-point-ring) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.02) 0%, transparent 35%);
+}
+
+/* 고스트(제안) 블록: 대각선 스트라이프 패턴 */
+.ghost-block-pattern {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 8px,
+    rgba(251, 146, 60, 0.04) 8px,
+    rgba(251, 146, 60, 0.04) 10px
+  );
 }
 
 /* 🎨 뉴모피즘 유틸리티 클래스 (테마 변수 적용) */
@@ -528,9 +642,44 @@ input[type="range"]::-moz-range-thumb:hover {
     box-shadow: var(--shadow-inset-sm), 0 0 0 1px var(--primary-point-ring) !important;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
-  /* 월간 캘린더 날짜 셀: neu-float-sm이 border:none으로 덮지 않도록 테두리 유지 */
+  /* 월간 캘린더 날짜 셀: 부드러운 전환, 호버 시 살짝 떠오르는 느낌 */
   .calendar-date-cell {
     border: 1px solid var(--calendar-cell-border) !important;
+    border-radius: 14px !important;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
+  }
+  .calendar-date-cell:hover {
+    transform: translateY(-1px);
+    border-color: var(--primary-point-ring) !important;
+  }
+  .calendar-date-cell:active {
+    transform: translateY(0) scale(0.98);
+  }
+  /* 오늘 날짜: 은은한 포인트 링 (선택과 구분) */
+  .calendar-date-today:not(.neu-date-selected) {
+    box-shadow: 0 0 0 1px var(--primary-point-ring) !important;
+    background: color-mix(in srgb, var(--primary-point) 6%, var(--card-bg)) !important;
+  }
+  html.dark .calendar-date-today:not(.neu-date-selected) {
+    background: color-mix(in srgb, var(--primary-point) 12%, var(--card-bg)) !important;
+  }
+  /* 월간 플래너 카드: 상단 그라데이션 라인으로 시선 유도 */
+  .monthly-planner-card {
+    position: relative;
+    overflow: hidden;
+  }
+  .monthly-planner-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent 0%, var(--primary-point) 20%, var(--primary-point) 80%, transparent 100%);
+    opacity: 0.6;
+  }
+  html.dark .monthly-planner-card::before {
+    opacity: 0.5;
   }
   /* 테마 토글 스위치: 소프트 미니멀, 부드러운 전환 */
   .theme-toggle-switch {
@@ -559,6 +708,26 @@ input[type="range"]::-moz-range-thumb:hover {
   }
   .theme-toggle-switch svg {
     transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  /* 주간|월간 슬라이드 토글: 트랙 + 강조색 pill (깨끗한 파스텔 톤) */
+  .view-toggle-track {
+    background-color: var(--card-bg);
+    box-shadow: var(--shadow-inset-sm);
+    border-radius: 12px;
+    padding: 4px;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .view-toggle-pill {
+    /* 강조색을 카드 배경에 살짝 섞어 회색톤 없이 부드러운 틴트 */
+    background: color-mix(in srgb, var(--primary-point) 11%, var(--card-bg));
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+  }
+  html.dark .view-toggle-pill {
+    /* 다크: 강조색을 카드에 살짝 섞어 은은한 글로우 */
+    background: color-mix(in srgb, var(--primary-point) 18%, var(--card-bg));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   }
 }
 
