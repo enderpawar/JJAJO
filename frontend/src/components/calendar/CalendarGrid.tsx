@@ -135,10 +135,10 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
         </button>
       </div>
 
-      {/* 요일 */}
+      {/* 요일 — 투명도로 날짜보다 뒤에 보이게 */}
       <div className="grid grid-cols-7 mb-2">
         {weekDays.map((day) => (
-          <div key={day} className="text-center text-[11px] font-medium text-theme-muted py-1">
+          <div key={day} className="text-center text-[11px] font-medium text-theme-muted py-1 opacity-50">
             {day}
           </div>
         ))}
@@ -176,23 +176,33 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
                 'text-theme',
                 isSelected && 'bg-primary-500/15 text-primary-600 dark:text-primary-400 font-semibold ring-1 ring-primary-500/30',
                 !isSelected && 'hover:bg-black/5 dark:hover:bg-white/5',
-                isToday && !isSelected && 'font-semibold text-primary-500 dark:text-primary-400'
+                isToday && !isSelected && 'font-semibold'
               )}
             >
-              <span className="text-[13px] sm:text-sm tabular-nums shrink-0">{date.getDate()}</span>
+              <span
+                className={cn(
+                  'text-[13px] sm:text-sm tabular-nums shrink-0 flex items-center justify-center w-8 h-8 rounded-full',
+                  isToday && !isSelected && 'bg-primary-500/25 dark:bg-primary-500/30 text-primary-600 dark:text-primary-400'
+                )}
+              >
+                {date.getDate()}
+              </span>
               {hasEvents && (
-                <span className="mt-0.5 px-0.5 w-full min-h-0 flex-1 flex flex-col items-stretch justify-start gap-0 overflow-hidden">
-                  {dateTodos
-                    .slice(0, 3)
-                    .map((t) => (
-                      <span
-                        key={t.id}
-                        className="text-[9px] sm:text-[10px] text-theme-muted leading-tight truncate text-left w-full"
-                        title={t.title}
-                      >
-                        {truncateTitle(t.title)}
-                      </span>
-                    ))}
+                <span className="mt-0.5 px-0.5 w-full min-h-0 flex-1 flex flex-col items-stretch justify-start gap-0 overflow-hidden min-w-0">
+                  {dateTodos.slice(0, 2).map((t) => (
+                    <span
+                      key={t.id}
+                      className="text-[9px] sm:text-[10px] text-theme-muted leading-tight truncate text-left w-full shrink-0"
+                      title={t.title}
+                    >
+                      {truncateTitle(t.title)}
+                    </span>
+                  ))}
+                  {dateTodos.length > 2 && (
+                    <span className="text-[9px] sm:text-[10px] text-theme-muted/80 leading-tight truncate text-left w-full shrink-0">
+                      +{dateTodos.length - 2}
+                    </span>
+                  )}
                 </span>
               )}
             </button>

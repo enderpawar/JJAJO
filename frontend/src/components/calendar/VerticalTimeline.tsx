@@ -748,7 +748,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
 
   return (
     <>
-    <div ref={timelineRef} className="timeline-scroll flex-1 theme-transition bg-theme relative">
+    <div ref={timelineRef} className="timeline-scroll flex-1 min-h-0 theme-transition bg-theme relative">
       {showPastTime && (
         <div className="sticky top-0 left-0 right-0 z-[100] bg-gradient-to-b from-[var(--bg-color)] via-[var(--bg-color)] to-transparent pb-4 pt-4 theme-transition">
           <div className="mx-3 sm:mx-4">

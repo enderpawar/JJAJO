@@ -58,7 +58,7 @@ export default function MainPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col theme-transition bg-theme text-theme">
+    <div className="h-screen min-h-0 flex flex-col overflow-hidden theme-transition bg-theme text-theme">
       <Header
         onOpenImportTimetable={() => setShowImportTimetable(true)}
         onSwitchToWeekView={() => { skipNextScrollToTimeRef.current = true }}
@@ -90,8 +90,8 @@ export default function MainPage() {
       {/* 주간: 타임라인 / 월간: 캘린더+일정 패널 (같은 메인 영역에서 전환) */}
       <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative z-0">
         {viewMode === 'week' && (
-          <div className="flex-1 flex min-h-0 relative">
-            <div className="flex-1 min-h-0">
+          <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden min-w-0">
               <VerticalTimeline skipNextScrollToTimeRef={skipNextScrollToTimeRef} />
             </div>
           </div>
@@ -104,9 +104,13 @@ export default function MainPage() {
                 {/* 한 흐름: 캘린더 → 선택한 날 일정 (카드 없이) */}
                 <CalendarGrid
                   allowFullHeight
-                  onDateLongPress={() => setTriggerAddModalInMonthly(true)}
+                  onDateLongPress={() => {
+                    if (typeof window !== 'undefined' && (window.innerWidth < 768 || 'ontouchstart' in window)) {
+                      setTriggerAddModalInMonthly(true)
+                    }
+                  }}
                 />
-                <div className="mt-8 pt-8 border-t border-black/8 dark:border-white/10">
+                <div className="mt-8 pt-8 border-t border-gray-300 dark:border-white/10">
                   <DayDetailPanel
                     embedded
                     openAddModal={triggerAddModalInMonthly}
