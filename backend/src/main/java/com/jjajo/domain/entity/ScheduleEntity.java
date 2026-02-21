@@ -40,6 +40,10 @@ public class ScheduleEntity {
     @Column(nullable = false, length = 10)
     private String date;
 
+    /** 종료일(포함). null이면 당일 일정. 여러 날에 걸친 일정일 때 사용 */
+    @Column(name = "end_date", length = 10)
+    private String endDate;
+
     @Column(name = "start_time", length = 5)
     private String startTime;
 

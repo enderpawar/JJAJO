@@ -18,6 +18,8 @@ public class ScheduleItemResponse {
     private String title;
     private String description;
     private String date;
+    /** 종료일(포함). null이면 당일 */
+    private String endDate;
     private String startTime;
     private String endTime;
     private String status;

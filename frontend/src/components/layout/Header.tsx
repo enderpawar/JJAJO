@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Menu } from '@headlessui/react'
-import { motion } from 'framer-motion'
-import { Settings, X, Moon, Sun, Copy, Calendar, CalendarDays, LogIn, RotateCcw, MoreVertical, ChevronDown, ChevronUp } from 'lucide-react'
+import { Settings, X, Copy, CalendarDays, LogIn, RotateCcw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Folder, Moon, Sun } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
-import { useSettingsStore, type AccentColor } from '@/stores/settingsStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { TimeSlotSettings } from '@/components/settings/TimeSlotSettings'
 import { ApiKeySettings } from '@/components/settings/ApiKeySettings'
 import { ScheduleDataSettings } from '@/components/settings/ScheduleDataSettings'
@@ -27,15 +26,9 @@ interface HeaderProps {
 }
 
 export default function Header({ onOpenImportTimetable, onSwitchToWeekView, weekStripExpanded, onToggleWeekStrip }: HeaderProps) {
-  const { copyTodosFromPreviousDay, addTodos, selectedDate, isBulkSavingTimetable, getTodosByDate, deleteTodo, addTodo, viewMode, setViewMode } = useCalendarStore()
+  const { copyTodosFromPreviousDay, addTodos, selectedDate, isBulkSavingTimetable, getTodosByDate, deleteTodo, addTodo, viewMode, setViewMode, currentMonth, setCurrentMonth, setSelectedDate } = useCalendarStore()
   const { addToast } = useToastStore()
-  const { theme, toggleTheme, initTheme, accentColor, setAccentColor, bgPattern, setBgPattern } = useSettingsStore()
-  const ACCENT_OPTIONS: { value: AccentColor; label: string; className: string }[] = [
-    { value: 'orange', label: '주황', className: 'bg-orange-500' },
-    { value: 'blue', label: '파랑', className: 'bg-blue-500' },
-    { value: 'purple', label: '보라', className: 'bg-purple-500' },
-    { value: 'green', label: '초록', className: 'bg-emerald-500' },
-  ]
+  const { theme, toggleTheme, initTheme } = useSettingsStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
   const [showResetDayConfirm, setShowResetDayConfirm] = useState(false)
@@ -51,7 +44,7 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
   // 테마·강조색·배경패턴 적용 (마운트 시 + rehydration/설정 변경 시)
   useEffect(() => {
     initTheme()
-  }, [initTheme, theme, accentColor, bgPattern])
+  }, [initTheme, theme])
 
   // 설정 모달 열릴 때 body 스크롤 잠금 (크로스플랫폼)
   useEffect(() => {
@@ -159,56 +152,136 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
     ? '오늘의 일정'
     : `${format(selectedDate, 'M월 d일', { locale: ko })} 일정`
 
+  const goToToday = () => {
+    const today = new Date()
+    setCurrentMonth(today)
+    setSelectedDate(today)
+  }
+  const handlePrevMonth = () => {
+    const d = new Date(currentMonth)
+    d.setMonth(d.getMonth() - 1)
+    setCurrentMonth(d)
+  }
+  const handleNextMonth = () => {
+    const d = new Date(currentMonth)
+    d.setMonth(d.getMonth() + 1)
+    setCurrentMonth(d)
+  }
+
   return (
-    <header className="relative z-30 theme-transition border-b border-[var(--border-color)]" style={{ isolation: 'isolate', backgroundColor: 'var(--bg-color)' }}>
+    <header className="relative z-30 theme-transition border-b border-[var(--border-color)] bg-[var(--card-bg)]" style={{ isolation: 'isolate' }}>
       <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 min-h-[5rem] flex flex-col justify-center">
-        <div className="flex items-center h-[52px] sm:h-[56px] gap-2">
-          {/* 왼쪽 빈 공간: 오른쪽 컨트롤과 대칭으로 화살표가 중앙에 오도록 */}
-          <div className="flex-1 min-w-0" aria-hidden />
-          {/* 중앙: 주간 모드일 때만 화살표 버튼 */}
-          <div className="shrink-0 flex items-center justify-center">
-            {onToggleWeekStrip ? (
+        <div className="flex items-center h-[52px] sm:h-[56px] gap-3">
+          {/* 왼쪽: 짜조 로고 + 앱명 + 태그라인 */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="relative flex items-center gap-0.5" aria-hidden>
+              <span className="w-6 h-6 rounded-tool shadow-sm bg-[var(--primary-point)]" />
+              <span className="w-6 h-6 rounded-tool -ml-2 mt-1 shadow-sm opacity-90" style={{ background: 'var(--primary-gradient)' }} />
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className="text-lg font-bold text-[var(--text-main)] tracking-tight">짜조</span>
+              <span className="text-[10px] font-medium text-[var(--text-muted)]">일정 짜줘</span>
+            </div>
+          </div>
+
+          {/* 중앙: 오늘 | (주간 시) 주간 날짜 펼침/접기 | < 연월 > (모바일에서 겹침 방지) */}
+          <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 sm:gap-3">
+            <button
+              type="button"
+              onClick={goToToday}
+              className="shrink-0 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-tool transition-colors text-[var(--text-main)] hover:bg-[var(--hover-bg)]"
+            >
+              오늘
+            </button>
+            {viewMode === 'week' && onToggleWeekStrip && (
               <button
                 type="button"
                 onClick={onToggleWeekStrip}
-                className="touch-target flex items-center justify-center w-10 h-10 rounded-xl text-theme-muted theme-transition hover:bg-[var(--hover-bg)] hover:text-theme active:scale-[0.98]"
+                className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-tool transition-colors text-[var(--text-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-main)]"
                 aria-expanded={weekStripExpanded ?? false}
                 aria-label={weekStripExpanded ? '주간 날짜 접기' : '주간 날짜 펼치기'}
+                title={weekStripExpanded ? '일~월 날짜 접기' : '일~월 날짜 펼치기'}
               >
                 {weekStripExpanded ? (
-                  <ChevronUp className="w-5 h-5 shrink-0" aria-hidden />
+                  <ChevronUp className="w-4 h-4" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 shrink-0" aria-hidden />
+                  <ChevronDown className="w-4 h-4" />
                 )}
+                <span className="hidden sm:inline text-xs">주간 날짜</span>
               </button>
-            ) : null}
+            )}
+            <div className="shrink-0 flex items-center gap-1 sm:gap-0.5">
+              <button type="button" onClick={handlePrevMonth} className="p-1.5 rounded-tool hover:bg-[var(--hover-bg)] text-[var(--text-muted)] shrink-0" aria-label="이전 달">
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <span className="min-w-[4.5rem] sm:min-w-[5rem] text-center text-xs sm:text-sm font-medium tabular-nums text-[var(--text-main)] whitespace-nowrap">
+                {format(currentMonth, 'M월 yyyy', { locale: ko })}
+              </span>
+              <button type="button" onClick={handleNextMonth} className="p-1.5 rounded-tool hover:bg-[var(--hover-bg)] text-[var(--text-muted)] shrink-0" aria-label="다음 달">
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-          {/* 오른쪽: 일정, 주간|월간, 테마, 설정 (flex-1 + justify-end로 오른쪽 정렬) */}
-          <div className="flex-1 min-w-0 flex items-center justify-end gap-1 sm:gap-2">
-            {/* 일정 메뉴 (복사·초기화·시간표) */}
+
+          {/* 오른쪽: 캘린더/할일 세그먼트 토글 (바 안에 텍스트 + 원으로 활성 표시) */}
+          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+            <div className="view-mode-segmented" role="group" aria-label="캘린더 / 할일 보기 전환">
+              <div className="view-mode-segmented-track">
+                <span
+                  className="view-mode-segmented-pill"
+                  data-active={viewMode === 'week'}
+                  aria-hidden
+                />
+                <button
+                  type="button"
+                  onClick={() => setViewMode('month')}
+                  className={cn(
+                    'view-mode-segmented-btn',
+                    viewMode === 'month' && 'view-mode-segmented-btn-active'
+                  )}
+                  aria-pressed={viewMode === 'month'}
+                  aria-label="캘린더 보기"
+                  title="캘린더 보기"
+                >
+                  캘린더
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSwitchToWeekView?.()
+                    setViewMode('week')
+                  }}
+                  className={cn(
+                    'view-mode-segmented-btn',
+                    viewMode === 'week' && 'view-mode-segmented-btn-active'
+                  )}
+                  aria-pressed={viewMode === 'week'}
+                  aria-label="할일 보기"
+                  title="할일 보기"
+                >
+                  할일
+                </button>
+              </div>
+            </div>
             <Menu as="div" className="relative">
               <Menu.Button
                 type="button"
-                className="neu-btn touch-target flex items-center justify-center gap-2 px-3 min-w-[44px] h-10 rounded-xl text-xs font-medium cursor-pointer transition-colors hover:opacity-90"
-                style={{ color: 'var(--text-main)' }}
-                title="일정 복사·초기화·시간표"
+                className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-main)] border border-[var(--border-color)]"
                 aria-label="일정 메뉴"
               >
-                <MoreVertical className="w-4 h-4 flex-shrink-0" />
-                <span className="hidden sm:inline">일정</span>
+                <Folder className="w-4 h-4" />
               </Menu.Button>
               <Menu.Items
                 className={cn(
-                  'absolute right-0 mt-2 w-52 origin-top-right rounded-neu border focus:outline-none z-20 theme-transition',
-                  'bg-[var(--bg-color)] border-[var(--border-color)]'
+                  'absolute right-0 mt-2 w-52 origin-top-right rounded-xl border focus:outline-none z-20 theme-transition',
+                  'bg-[var(--card-bg)] border-[var(--border-color)] shadow-lg'
                 )}
-                style={{ boxShadow: 'var(--shadow-style)' }}
               >
                 <div className="px-3 pt-2.5 pb-1.5 border-b border-[var(--border-color)]">
-                  <p className="text-xs font-medium truncate" style={{ color: 'var(--text-muted)' }}>{menuTitleLabel}</p>
+                  <p className="text-xs font-medium truncate text-[var(--text-muted)]">{menuTitleLabel}</p>
                 </div>
                 <div className="p-1.5">
-                  <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>가져오기</p>
+                  <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">가져오기</p>
                   <Menu.Item>
                     {({ active }) => (
                       <button
@@ -247,7 +320,7 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
                       )}
                     </Menu.Item>
                   )}
-                  <p className="px-2.5 pt-2.5 pb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>정리</p>
+                  <p className="px-2.5 pt-2.5 pb-1 text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">정리</p>
                   <Menu.Item>
                     {({ active }) => (
                       <button
@@ -270,77 +343,22 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
                 </div>
               </Menu.Items>
             </Menu>
-
-            <span className="w-px h-6 shrink-0 opacity-60" style={{ backgroundColor: 'var(--border-color)' }} aria-hidden />
-
-            {/* 주간 ↔ 월간 슬라이드 토글 (메뉴 전체 클릭 시 주간↔월간 전환) */}
-            <div
-              role="button"
-              tabIndex={0}
-              aria-label={viewMode === 'week' ? '월간으로 전환' : '주간으로 전환'}
-              className="view-toggle-track relative flex overflow-hidden min-w-[100px] sm:min-w-[120px] cursor-pointer"
-              onClick={() => {
-                const nextMode = viewMode === 'week' ? 'month' : 'week'
-                if (nextMode === 'week') onSwitchToWeekView?.()
-                setViewMode(nextMode)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  const nextMode = viewMode === 'week' ? 'month' : 'week'
-                  if (nextMode === 'week') onSwitchToWeekView?.()
-                  setViewMode(nextMode)
-                }
-              }}
-            >
-              <motion.div
-                className="view-toggle-pill absolute top-1 bottom-1 w-[calc(50%-4px)] pointer-events-none"
-                style={{ left: 4 }}
-                animate={{ x: viewMode === 'week' ? 0 : '100%' }}
-                transition={{ type: 'tween', duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-              />
-              <span
-                className={cn(
-                  'relative z-10 flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs min-w-0 transition-colors pointer-events-none',
-                  viewMode === 'week' ? 'font-semibold text-[var(--text-main)]' : 'font-medium text-[var(--text-muted)]'
-                )}
-              >
-                <CalendarDays className="w-4 h-4 flex-shrink-0" />
-                <span className="hidden sm:inline">주간</span>
-              </span>
-              <span
-                className={cn(
-                  'relative z-10 flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs min-w-0 transition-colors pointer-events-none',
-                  viewMode === 'month' ? 'font-semibold text-[var(--text-main)]' : 'font-medium text-[var(--text-muted)]'
-                )}
-              >
-                <Calendar className="w-4 h-4 flex-shrink-0" />
-                <span className="hidden sm:inline">월간</span>
-              </span>
-            </div>
-
-            <span className="w-px h-6 shrink-0 opacity-60" style={{ backgroundColor: 'var(--border-color)' }} aria-hidden />
-
-            {/* 테마 토글 */}
             <button
               type="button"
               onClick={toggleTheme}
-              className="theme-toggle-switch touch-target rounded-xl"
-              title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
-              aria-label={theme === 'dark' ? '라이트 모드' : '다크 모드'}
+              className="w-9 h-9 rounded-tool flex items-center justify-center transition-colors bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-color)]"
+              aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+              title={theme === 'dark' ? '라이트 모드' : '다크 모드'}
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4" aria-hidden /> : <Moon className="w-4 h-4" aria-hidden />}
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-
             <button
               type="button"
               onClick={() => setIsSettingsOpen(true)}
-              className="neu-btn touch-target flex items-center justify-center p-2 min-w-[44px] min-h-[44px] rounded-xl cursor-pointer transition-colors hover:opacity-90"
-              style={{ color: 'var(--text-main)' }}
-              title="설정"
+              className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-main)] border border-[var(--border-color)]"
               aria-label="설정"
             >
-              <Settings className="w-4 h-4 flex-shrink-0" />
+              <Settings className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -387,41 +405,6 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
             </div>
 
             <div className="p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-8 bg-theme-card theme-transition">
-              <div className="pb-6 border-b border-theme">
-                <h3 className="text-sm font-semibold text-theme mb-3">테마</h3>
-                <p className="text-xs text-theme-muted mb-2">강조 색상</p>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {ACCENT_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setAccentColor(opt.value)}
-                      className={cn(
-                        'touch-target w-9 h-9 rounded-full border-2 transition-all',
-                        opt.className,
-                        accentColor === opt.value ? 'ring-2 ring-theme ring-offset-2 ring-offset-theme-card scale-110' : 'opacity-80 hover:opacity-100 hover:scale-105',
-                        accentColor === opt.value ? 'border-theme' : 'border-transparent'
-                      )}
-                      title={opt.label}
-                      aria-label={opt.label}
-                    />
-                  ))}
-                </div>
-                <p className="text-xs text-theme-muted mb-2">배경 패턴</p>
-                <button
-                  type="button"
-                  onClick={() => setBgPattern(!bgPattern)}
-                  className={cn(
-                    'touch-target flex items-center gap-2 px-3 py-2 rounded-neu text-sm font-medium theme-transition',
-                    bgPattern ? 'neu-date-selected' : 'neu-float-sm'
-                  )}
-                >
-                  <span className="w-4 h-4 rounded border border-theme flex items-center justify-center">
-                    {bgPattern ? <span className="text-primary-500">✓</span> : null}
-                  </span>
-                  {bgPattern ? '패턴 켜짐' : '패턴 끔'}
-                </button>
-              </div>
               <div className="pb-6 border-b border-theme">
                 <h3 className="text-sm font-semibold text-theme mb-2">계정</h3>
                 <button

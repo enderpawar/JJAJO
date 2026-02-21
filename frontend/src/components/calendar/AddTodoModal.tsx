@@ -13,17 +13,25 @@ interface AddTodoModalProps {
 }
 
 export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoModalProps) {
-  const { addTodo } = useCalendarStore()
+  const { addTodo, selectedDate } = useCalendarStore()
   const { addToast } = useToastStore()
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    date: defaultDate ? formatDate(defaultDate) : formatDate(new Date()),
+    date: formatDate(new Date()),
+    endDate: '' as string,
     startTime: '',
     endTime: '',
     priority: 'medium' as TodoPriority,
     status: 'pending' as TodoStatus,
   })
+
+  // 모달이 열릴 때마다 시작일을 캘린더 선택일(또는 defaultDate)로 반영
+  useEffect(() => {
+    if (!isOpen) return
+    const baseDate = defaultDate ?? selectedDate ?? new Date()
+    setFormData(prev => ({ ...prev, date: formatDate(baseDate) }))
+  }, [isOpen, defaultDate, selectedDate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,10 +40,13 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
       return
     }
     try {
+      const endDate =
+        formData.endDate && formData.endDate >= formData.date ? formData.endDate : undefined
       const saved = await createSchedule({
         title: formData.title,
         description: formData.description || undefined,
         date: formData.date,
+        endDate,
         startTime: formData.startTime || undefined,
         endTime: formData.endTime || undefined,
         status: formData.status,
@@ -52,6 +63,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
       title: '',
       description: '',
       date: formatDate(new Date()),
+      endDate: '',
       startTime: '',
       endTime: '',
       priority: 'medium',
@@ -71,14 +83,14 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/60 backdrop-blur-sm theme-transition">
-      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-theme-card border border-black/8 dark:border-white/10 shadow-xl theme-transition">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-tool bg-theme-card border border-black/8 dark:border-white/10 shadow-xl theme-transition">
         {/* 헤더 */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-black/6 dark:border-white/10">
           <h2 className="text-lg font-bold text-theme tracking-tight">새 일정 추가</h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-xl text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+            className="flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-tool text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             aria-label="닫기"
           >
             <X className="w-5 h-5" />
@@ -97,7 +109,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="일정 제목을 입력하세요"
-              className="input-field rounded-xl px-4 py-3 text-theme border-0 focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-0"
+              className="input-field rounded-tool px-4 py-3 text-theme border-0 focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-0"
               required
             />
           </div>
@@ -111,24 +123,38 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="일정에 대한 설명을 입력하세요 (선택사항)"
-              className="input-field resize-none rounded-xl px-4 py-3 text-theme border-0 focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-0"
+              className="input-field resize-none rounded-tool px-4 py-3 text-theme border-0 focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-0"
               rows={3}
             />
           </div>
 
           {/* 날짜 */}
-          <div>
-            <label className="block text-sm font-semibold text-theme mb-2">
-              <Calendar className="w-4 h-4 inline mr-1.5 text-theme-muted" aria-hidden />
-              날짜 *
-            </label>
-            <input
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="input-field rounded-xl px-4 py-3 text-theme border-0 focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-0"
-              required
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-theme mb-2">
+                <Calendar className="w-4 h-4 inline mr-1.5 text-theme-muted" aria-hidden />
+                시작일 *
+              </label>
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                className="input-field rounded-tool px-4 py-3 text-theme border-0 focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-0 w-full"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-normal text-theme-muted mb-2">
+                종료일 (선택, 여러 날 일정)
+              </label>
+              <input
+                type="date"
+                value={formData.endDate}
+                min={formData.date}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                className="input-field rounded-tool px-4 py-3 text-theme border-0 focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-0 w-full"
+              />
+            </div>
           </div>
 
           {/* 시간 */}
@@ -142,7 +168,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
                 type="time"
                 value={formData.startTime}
                 onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                className="input-field rounded-xl px-4 py-3 text-theme border-0 focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-0"
+                className="input-field rounded-tool px-4 py-3 text-theme border-0 focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-0"
               />
             </div>
             <div>
@@ -153,7 +179,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
                 type="time"
                 value={formData.endTime}
                 onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                className="input-field rounded-xl px-4 py-3 text-theme border-0 focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-0"
+                className="input-field rounded-tool px-4 py-3 text-theme border-0 focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-0"
               />
             </div>
           </div>
@@ -163,13 +189,13 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 min-w-0 py-3.5 rounded-2xl text-sm font-medium text-theme border border-black/10 dark:border-white/10 bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
+              className="flex-1 min-w-0 py-3.5 rounded-tool text-sm font-medium text-theme border border-black/10 dark:border-white/10 bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
             >
               취소
             </button>
             <button
               type="submit"
-              className="flex-1 min-w-0 py-3.5 rounded-2xl text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 dark:hover:bg-primary-400 shadow-[0_4px_14px_rgba(255,140,0,0.22)] hover:shadow-[0_6px_20px_rgba(255,140,0,0.32)] dark:shadow-[0_4px_14px_rgba(255,149,0,0.2)] dark:hover:shadow-[0_6px_20px_rgba(255,149,0,0.28)] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] active:scale-[0.98]"
+              className="flex-1 min-w-0 py-3.5 rounded-tool text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 dark:hover:bg-primary-400 shadow-[0_4px_14px_rgba(255,140,0,0.22)] hover:shadow-[0_6px_20px_rgba(255,140,0,0.32)] dark:shadow-[0_4px_14px_rgba(255,149,0,0.2)] dark:hover:shadow-[0_6px_20px_rgba(255,149,0,0.28)] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] active:scale-[0.98]"
             >
               추가하기
             </button>

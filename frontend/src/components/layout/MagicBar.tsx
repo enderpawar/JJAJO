@@ -62,8 +62,8 @@ function fillTemplate(category: JjajoTemplateCategory, params: TemplateParams): 
     .replace(/\{\{breakMin\}\}/g, String(params.breakMin))
 }
 
-const PLACEHOLDER = '예: 내일 오후 3시 회의, 다음 주 월요일 2시간 스터디'
-const JJAJO_PLACEHOLDER = "할일 목록을 ',' 로 구분하여 넣어주세요. 예: 과제, 오답노트, 이론 복습"
+const PLACEHOLDER = '말만 하면 짜조가 일정 짜줄게요. 예: 내일 오후 3시 회의, 다음 주 월요일 2시간 스터디'
+const JJAJO_PLACEHOLDER = "할 일을 쉼표로 구분해서 넣어주세요. 예: 과제, 오답노트, 이론 복습 → 짜조가 시간 배치해줄게요"
 
 const TEMPLATE_OPTIONS: { key: JjajoTemplateCategory; label: string; icon: typeof BookOpen; color: string }[] = [
   { key: 'study', label: '공부 템플릿', icon: BookOpen, color: 'blue' },
@@ -219,9 +219,15 @@ export default function MagicBar() {
           </div>
         </div>
       )}
+      {editMode && (
+        <p className="text-[11px] font-medium text-primary-500 mb-1.5 flex items-center gap-1">
+          <Sparkles className="w-3.5 h-3.5" />
+          할 일만 적으면 짜조가 시간을 배치해줄게요
+        </p>
+      )}
       <div
         className={`
-          flex items-center gap-3 rounded-neu neu-inset theme-transition
+          flex items-center gap-3 rounded-tool neu-inset theme-transition
           ${message?.type === 'error'
             ? 'ring-2 ring-red-400/30'
             : ''
@@ -235,7 +241,7 @@ export default function MagicBar() {
           type="button"
           onClick={handleWandClick}
           className={`
-            touch-target flex-shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px] w-10 h-10 rounded-neu transition-all duration-200
+            touch-target flex-shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px] w-10 h-10 rounded-tool transition-all duration-200
             ${editMode
               ? 'neu-date-selected text-primary-500 ring-2 ring-primary-500/50'
               : 'neu-float-sm text-theme-muted hover:text-theme hover:shadow-neu-inset-hover active:scale-[0.98]'
@@ -264,7 +270,7 @@ export default function MagicBar() {
           onClick={submit}
           disabled={loading || !hasValue}
           className={`
-            touch-target flex-shrink-0 flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] px-4 py-2.5 rounded-neu font-medium text-sm
+            touch-target flex-shrink-0 flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] px-4 py-2.5 rounded-tool font-medium text-sm
             transition-all duration-200
             ${hasValue && !loading
               ? 'bg-primary-500 text-white hover:bg-primary-600 active:scale-[0.98]'
@@ -301,7 +307,7 @@ export default function MagicBar() {
                   key={opt.key}
                   type="button"
                   onClick={() => handleApplyTemplate(opt.key)}
-                  className={`group inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-neu neu-float-sm transition-all duration-200
+                  className={`group inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-tool neu-float-sm transition-all duration-200
                     hover:scale-[1.02] active:scale-[0.98]
                     ${isSelected ? `${c.bg} ${c.text} ring-1 ${c.ring}` : 'text-theme-muted hover:shadow-neu-inset-hover hover:text-theme'}
                   `}
@@ -399,7 +405,7 @@ export default function MagicBar() {
       {ghostPlans.length > 0 && (
         <div className="mt-3 space-y-2 animate-fadeIn">
           {lastPlannerSummary && (
-            <p className="text-xs text-theme-muted text-center px-2 py-1.5 rounded-neu bg-theme-bg/80 border border-theme-border/50">
+            <p className="text-xs text-theme-muted text-center px-2 py-1.5 rounded-tool bg-theme-bg/80 border border-theme-border/50">
               📌 {lastPlannerSummary}
             </p>
           )}
@@ -407,7 +413,7 @@ export default function MagicBar() {
           <button
             type="button"
             onClick={handleConfirmGhost}
-            className="touch-target flex items-center gap-2 px-4 py-2 rounded-neu bg-primary-500 text-white font-medium text-sm hover:bg-primary-600 active:scale-[0.98] transition-all"
+            className="touch-target flex items-center gap-2 px-4 py-2 rounded-tool bg-primary-500 text-white font-medium text-sm hover:bg-primary-600 active:scale-[0.98] transition-all"
           >
             <CheckCircle2 className="w-4 h-4" />
             확정
@@ -416,7 +422,7 @@ export default function MagicBar() {
             type="button"
             onClick={handleRegenerateGhost}
             disabled={loading || !lastPlannerCommand}
-            className="touch-target flex items-center gap-2 px-4 py-2 rounded-neu neu-float-sm text-theme font-medium text-sm hover:shadow-neu-inset-hover active:scale-[0.98] transition-all disabled:opacity-50"
+            className="touch-target flex items-center gap-2 px-4 py-2 rounded-tool neu-float-sm text-theme font-medium text-sm hover:shadow-neu-inset-hover active:scale-[0.98] transition-all disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             다시 생성
@@ -424,7 +430,7 @@ export default function MagicBar() {
           <button
             type="button"
             onClick={handleCancelGhost}
-            className="touch-target flex items-center gap-2 px-4 py-2 rounded-neu neu-float-sm text-theme-muted font-medium text-sm hover:shadow-neu-inset-hover active:scale-[0.98] transition-all"
+            className="touch-target flex items-center gap-2 px-4 py-2 rounded-tool neu-float-sm text-theme-muted font-medium text-sm hover:shadow-neu-inset-hover active:scale-[0.98] transition-all"
           >
             <X className="w-4 h-4" />
             취소

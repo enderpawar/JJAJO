@@ -18,8 +18,11 @@
   --shadow-float-sm: 0 1px 4px rgba(0, 0, 0, 0.05);
   --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-inset-sm: inset 0 1px 2px rgba(0, 0, 0, 0.04);
-  --primary-point: #FF8C00;
-  --primary-point-ring: rgba(255, 140, 0, 0.28);
+  /* 짜조 브랜드: 채도 낮은 신선한 피치·코랄 톤 */
+  --primary-point: #D4A574;
+  --primary-point-ring: rgba(212, 165, 116, 0.32);
+  --primary-gradient: linear-gradient(135deg, #E8C9A8 0%, #D4A574 50%, #C4956A 100%);
+  --primary-gradient-subtle: linear-gradient(180deg, rgba(232, 201, 168, 0.12) 0%, rgba(212, 165, 116, 0.06) 100%);
   --hover-bg: #EBECEF;
   /* 개인화 강조색은 [data-accent]로 덮어씀 */
   --grid-line: rgba(0, 0, 0, 0.08);
@@ -43,9 +46,11 @@ html.dark {
   --shadow-float-sm: 3px 3px 20px rgba(0, 0, 0, 0.35);
   --shadow-inset: inset 4px 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-inset-sm: inset 3px 3px 10px rgba(0, 0, 0, 0.4);
-  /* 다크 모드: 가독성을 위해 채도 살짝 높인 주황 */
-  --primary-point: #FF9500;
-  --primary-point-ring: rgba(255, 149, 0, 0.35);
+  /* 다크: 짜조 톤 유지, 약간 밝게 */
+  --primary-point: #E8B86D;
+  --primary-point-ring: rgba(232, 184, 109, 0.38);
+  --primary-gradient: linear-gradient(135deg, #E8C9A8 0%, #E8B86D 50%, #D4A574 100%);
+  --primary-gradient-subtle: linear-gradient(180deg, rgba(232, 184, 109, 0.14) 0%, rgba(212, 165, 116, 0.08) 100%);
   --hover-bg: #252528;
   --grid-line: rgba(255, 255, 255, 0.06);
   /* 다크: 월간 캘린더 날짜 셀 테두리 (연하게) */
@@ -54,15 +59,15 @@ html.dark {
   --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
-/* 개인화: 강조색 선택 (설정에서 변경) */
-[data-accent="orange"] { --primary-point: #FF8C00; --primary-point-ring: rgba(255, 140, 0, 0.28); }
-[data-accent="blue"] { --primary-point: #2563eb; --primary-point-ring: rgba(37, 99, 235, 0.28); }
-[data-accent="purple"] { --primary-point: #7c3aed; --primary-point-ring: rgba(124, 58, 237, 0.28); }
-[data-accent="green"] { --primary-point: #059669; --primary-point-ring: rgba(5, 150, 105, 0.28); }
-html.dark[data-accent="orange"] { --primary-point: #FF9500; --primary-point-ring: rgba(255, 149, 0, 0.35); }
-html.dark[data-accent="blue"] { --primary-point: #3b82f6; --primary-point-ring: rgba(59, 130, 246, 0.35); }
-html.dark[data-accent="purple"] { --primary-point: #8b5cf6; --primary-point-ring: rgba(139, 92, 246, 0.35); }
-html.dark[data-accent="green"] { --primary-point: #10b981; --primary-point-ring: rgba(16, 185, 129, 0.35); }
+/* 개인화: 강조색 선택 (설정에서 변경). orange = 짜조 기본 톤 */
+[data-accent="orange"] { --primary-point: #D4A574; --primary-point-ring: rgba(212, 165, 116, 0.32); --primary-gradient: linear-gradient(135deg, #E8C9A8 0%, #D4A574 50%, #C4956A 100%); }
+[data-accent="blue"] { --primary-point: #5B8DEE; --primary-point-ring: rgba(91, 141, 238, 0.28); --primary-gradient: linear-gradient(135deg, #7BA3F5 0%, #5B8DEE 100%); }
+[data-accent="purple"] { --primary-point: #9B7DD4; --primary-point-ring: rgba(155, 125, 212, 0.28); --primary-gradient: linear-gradient(135deg, #B59AE0 0%, #9B7DD4 100%); }
+[data-accent="green"] { --primary-point: #6BBF8A; --primary-point-ring: rgba(107, 191, 138, 0.28); --primary-gradient: linear-gradient(135deg, #8BD4A4 0%, #6BBF8A 100%); }
+html.dark[data-accent="orange"] { --primary-point: #E8B86D; --primary-point-ring: rgba(232, 184, 109, 0.38); }
+html.dark[data-accent="blue"] { --primary-point: #6B9AF5; --primary-point-ring: rgba(107, 154, 245, 0.35); }
+html.dark[data-accent="purple"] { --primary-point: #AB8EE0; --primary-point-ring: rgba(171, 142, 224, 0.35); }
+html.dark[data-accent="green"] { --primary-point: #7BD49A; --primary-point-ring: rgba(123, 212, 154, 0.35); }
 
 /* 배경 패턴 (설정에서 켜기) */
 body.bg-pattern {
@@ -74,10 +79,10 @@ html.dark body.bg-pattern {
   background-image: radial-gradient(circle at 1px 1px, var(--grid-line) 1px, transparent 0);
 }
 
-/* 테마 전환 시 부드러운 전환 (날짜 카드, 타임라인, 입력창 등) */
+/* 테마 전환: 짧은 duration으로 헤더·사이드바·중앙 시간차 최소화 */
 .theme-transition,
 .theme-transition * {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: background-color 0.12s ease-out, color 0.12s ease-out, border-color 0.12s ease-out, box-shadow 0.12s ease-out;
 }
 
 /* 테마 변수 유틸리티 (레이아웃·컴포넌트에서 사용) */
@@ -482,6 +487,31 @@ input[type="range"]::-moz-range-thumb:hover {
   animation: slideOutLeft 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
+/* 캘린더 날짜 클릭: 중앙에서 확산되는 Ripple */
+@keyframes ripple-expand {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.35;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+.ripple-effect {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 100%;
+  max-width: 200%;
+  max-height: 200%;
+  border-radius: 50%;
+  background: var(--primary-point);
+  pointer-events: none;
+  animation: ripple-expand 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 /* 토스트 등장/퇴장 */
 @keyframes toastEnter {
   from {
@@ -587,33 +617,33 @@ html.dark .empty-state-pattern::before {
 
 /* 🎨 뉴모피즘 유틸리티 클래스 (테마 변수 적용) */
 @layer components {
-  /* Floating: 배경에서 튀어나온 효과 (카드, 버튼) */
+  /* Floating: 배경에서 튀어나온 효과 (카드, 버튼) — 4px 전문 툴 톤 */
   .neu-float {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 16px;
+    border-radius: 4px;
     box-shadow: var(--shadow-float);
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
   .neu-float-sm {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 12px;
+    border-radius: 4px;
     box-shadow: var(--shadow-float-sm);
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
-  /* Inset: 안으로 오목하게 들어간 효과 (입력창) */
+  /* Inset: 안으로 오목하게 들어간 효과 (입력창) — 4px 전문 툴 톤 */
   .neu-inset {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 16px;
+    border-radius: 4px;
     box-shadow: var(--shadow-inset);
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
   .neu-inset-sm {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 12px;
+    border-radius: 4px;
     box-shadow: var(--shadow-inset-sm);
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
@@ -749,13 +779,70 @@ html.dark .empty-state-pattern::before {
     background: color-mix(in srgb, var(--primary-point) 18%, var(--card-bg));
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   }
+
+  /* 캘린더/할일 모드 토글: 세그먼트 스타일 (바 안에 텍스트 + 슬라이딩 원으로 활성 표시) */
+  .view-mode-segmented {
+    @apply shrink-0;
+  }
+  .view-mode-segmented-track {
+    @apply relative flex rounded-full border border-[var(--border-color)] overflow-hidden;
+    min-width: 140px;
+    height: 32px;
+    background-color: var(--hover-bg);
+  }
+  /* 모바일: 캘린더/할일 텍스트가 버튼 밖으로 나가지 않도록 트랙 폭·버튼 패딩 확보 */
+  @media (max-width: 640px) {
+    .view-mode-segmented-track {
+      min-width: 128px;
+      padding: 0 2px;
+    }
+    .view-mode-segmented-btn {
+      min-width: 0;
+      padding: 0 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+  .view-mode-segmented-pill {
+    @apply absolute inset-y-0 rounded-full pointer-events-none transition-[left] duration-200 ease-out;
+    top: 2px;
+    bottom: 2px;
+    width: calc(50% - 4px);
+    left: 2px;
+    background: var(--primary-point);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+  .view-mode-segmented-pill[data-active="true"] {
+    left: calc(50% + 2px);
+  }
+  html.dark .view-mode-segmented-pill {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+  .view-mode-segmented-btn {
+    @apply relative z-10 flex-1 flex items-center justify-center text-xs font-medium transition-colors duration-200 min-w-0;
+    color: var(--text-muted);
+  }
+  .view-mode-segmented-btn:hover {
+    color: var(--text-main);
+  }
+  /* 원이 왼쪽(캘린더)일 때: 왼쪽 버튼 흰색으로 강조 */
+  .view-mode-segmented-pill[data-active="false"] ~ .view-mode-segmented-btn:first-of-type {
+    color: white;
+    font-weight: 600;
+  }
+  /* 원이 오른쪽(할일)일 때: 오른쪽 버튼 흰색(짜조 주황 원 위) */
+  .view-mode-segmented-pill[data-active="true"] ~ .view-mode-segmented-btn:last-of-type {
+    color: white;
+    font-weight: 600;
+  }
 }
 
 /* Notion 스타일 → 뉴모피즘 전환 컴포넌트 클래스 */
 @layer components {
   /* 공통 UI (프로젝트 전반에서 사용) */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-neu px-4 py-2.5 text-sm font-semibold
+    @apply inline-flex items-center justify-center gap-2 rounded-tool px-4 py-2.5 text-sm font-semibold
       bg-primary-500 text-white border-0
       hover:bg-primary-600 active:scale-[0.98]
       transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100;
@@ -763,7 +850,7 @@ html.dark .empty-state-pattern::before {
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-neu px-4 py-2.5 text-sm font-semibold border-0
+    @apply inline-flex items-center justify-center gap-2 rounded-tool px-4 py-2.5 text-sm font-semibold border-0
       disabled:opacity-40 disabled:cursor-not-allowed;
     background-color: var(--card-bg);
     color: var(--text-main);
@@ -778,7 +865,7 @@ html.dark .empty-state-pattern::before {
   }
 
   .input-field {
-    @apply w-full rounded-neu px-4 py-2.5 text-sm focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply w-full rounded-tool px-4 py-2.5 text-sm focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed;
     background-color: var(--card-bg);
     color: var(--text-main);
     border: none;
@@ -797,7 +884,7 @@ html.dark .empty-state-pattern::before {
     color: var(--text-main);
     font-weight: 500;
     padding: 0.5rem 1rem;
-    border-radius: 16px;
+    border-radius: 4px;
     border: none;
     box-shadow: var(--shadow-float-sm);
     transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, transform 0.2s ease;
@@ -816,7 +903,7 @@ html.dark .empty-state-pattern::before {
   .input-notion {
     width: 100%;
     padding: 0.5rem 1rem;
-    border-radius: 16px;
+    border-radius: 4px;
     border: none;
     background-color: var(--card-bg);
     color: var(--text-main);
@@ -834,7 +921,7 @@ html.dark .empty-state-pattern::before {
   
   .card-notion {
     background-color: var(--card-bg);
-    border-radius: 16px;
+    border-radius: 4px;
     border: none;
     padding: 1rem;
     box-shadow: var(--shadow-float);

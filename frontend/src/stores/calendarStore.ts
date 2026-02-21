@@ -86,7 +86,10 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   
   getTodosByDate: (date) => {
     const todos = get().todos
-    return todos.filter((todo) => todo.date === date)
+    return todos.filter((todo) => {
+      const end = todo.endDate || todo.date
+      return todo.date <= date && date <= end
+    })
   },
   
   getAiTodos: () => {
@@ -157,6 +160,7 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
         ...todo,
         id: `${Date.now()}-${Math.random()}`,
         date: currentDateStr,
+        endDate: undefined,
         status: 'pending' as const,
         createdBy: 'user' as const,
         createdAt: new Date().toISOString(),

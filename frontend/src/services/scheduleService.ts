@@ -18,6 +18,7 @@ export function scheduleFromApi(item: Record<string, unknown>): Todo {
     title: String(item.title ?? ''),
     description: item.description != null ? String(item.description) : undefined,
     date: String(item.date ?? ''),
+    endDate: item.endDate != null && String(item.endDate).trim() !== '' && item.endDate !== item.date ? String(item.endDate) : undefined,
     startTime: item.startTime != null ? String(item.startTime) : undefined,
     endTime: item.endTime != null ? String(item.endTime) : undefined,
     status: ['pending', 'in_progress', 'completed', 'cancelled'].includes(status) ? status : 'pending',
@@ -37,7 +38,7 @@ export async function getSchedules(): Promise<Todo[]> {
 
 /** 일정 생성 (원격 DB 저장). id는 서버에서 부여됨. */
 export async function createSchedule(
-  todo: Pick<Todo, 'title' | 'description' | 'date' | 'startTime' | 'endTime' | 'status' | 'priority' | 'createdBy'>
+  todo: Pick<Todo, 'title' | 'description' | 'date' | 'endDate' | 'startTime' | 'endTime' | 'status' | 'priority' | 'createdBy'>
 ): Promise<Todo> {
   const schedulesUrl = getSchedulesApiBase()
   sendDebugIngest({
@@ -48,18 +49,22 @@ export async function createSchedule(
     sessionId: 'debug-session',
     hypothesisId: 'A',
   })
+  const body: Record<string, unknown> = {
+    title: todo.title,
+    description: todo.description ?? '',
+    date: todo.date,
+    startTime: todo.startTime ?? '',
+    endTime: todo.endTime ?? '',
+    status: todo.status ?? 'pending',
+    priority: todo.priority ?? 'medium',
+    createdBy: todo.createdBy ?? 'user',
+  }
+  if (todo.endDate != null && todo.endDate.trim() !== '') {
+    body.endDate = todo.endDate
+  }
   const item = await apiRequest<Record<string, unknown>>(schedulesUrl, {
     method: 'POST',
-    body: {
-      title: todo.title,
-      description: todo.description ?? '',
-      date: todo.date,
-      startTime: todo.startTime ?? '',
-      endTime: todo.endTime ?? '',
-      status: todo.status ?? 'pending',
-      priority: todo.priority ?? 'medium',
-      createdBy: todo.createdBy ?? 'user',
-    },
+    body,
   })
   sendDebugIngest({
     location: 'scheduleService.ts:createSchedule',
@@ -73,7 +78,7 @@ export async function createSchedule(
 }
 
 /** 일정 수정 */
-export async function updateSchedule(id: string, updates: Partial<Pick<Todo, 'title' | 'description' | 'date' | 'startTime' | 'endTime' | 'status' | 'priority'>>): Promise<Todo> {
+export async function updateSchedule(id: string, updates: Partial<Pick<Todo, 'title' | 'description' | 'date' | 'endDate' | 'startTime' | 'endTime' | 'status' | 'priority'>>): Promise<Todo> {
   const item = await apiRequest<Record<string, unknown>>(`${getSchedulesApiBase()}/${id}`, {
     method: 'PUT',
     body: updates,

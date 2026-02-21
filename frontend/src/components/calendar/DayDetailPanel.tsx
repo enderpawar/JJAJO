@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { Plus, Edit2, Trash2, Check, MoreHorizontal } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useToastStore } from '@/stores/toastStore'
-import { deleteSchedule, updateSchedule } from '@/services/scheduleService'
+import { deleteSchedule, updateSchedule, createSchedule } from '@/services/scheduleService'
 import { formatDate, formatDateWithDay } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
 import type { Todo, TodoPriority } from '@/types/calendar'
@@ -20,7 +20,6 @@ function getPriorityBarColor(priority: TodoPriority): string {
       return 'bg-theme-muted/60'
   }
 }
-import AddTodoModal from './AddTodoModal'
 import { ConfirmModal } from '@/components/ConfirmModal'
 
 interface DayDetailPanelProps {
@@ -39,9 +38,9 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
   const [deleteAllTodayConfirm, setDeleteAllTodayConfirm] = useState(false)
   const [isDeletingAllToday, setIsDeletingAllToday] = useState(false)
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
-  const [editForm, setEditForm] = useState({ title: '', startTime: '', endTime: '', description: '' })
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ title: '', date: '', endDate: '', startTime: '', endTime: '', description: '' })
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
+  const [isSavingNew, setIsSavingNew] = useState(false)
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const menuTriggerRef = useRef<HTMLButtonElement | null>(null)
@@ -49,11 +48,37 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
   const dateStr = formatDate(selectedDate)
   const isTodaySelected = dateStr === formatDate(new Date())
 
-  useEffect(() => {
-    if (openAddModal) {
-      setIsModalOpen(true)
-      onAddModalOpened?.()
+  /** 하단 리스트에 새 일정 카드(드래프트) 추가 후 편집 모드로 열기 */
+  const startNewTodo = () => {
+    const now = new Date().toISOString()
+    const draft: Todo = {
+      id: `opt-new-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      title: '새 일정',
+      date: dateStr,
+      startTime: '',
+      endTime: '',
+      status: 'pending',
+      priority: 'medium',
+      createdBy: 'user',
+      createdAt: now,
+      updatedAt: now,
     }
+    addTodo(draft)
+    setEditingTodo(draft)
+    setEditForm({
+      title: '새 일정',
+      date: dateStr,
+      endDate: '',
+      startTime: '',
+      endTime: '',
+      description: '',
+    })
+  }
+
+  useEffect(() => {
+    if (!openAddModal) return
+    startNewTodo()
+    onAddModalOpened?.()
   }, [openAddModal])
 
   // 편집 모드 진입 시 제목 input에 포커스
@@ -133,29 +158,70 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
     setEditingTodo(todo)
     setEditForm({
       title: todo.title,
+      date: todo.date,
+      endDate: todo.endDate ?? '',
       startTime: todo.startTime ?? '',
       endTime: todo.endTime ?? '',
       description: todo.description ?? '',
     })
   }
 
-  /** 인라인 편집 저장 */
+  /** 인라인 편집 저장 (기존 일정 수정 또는 새 일정 생성) */
   const saveInlineEdit = async () => {
     if (!editingTodo) return
-    const { title, startTime, endTime, description } = editForm
+    const { title, date, endDate, startTime, endTime, description } = editForm
+    const resolvedDate = date || editingTodo.date
+    const endDateVal = endDate && endDate >= resolvedDate ? endDate : undefined
+    const titleVal = title.trim() || editingTodo.title
+
+    if (editingTodo.id.startsWith('opt-')) {
+      if (!titleVal) {
+        addToast('제목을 입력해주세요')
+        return
+      }
+      setIsSavingNew(true)
+      const tempId = editingTodo.id
+      deleteTodo(tempId)
+      setEditingTodo(null)
+      try {
+        const created = await createSchedule({
+          title: titleVal,
+          description: description.trim() || undefined,
+          date: resolvedDate,
+          endDate: endDateVal,
+          startTime: startTime || undefined,
+          endTime: endTime || undefined,
+          status: 'pending',
+          priority: 'medium',
+          createdBy: 'user',
+        })
+        addTodo(created)
+      } catch (e) {
+        addTodo(editingTodo)
+        setEditingTodo(editingTodo)
+        setEditForm({ title: titleVal, date: resolvedDate, endDate: endDateVal ?? '', startTime: startTime ?? '', endTime: endTime ?? '', description: description ?? '' })
+        addToast(`일정 추가 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
+      }
+      setIsSavingNew(false)
+      return
+    }
+
     const prev = { ...editingTodo }
     updateTodo(editingTodo.id, {
-      title: title.trim() || editingTodo.title,
+      title: titleVal,
+      date: resolvedDate,
+      endDate: endDateVal,
       startTime: startTime || undefined,
       endTime: endTime || undefined,
       description: description.trim() || undefined,
       updatedAt: new Date().toISOString(),
     })
     setEditingTodo(null)
-    if (editingTodo.id.startsWith('opt-')) return
     try {
       const updated = await updateSchedule(editingTodo.id, {
-        title: title.trim() || editingTodo.title,
+        title: titleVal,
+        date: resolvedDate,
+        endDate: endDateVal,
         startTime: startTime || undefined,
         endTime: endTime || undefined,
         description: description.trim() || undefined,
@@ -167,8 +233,11 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
     }
   }
 
-  /** 인라인 편집 취소 */
+  /** 인라인 편집 취소 (새 일정 드래프트면 리스트에서 제거) */
   const cancelInlineEdit = () => {
+    if (editingTodo?.id.startsWith('opt-')) {
+      deleteTodo(editingTodo.id)
+    }
     setEditingTodo(null)
   }
 
@@ -305,7 +374,22 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
                           className="w-full px-2 py-1.5 rounded-md border border-black/10 dark:border-white/10 bg-transparent text-theme text-sm font-medium focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-500"
                           placeholder="제목"
                         />
-                        <div className="flex gap-2 items-center">
+                        <div className="flex flex-wrap gap-2 items-center">
+                          <input
+                            type="date"
+                            value={editForm.date}
+                            onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))}
+                            className="px-2 py-1 rounded-md border border-black/10 dark:border-white/10 bg-transparent text-theme text-xs"
+                          />
+                          <input
+                            type="date"
+                            value={editForm.endDate}
+                            min={editForm.date}
+                            onChange={(e) => setEditForm((f) => ({ ...f, endDate: e.target.value }))}
+                            placeholder="종료일"
+                            className="px-2 py-1 rounded-md border border-black/10 dark:border-white/10 bg-transparent text-theme text-xs w-28"
+                            title="종료일 (여러 날 일정)"
+                          />
                           <input
                             type="time"
                             value={editForm.startTime}
@@ -320,7 +404,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
                             className="px-2 py-1 rounded-md border border-black/10 dark:border-white/10 bg-transparent text-theme text-xs"
                           />
                           <button type="button" onClick={cancelInlineEdit} className="text-xs font-normal text-theme-muted">취소</button>
-                          <button type="button" onClick={saveInlineEdit} className="text-xs font-medium text-primary-500">저장</button>
+                          <button type="button" onClick={saveInlineEdit} disabled={isSavingNew} className="text-xs font-medium text-primary-500 disabled:opacity-50">{(isSavingNew ? '저장 중…' : '저장')}</button>
                         </div>
                       </div>
                     ) : (
@@ -331,8 +415,13 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
                           </span>
                         )}
                         <div className="min-w-0 flex-1">
-                          <p className={cn('text-sm font-semibold text-theme truncate tracking-tight', isCompleted && 'line-through font-normal text-theme-muted')}>
-                            {todo.title}
+                          <p className={cn('text-sm font-semibold text-theme tracking-tight flex items-center gap-1.5 min-w-0', isCompleted && 'line-through font-normal text-theme-muted')}>
+                            <span className="truncate">{todo.title}</span>
+                            {todo.createdBy === 'ai' && (
+                              <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded bg-primary-500/15 text-primary-600 dark:text-primary-400 font-medium">
+                                짜조
+                              </span>
+                            )}
                           </p>
                           {todo.description && (
                             <p className="text-xs font-normal text-theme-muted/90 mt-0.5 truncate">
@@ -389,7 +478,8 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
         )}
         <button
           type="button"
-          onClick={() => setIsModalOpen(true)}
+          onClick={startNewTodo}
+          disabled={!!editingTodo}
           className={cn(
             'py-3.5 rounded-2xl text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 dark:bg-primary-500 dark:hover:bg-primary-400 shadow-md hover:shadow-lg dark:shadow-[0_4px_14px_rgba(255,149,0,0.2)] dark:hover:shadow-[0_6px_20px_rgba(255,149,0,0.28)] transition-all duration-200 flex items-center justify-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] active:scale-[0.98]',
             isTodaySelected && todos.length > 0 ? 'flex-[3] min-w-0' : 'flex-1 min-w-0'
@@ -401,13 +491,6 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
           새 일정 추가
         </button>
       </div>
-
-      {/* 일정 추가 모달 */}
-      <AddTodoModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        defaultDate={selectedDate}
-      />
 
       {/* 일정 삭제 확인 모달 */}
       <ConfirmModal

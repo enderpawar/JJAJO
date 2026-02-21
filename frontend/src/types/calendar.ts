@@ -12,7 +12,9 @@ export interface Todo {
   clientKey?: string
   title: string
   description?: string
-  date: string // YYYY-MM-DD
+  date: string // YYYY-MM-DD (시작일)
+  /** 종료일(포함). 없으면 당일 일정, 있으면 여러 날에 걸친 일정 */
+  endDate?: string // YYYY-MM-DD
   startTime?: string // HH:mm
   endTime?: string // HH:mm
   status: TodoStatus

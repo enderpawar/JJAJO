@@ -155,9 +155,15 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
 
   const dateStr = useMemo(() => format(selectedDate ?? new Date(), 'yyyy-MM-dd'), [selectedDate])
 
+  /** 선택일 기준 일정: 해당 일자에 속하는 것만 (시작일=선택일 또는 선택일이 [시작일, 종료일] 구간 안). 시간이 있으면 해당 시간대에 배치. */
   const selectedDateTodos = useMemo(() => {
     return todos
-      .filter(t => t.date === dateStr && t.startTime && t.endTime && !t.isGhost)
+      .filter(t => {
+        if (t.isGhost || !t.startTime || !t.endTime) return false
+        const end = t.endDate || t.date
+        const onDate = dateStr >= t.date && dateStr <= end
+        return onDate
+      })
       .sort((a, b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'))
   }, [todos, dateStr])
 

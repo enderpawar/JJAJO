@@ -41,6 +41,7 @@ public class ScheduleService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .date(request.getDate())
+                .endDate(request.getEndDate())
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
                 .status(status)
@@ -67,6 +68,9 @@ public class ScheduleService {
         }
         if (request.getDate() != null) {
             entity.setDate(request.getDate());
+        }
+        if (request.getEndDate() != null) {
+            entity.setEndDate(request.getEndDate());
         }
         if (request.getStartTime() != null) {
             entity.setStartTime(request.getStartTime());
@@ -105,6 +109,7 @@ public class ScheduleService {
                 .title(e.getTitle())
                 .description(e.getDescription())
                 .date(e.getDate())
+                .endDate(e.getEndDate())
                 .startTime(e.getStartTime())
                 .endTime(e.getEndTime())
                 .status(e.getStatus())

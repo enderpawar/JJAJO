@@ -70,6 +70,7 @@ export default {
         'notion': '6px',
         'neu': '16px',
         'neu-lg': '20px',
+        'tool': '4px',
         'sm': '4px',
         'md': '6px',
         'lg': '8px',
