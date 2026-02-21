@@ -12,7 +12,9 @@ export interface Todo {
   clientKey?: string
   title: string
   description?: string
-  date: string // YYYY-MM-DD
+  date: string // YYYY-MM-DD (시작일)
+  /** 종료일(포함). 없으면 당일 일정, 있으면 여러 날에 걸친 일정 */
+  endDate?: string // YYYY-MM-DD
   startTime?: string // HH:mm
   endTime?: string // HH:mm
   status: TodoStatus
@@ -22,6 +24,8 @@ export interface Todo {
   updatedAt: string
   /** 짜조 고스트 일정 여부. true면 미확정 미리보기용 */
   isGhost?: boolean
+  /** 알림 울릴 시작 시각 기준 N분 전. 없으면 알림 없음 */
+  reminderMinutesBefore?: number
 }
 
 export interface CalendarDay {

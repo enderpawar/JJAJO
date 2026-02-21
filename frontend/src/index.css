@@ -7,6 +7,7 @@
 
 /* ========== 테마 CSS Variables (라이트 / 다크) ========== */
 :root {
+  /* 라이트: 차분한 회색 배경, 카드는 흰색으로 구분 */
   --bg-color: #F5F6F8;
   --card-bg: #FFFFFF;
   --text-main: #1a1d21;
@@ -18,8 +19,16 @@
   --shadow-float-sm: 0 1px 4px rgba(0, 0, 0, 0.05);
   --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-inset-sm: inset 0 1px 2px rgba(0, 0, 0, 0.04);
-  --primary-point: #FF8C00;
-  --primary-point-ring: rgba(255, 140, 0, 0.28);
+  /* radius 일관성 (디자인 시스템) — 선/테두리보다 작게 해서 잘리지 않게 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  /* 하이라이트: 이미지와 동일한 비비드 오렌지 #FF6D00 */
+  --primary-point: #FF6D00;
+  --primary-point-ring: rgba(255, 109, 0, 0.42);
+  --primary-button: #E55C00; /* CTA 버튼용 — 하이라이트보다 진하게 */
+  --primary-gradient: linear-gradient(135deg, #FF8533 0%, #FF6D00 50%, #E55C00 100%);
+  --primary-gradient-subtle: linear-gradient(180deg, rgba(255, 109, 0, 0.22) 0%, rgba(255, 109, 0, 0.14) 100%);
   --hover-bg: #EBECEF;
   /* 개인화 강조색은 [data-accent]로 덮어씀 */
   --grid-line: rgba(0, 0, 0, 0.08);
@@ -31,38 +40,42 @@
 
 html.dark {
   color-scheme: dark;
-  --bg-color: #121214;
-  --card-bg: #1E1E20;
+  /* 다크: 오렌지 하이라이트와 어울리는 은은한 웜 다크 배경 */
+  --bg-color: #141210;
+  --card-bg: #1C1A18;
   --text-main: #E9ECEF;
   --text-muted: #ADB5BD;
   /* 다크 모드: 흰색 테두리 과도 강조 방지 — 투명도 낮춤 */
-  --border-color: rgba(255, 255, 255, 0.04);
+  --border-color: rgba(255, 255, 255, 0.06);
   /* 다크: 배경보다 더 어두운 톤으로 깊이감, 흰색 하이라이트 제거해 테두리처럼 보이는 현상 완화 */
   --shadow-style: 0 4px 24px rgba(0, 0, 0, 0.45);
   --shadow-float: 6px 6px 22px rgba(0, 0, 0, 0.4);
   --shadow-float-sm: 3px 3px 20px rgba(0, 0, 0, 0.35);
   --shadow-inset: inset 4px 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-inset-sm: inset 3px 3px 10px rgba(0, 0, 0, 0.4);
-  /* 다크 모드: 가독성을 위해 채도 살짝 높인 주황 */
-  --primary-point: #FF9500;
-  --primary-point-ring: rgba(255, 149, 0, 0.35);
-  --hover-bg: #252528;
-  --grid-line: rgba(255, 255, 255, 0.06);
+  /* 다크: 동일 오렌지 톤, 약간 밝게 */
+  --primary-point: #FF8533;
+  --primary-point-ring: rgba(255, 133, 51, 0.48);
+  --primary-button: #FF6D00; /* 다크 CTA — 동일 포인트색 */
+  --primary-gradient: linear-gradient(135deg, #FF9F66 0%, #FF8533 50%, #FF6D00 100%);
+  --primary-gradient-subtle: linear-gradient(180deg, rgba(255, 109, 0, 0.24) 0%, rgba(255, 109, 0, 0.16) 100%);
+  --hover-bg: #252320;
+  --grid-line: rgba(255, 255, 255, 0.05);
   /* 다크: 월간 캘린더 날짜 셀 테두리 (연하게) */
-  --calendar-cell-border: rgba(255, 255, 255, 0.05);
+  --calendar-cell-border: rgba(255, 255, 255, 0.06);
   --card-border: rgba(255, 255, 255, 0.08);
   --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
-/* 개인화: 강조색 선택 (설정에서 변경) */
-[data-accent="orange"] { --primary-point: #FF8C00; --primary-point-ring: rgba(255, 140, 0, 0.28); }
-[data-accent="blue"] { --primary-point: #2563eb; --primary-point-ring: rgba(37, 99, 235, 0.28); }
-[data-accent="purple"] { --primary-point: #7c3aed; --primary-point-ring: rgba(124, 58, 237, 0.28); }
-[data-accent="green"] { --primary-point: #059669; --primary-point-ring: rgba(5, 150, 105, 0.28); }
-html.dark[data-accent="orange"] { --primary-point: #FF9500; --primary-point-ring: rgba(255, 149, 0, 0.35); }
-html.dark[data-accent="blue"] { --primary-point: #3b82f6; --primary-point-ring: rgba(59, 130, 246, 0.35); }
-html.dark[data-accent="purple"] { --primary-point: #8b5cf6; --primary-point-ring: rgba(139, 92, 246, 0.35); }
-html.dark[data-accent="green"] { --primary-point: #10b981; --primary-point-ring: rgba(16, 185, 129, 0.35); }
+/* 개인화: 강조색 선택 (설정에서 변경). orange = 기본 하이라이트 #FF6D00 */
+[data-accent="orange"] { --primary-point: #FF6D00; --primary-point-ring: rgba(255, 109, 0, 0.42); --primary-button: #E55C00; --primary-gradient: linear-gradient(135deg, #FF8533 0%, #FF6D00 50%, #E55C00 100%); }
+[data-accent="blue"] { --primary-point: #5B8DEE; --primary-point-ring: rgba(91, 141, 238, 0.38); --primary-button: #4A7BDB; --primary-gradient: linear-gradient(135deg, #7BA3F5 0%, #5B8DEE 100%); }
+[data-accent="purple"] { --primary-point: #9B7DD4; --primary-point-ring: rgba(155, 125, 212, 0.38); --primary-button: #7E5FB8; --primary-gradient: linear-gradient(135deg, #B59AE0 0%, #9B7DD4 100%); }
+[data-accent="green"] { --primary-point: #6BBF8A; --primary-point-ring: rgba(107, 191, 138, 0.38); --primary-button: #52A872; --primary-gradient: linear-gradient(135deg, #8BD4A4 0%, #6BBF8A 100%); }
+html.dark[data-accent="orange"] { --primary-point: #FF8533; --primary-point-ring: rgba(255, 133, 51, 0.48); --primary-button: #FF6D00; }
+html.dark[data-accent="blue"] { --primary-point: #6B9AF5; --primary-point-ring: rgba(107, 154, 245, 0.45); --primary-button: #5A8AE8; }
+html.dark[data-accent="purple"] { --primary-point: #AB8EE0; --primary-point-ring: rgba(171, 142, 224, 0.45); --primary-button: #8F6BC9; }
+html.dark[data-accent="green"] { --primary-point: #7BD49A; --primary-point-ring: rgba(123, 212, 154, 0.45); --primary-button: #62C082; }
 
 /* 배경 패턴 (설정에서 켜기) */
 body.bg-pattern {
@@ -74,10 +87,10 @@ html.dark body.bg-pattern {
   background-image: radial-gradient(circle at 1px 1px, var(--grid-line) 1px, transparent 0);
 }
 
-/* 테마 전환 시 부드러운 전환 (날짜 카드, 타임라인, 입력창 등) */
+/* 테마 전환: 짧은 duration으로 헤더·사이드바·중앙 시간차 최소화 */
 .theme-transition,
 .theme-transition * {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: background-color 0.12s ease-out, color 0.12s ease-out, border-color 0.12s ease-out, box-shadow 0.12s ease-out;
 }
 
 /* 테마 변수 유틸리티 (레이아웃·컴포넌트에서 사용) */
@@ -86,6 +99,12 @@ html.dark body.bg-pattern {
 .text-theme { color: var(--text-main); }
 .text-theme-muted { color: var(--text-muted); }
 .border-theme { border-color: var(--border-color); }
+.bg-primary-button {
+  background-color: var(--primary-button);
+}
+.bg-primary-button:hover {
+  filter: brightness(0.92);
+}
 
 /* 라이트 테마: 로고 주변 검은색 테두리 (흰 배경에서 가독성) */
 .logo-light-outline {
@@ -254,6 +273,66 @@ html.dark body.bg-pattern {
 
 .animate-particle {
   animation: particle 1.5s ease-out infinite;
+}
+
+/* 🎮 버튼 동작별 애니메이션 (각 버튼에 조합해서 사용) */
+@keyframes btn-press {
+  to { transform: scale(0.97); }
+}
+@keyframes btn-release {
+  to { transform: scale(1); }
+}
+@keyframes btn-success-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+/* 주요 액션(제출·저장·확인): 눌림 피드백 */
+.btn-action-press {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-action-press:hover {
+  transform: translateY(-1px);
+}
+.btn-action-press:active {
+  transform: scale(0.98) translateY(0);
+}
+.btn-action-press:disabled {
+  transform: none;
+}
+/* 아이콘/닫기 버튼: 호버 시 살짝 커짐, 누르면 눌림 */
+.btn-icon-tap {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, color 0.2s ease;
+}
+.btn-icon-tap:hover {
+  transform: scale(1.06);
+}
+.btn-icon-tap:active {
+  transform: scale(0.94);
+}
+/* 취소/닫기 등 보조 버튼: 부드러운 배경 전환 + 눌림 */
+.btn-ghost-tap {
+  transition: transform 0.15s ease, background-color 0.2s ease, color 0.2s ease;
+}
+.btn-ghost-tap:active {
+  transform: scale(0.98);
+}
+/* 네비게이션(이전/다음 달 등): 살짝 이동 느낌 */
+.btn-nav-tap {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease;
+}
+.btn-nav-tap:hover {
+  transform: scale(1.08);
+}
+.btn-nav-tap:active {
+  transform: scale(0.92);
+}
+/* 위험 액션(삭제): 눌림 + 색 유지 */
+.btn-danger-press {
+  transition: transform 0.15s ease, background-color 0.2s ease;
+}
+.btn-danger-press:active {
+  transform: scale(0.98);
 }
 
 /* 🎯 플랜 카드 — 단순·세련·라이트 시인성 */
@@ -587,33 +666,33 @@ html.dark .empty-state-pattern::before {
 
 /* 🎨 뉴모피즘 유틸리티 클래스 (테마 변수 적용) */
 @layer components {
-  /* Floating: 배경에서 튀어나온 효과 (카드, 버튼) */
+  /* Floating: 배경에서 튀어나온 효과 (카드, 버튼) — 4px 전문 툴 톤 */
   .neu-float {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 16px;
+    border-radius: 4px;
     box-shadow: var(--shadow-float);
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
   .neu-float-sm {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 12px;
+    border-radius: 4px;
     box-shadow: var(--shadow-float-sm);
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
-  /* Inset: 안으로 오목하게 들어간 효과 (입력창) */
+  /* Inset: 안으로 오목하게 들어간 효과 (입력창) — 4px 전문 툴 톤 */
   .neu-inset {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 16px;
+    border-radius: 4px;
     box-shadow: var(--shadow-inset);
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
   .neu-inset-sm {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 12px;
+    border-radius: 4px;
     box-shadow: var(--shadow-inset-sm);
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
@@ -642,10 +721,10 @@ html.dark .empty-state-pattern::before {
     box-shadow: var(--shadow-inset-sm), 0 0 0 1px var(--primary-point-ring) !important;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
-  /* 월간 캘린더 날짜 셀: 부드러운 전환, 호버 시 살짝 떠오르는 느낌 */
+  /* 월간 캘린더 날짜 셀: 부드러운 전환, 호버 시 살짝 떠오르는 느낌 (radius 일관) */
   .calendar-date-cell {
     border: 1px solid var(--calendar-cell-border) !important;
-    border-radius: 14px !important;
+    border-radius: var(--radius-lg) !important;
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
   }
   .calendar-date-cell:hover {
@@ -658,10 +737,38 @@ html.dark .empty-state-pattern::before {
   /* 오늘 날짜: 은은한 포인트 링 (선택과 구분) */
   .calendar-date-today:not(.neu-date-selected) {
     box-shadow: 0 0 0 1px var(--primary-point-ring) !important;
-    background: color-mix(in srgb, var(--primary-point) 6%, var(--card-bg)) !important;
+    background: color-mix(in srgb, var(--primary-point) 12%, var(--card-bg)) !important;
   }
   html.dark .calendar-date-today:not(.neu-date-selected) {
-    background: color-mix(in srgb, var(--primary-point) 12%, var(--card-bg)) !important;
+    background: color-mix(in srgb, var(--primary-point) 20%, var(--card-bg)) !important;
+  }
+
+  /* 선택된 날짜: 연한 회색 셀 + 밝은 회색 숫자 (테두리 없음) */
+  .calendar-date-selected {
+    box-shadow: none !important;
+    background: color-mix(in srgb, var(--text-muted) 14%, var(--card-bg)) !important;
+  }
+  .calendar-date-selected > span {
+    color: var(--text-muted) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  html.dark .calendar-date-selected {
+    background: color-mix(in srgb, rgba(255, 255, 255, 0.12) 100%, var(--card-bg)) !important;
+  }
+  html.dark .calendar-date-selected > span {
+    color: rgba(255, 255, 255, 0.75) !important;
+  }
+
+  /* 오늘 날짜 숫자 뱃지: 링 + 은은한 틴트 (단색 블록 대신 미학적으로 정리) */
+  .calendar-today-badge {
+    box-shadow: 0 0 0 1.5px var(--primary-point-ring);
+    background: color-mix(in srgb, var(--primary-point) 18%, var(--card-bg));
+    color: var(--primary-point);
+  }
+  html.dark .calendar-today-badge {
+    background: color-mix(in srgb, var(--primary-point) 28%, var(--card-bg));
+    color: #fff;
   }
   /* 월간 플래너 카드: 상단 그라데이션 라인으로 시선 유도 */
   .monthly-planner-card {
@@ -694,11 +801,11 @@ html.dark .empty-state-pattern::before {
     border: none;
   }
   .dew-date-selected {
-    background-color: color-mix(in srgb, var(--primary-point) 10%, var(--card-bg)) !important;
+    background-color: color-mix(in srgb, var(--primary-point) 16%, var(--card-bg)) !important;
     box-shadow: 0 0 0 1px var(--primary-point-ring) !important;
   }
   html.dark .dew-date-selected {
-    background-color: color-mix(in srgb, var(--primary-point) 18%, var(--card-bg)) !important;
+    background-color: color-mix(in srgb, var(--primary-point) 26%, var(--card-bg)) !important;
   }
 
   /* 테마 토글 스위치: 소프트 미니멀, 부드러운 전환 */
@@ -739,15 +846,76 @@ html.dark .empty-state-pattern::before {
   }
   .view-toggle-pill {
     /* 강조색을 카드 배경에 살짝 섞어 회색톤 없이 부드러운 틴트 */
-    background: color-mix(in srgb, var(--primary-point) 11%, var(--card-bg));
+    background: color-mix(in srgb, var(--primary-point) 18%, var(--card-bg));
     border-radius: 8px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     transition: background 0.3s ease, box-shadow 0.3s ease;
   }
   html.dark .view-toggle-pill {
     /* 다크: 강조색을 카드에 살짝 섞어 은은한 글로우 */
-    background: color-mix(in srgb, var(--primary-point) 18%, var(--card-bg));
+    background: color-mix(in srgb, var(--primary-point) 26%, var(--card-bg));
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  }
+
+  /* 캘린더/할일 모드 토글: 세그먼트 스타일 (바 안에 텍스트 + 슬라이딩 원으로 활성 표시) */
+  .view-mode-segmented {
+    @apply shrink-0;
+  }
+  .view-mode-segmented-track {
+    @apply relative flex rounded-lg overflow-hidden;
+    min-width: 140px;
+    height: 36px;
+    background-color: var(--hover-bg);
+    border: 1.5px solid rgba(0, 0, 0, 0.12);
+  }
+  html.dark .view-mode-segmented-track {
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+  /* 모바일: 캘린더/할일 텍스트가 버튼 밖으로 나가지 않도록 트랙 폭·버튼 패딩 확보 */
+  @media (max-width: 640px) {
+    .view-mode-segmented-track {
+      min-width: 128px;
+      padding: 0 2px;
+    }
+    .view-mode-segmented-btn {
+      min-width: 0;
+      padding: 0 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+  .view-mode-segmented-pill {
+    @apply absolute inset-y-0 rounded-md pointer-events-none transition-[left] duration-200 ease-out;
+    top: 2px;
+    bottom: 2px;
+    width: calc(50% - 4px);
+    left: 2px;
+    background: var(--primary-point);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  .view-mode-segmented-pill[data-active="true"] {
+    left: calc(50% + 2px);
+  }
+  html.dark .view-mode-segmented-pill {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  .view-mode-segmented-btn {
+    @apply relative z-10 flex-1 flex items-center justify-center text-xs font-medium transition-colors duration-200 min-w-0;
+    color: var(--text-muted);
+  }
+  .view-mode-segmented-btn:hover {
+    color: var(--text-main);
+  }
+  /* 원이 왼쪽(캘린더)일 때: 왼쪽 버튼 흰색으로 강조 */
+  .view-mode-segmented-pill[data-active="false"] ~ .view-mode-segmented-btn:first-of-type {
+    color: white;
+    font-weight: 600;
+  }
+  /* 원이 오른쪽(할일)일 때: 오른쪽 버튼 흰색(짜조 주황 원 위) */
+  .view-mode-segmented-pill[data-active="true"] ~ .view-mode-segmented-btn:last-of-type {
+    color: white;
+    font-weight: 600;
   }
 }
 
@@ -755,15 +923,15 @@ html.dark .empty-state-pattern::before {
 @layer components {
   /* 공통 UI (프로젝트 전반에서 사용) */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-neu px-4 py-2.5 text-sm font-semibold
+    @apply inline-flex items-center justify-center gap-2 rounded-tool px-4 py-2.5 text-sm font-semibold
       bg-primary-500 text-white border-0
       hover:bg-primary-600 active:scale-[0.98]
       transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100;
-    box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-float-sm);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-neu px-4 py-2.5 text-sm font-semibold border-0
+    @apply inline-flex items-center justify-center gap-2 rounded-tool px-4 py-2.5 text-sm font-semibold border-0
       disabled:opacity-40 disabled:cursor-not-allowed;
     background-color: var(--card-bg);
     color: var(--text-main);
@@ -778,7 +946,7 @@ html.dark .empty-state-pattern::before {
   }
 
   .input-field {
-    @apply w-full rounded-neu px-4 py-2.5 text-sm focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply w-full rounded-tool px-4 py-2.5 text-sm focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed;
     background-color: var(--card-bg);
     color: var(--text-main);
     border: none;
@@ -797,7 +965,7 @@ html.dark .empty-state-pattern::before {
     color: var(--text-main);
     font-weight: 500;
     padding: 0.5rem 1rem;
-    border-radius: 16px;
+    border-radius: 4px;
     border: none;
     box-shadow: var(--shadow-float-sm);
     transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, transform 0.2s ease;
@@ -816,7 +984,7 @@ html.dark .empty-state-pattern::before {
   .input-notion {
     width: 100%;
     padding: 0.5rem 1rem;
-    border-radius: 16px;
+    border-radius: 4px;
     border: none;
     background-color: var(--card-bg);
     color: var(--text-main);
@@ -834,7 +1002,7 @@ html.dark .empty-state-pattern::before {
   
   .card-notion {
     background-color: var(--card-bg);
-    border-radius: 16px;
+    border-radius: 4px;
     border: none;
     padding: 1rem;
     box-shadow: var(--shadow-float);

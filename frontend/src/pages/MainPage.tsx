@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import MagicBar from '@/components/layout/MagicBar'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import DayDetailPanel from '@/components/calendar/DayDetailPanel'
+import MemoSidebar from '@/components/calendar/MemoSidebar'
 import { TopTimeline } from '@/components/calendar/TopTimeline'
 import { VerticalTimeline } from '@/components/calendar/VerticalTimeline'
 import { ImportTimetableModal } from '@/components/calendar/ImportTimetableModal'
@@ -19,6 +21,7 @@ export default function MainPage() {
   const [showImportTimetable, setShowImportTimetable] = useState(false)
   const [triggerAddModalInMonthly, setTriggerAddModalInMonthly] = useState(false)
   const [isWeekStripExpanded, setIsWeekStripExpanded] = useState(false)
+  const [isMemoSidebarOpen, setIsMemoSidebarOpen] = useState(false)
   const skipNextScrollToTimeRef = useRef(false)
   const { setGoals } = useGoalStore()
   const { setTodos, viewMode } = useCalendarStore()
@@ -58,7 +61,7 @@ export default function MainPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col theme-transition bg-theme text-theme">
+    <div className="h-screen min-h-0 flex flex-col overflow-hidden theme-transition bg-theme text-theme">
       <Header
         onOpenImportTimetable={() => setShowImportTimetable(true)}
         onSwitchToWeekView={() => { skipNextScrollToTimeRef.current = true }}
@@ -82,42 +85,65 @@ export default function MainPage() {
         </div>
       )}
 
-      {/* 매직 바: 한 줄 자연어로 일정 추가 */}
-      <div className="shrink-0 theme-transition bg-theme border-b border-theme">
-        <MagicBar />
-      </div>
-      
-      {/* 주간: 타임라인 / 월간: 캘린더+일정 패널 (같은 메인 영역에서 전환) */}
-      <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative z-0">
-        {viewMode === 'week' && (
-          <div className="flex-1 flex min-h-0 relative">
-            <div className="flex-1 min-h-0">
-              <VerticalTimeline skipNextScrollToTimeRef={skipNextScrollToTimeRef} />
-            </div>
+      {/* 콘텐츠 영역: 월간일 때 [매직바+캘린더 컬럼 | 메모 사이드바] 로 배치해 매직바와 캘린더 좌우 정렬 */}
+      <div className="flex-1 flex min-h-0 overflow-hidden theme-transition bg-theme relative">
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden theme-transition bg-theme relative">
+          {/* 매직 바: 한 줄 자연어로 일정 추가 (월간 시 캘린더와 같은 컬럼이라 좌우 맞음) */}
+          <div className="shrink-0 theme-transition bg-theme border-b border-theme">
+            <MagicBar />
           </div>
-        )}
 
-        {viewMode === 'month' && (
-          <div className="flex-1 overflow-auto theme-transition bg-theme flex flex-col min-h-0">
-            <div className="flex-1 overflow-auto min-h-0">
-              <div className="max-w-md mx-auto px-4 py-6 sm:py-8">
-                {/* 한 흐름: 캘린더 → 선택한 날 일정 (카드 없이) */}
-                <CalendarGrid
-                  allowFullHeight
-                  onDateLongPress={() => setTriggerAddModalInMonthly(true)}
-                />
-                <div className="mt-8 pt-8 border-t border-black/8 dark:border-white/10">
-                  <DayDetailPanel
-                    embedded
-                    openAddModal={triggerAddModalInMonthly}
-                    onAddModalOpened={() => setTriggerAddModalInMonthly(false)}
-                  />
+          {/* 주간: 타임라인 / 월간: 캘린더+일정 패널 */}
+          <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative z-0 theme-transition bg-theme">
+            {viewMode === 'week' && (
+              <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
+                <div className="flex-1 flex flex-col min-h-0 overflow-hidden min-w-0">
+                  <VerticalTimeline skipNextScrollToTimeRef={skipNextScrollToTimeRef} />
                 </div>
               </div>
-            </div>
-          </div>
+            )}
+
+            {viewMode === 'month' && (
+              <div className="flex-1 overflow-auto min-h-0 flex flex-col theme-transition bg-theme">
+                <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8 w-full theme-transition">
+                  <CalendarGrid
+                    allowFullHeight
+                    onDateLongPress={() => {
+                      if (typeof window !== 'undefined' && (window.innerWidth < 768 || 'ontouchstart' in window)) {
+                        setTriggerAddModalInMonthly(true)
+                      }
+                    }}
+                  />
+                  <div className="mt-8 pt-8 border-t border-[var(--border-color)]">
+                    <DayDetailPanel
+                      embedded
+                      openAddModal={triggerAddModalInMonthly}
+                      onAddModalOpened={() => setTriggerAddModalInMonthly(false)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* 월간 + 사이드바 접힌 상태: 배경 위에 화살표만 떠 있게 (flex 영역 아님) */}
+          {viewMode === 'month' && !isMemoSidebarOpen && (
+            <button
+              type="button"
+              onClick={() => setIsMemoSidebarOpen(true)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 flex items-center justify-center text-theme-muted/60 hover:text-theme-muted transition-colors rounded-md hover:bg-[var(--hover-bg)]/30"
+              aria-label="메모 패널 펼치기"
+            >
+              <ChevronRight className="w-4 h-4" strokeWidth={2} />
+            </button>
+          )}
+        </div>
+
+        {/* 월간 + 사이드바 펼침: 메모 사이드바 */}
+        {viewMode === 'month' && isMemoSidebarOpen && (
+          <MemoSidebar onCollapse={() => setIsMemoSidebarOpen(false)} />
         )}
-      </main>
+      </div>
 
       {/* 시간표 이미지 임포트 모달 */}
       {showImportTimetable && (

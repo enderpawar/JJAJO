@@ -87,7 +87,7 @@ export function BackwardsPlanModal({
                   </div>
                   <button
                     onClick={onClose}
-                    className="rounded-full p-2 hover:bg-notion-hover text-notion-muted transition-colors"
+                    className="btn-icon-tap rounded-full p-2 hover:bg-notion-hover text-notion-muted"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -171,7 +171,7 @@ export function BackwardsPlanModal({
                     <button
                       onClick={onSubmit}
                       disabled={loading || !goal}
-                      className="w-full rounded-xl bg-gradient-to-r from-primary-500 to-purple-500 text-white py-2.5 text-sm font-semibold shadow-sm hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="btn-action-press w-full rounded-xl bg-gradient-to-r from-primary-500 to-purple-500 text-white py-2.5 text-sm font-semibold shadow-sm hover:brightness-110 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
                     >
                       {loading ? (
                         <>
@@ -241,7 +241,7 @@ export function BackwardsPlanModal({
                         <button
                           onClick={onApply}
                           disabled={!onApply || !result || applying}
-                          className="w-full rounded-xl bg-notion-sidebar text-notion-text py-2 text-sm font-semibold hover:bg-notion-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border border-notion-border"
+                          className="btn-ghost-tap w-full rounded-xl bg-notion-sidebar text-notion-text py-2 text-sm font-semibold hover:bg-notion-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border border-notion-border"
                         >
                           {applying ? (
                             <>

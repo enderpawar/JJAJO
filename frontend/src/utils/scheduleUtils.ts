@@ -33,10 +33,13 @@ export function minutesToTime(minutes: number): string {
 }
 
 /**
- * 특정 날짜의 기존 일정 조회
+ * 특정 날짜의 기존 일정 조회 (해당 날짜에 걸쳐 있는 일정 포함)
  */
 export function getTodosForDate(todos: Todo[], date: string): Todo[] {
-  return todos.filter((todo) => todo.date === date)
+  return todos.filter((todo) => {
+    const end = todo.endDate || todo.date
+    return todo.date <= date && date <= end
+  })
 }
 
 /**

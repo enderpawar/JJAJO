@@ -20,6 +20,9 @@ public class ScheduleUpdateRequest {
     @Size(max = 10)
     private String date;
 
+    @Size(max = 10)
+    private String endDate;
+
     @Size(max = 5)
     private String startTime;
 

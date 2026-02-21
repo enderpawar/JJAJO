@@ -68,11 +68,12 @@ export default {
       },
       borderRadius: {
         'notion': '6px',
-        'neu': '16px',
+        'neu': '14px',
         'neu-lg': '20px',
-        'sm': '4px',
-        'md': '6px',
-        'lg': '8px',
+        'tool': '6px',
+        'sm': '6px',
+        'md': '10px',
+        'lg': '14px',
       },
       borderWidth: {
         'notion': '1px',

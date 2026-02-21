@@ -227,16 +227,16 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-notion-sidebar rounded-2xl border border-notion-border w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div className="bg-theme-card rounded-2xl border border-theme w-full max-w-4xl max-h-[90vh] flex flex-col theme-transition">
         {/* 헤더 */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-notion-border">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-theme">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary-500/20 flex items-center justify-center">
               <UploadCloud className="w-5 h-5 text-primary-400" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-semibold text-notion-text">시간표 이미지에서 고정 일정 불러오기</h2>
-              <p className="text-xs sm:text-sm text-notion-muted">
+              <h2 className="text-base sm:text-lg font-semibold text-theme">시간표 이미지에서 고정 일정 불러오기</h2>
+              <p className="text-xs sm:text-sm text-theme-muted">
                 에브리타임·학교 포털 등에서 캡처한 시간표 이미지를 올리면, 주간 반복 일정으로 변환해 드려요.
               </p>
             </div>
@@ -244,7 +244,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
           <button
             type="button"
             onClick={onClose}
-            className="touch-target p-2 rounded-lg hover:bg-notion-hover text-notion-muted"
+            className="btn-icon-tap touch-target p-2 rounded-lg hover:bg-[var(--hover-bg)] text-theme-muted"
           >
             <X className="w-5 h-5" />
           </button>
@@ -253,29 +253,29 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
         {/* 컨텐츠 */}
         <div className="flex-1 overflow-auto p-4 sm:p-5 space-y-4">
           {/* 업로드 섹션 */}
-          <div className="bg-notion-bg rounded-xl border border-dashed border-notion-border p-4 sm:p-5 flex flex-col sm:flex-row gap-4">
+          <div className="bg-theme rounded-xl border border-dashed border-theme p-4 sm:p-5 flex flex-col sm:flex-row gap-4">
             <div className="flex-1 space-y-3">
-              <p className="text-sm font-medium text-notion-text">1. 시간표 이미지 업로드</p>
-              <p className="text-xs text-notion-muted">
+              <p className="text-sm font-medium text-theme">1. 시간표 이미지 업로드</p>
+              <p className="text-xs text-theme-muted">
                 에브리타임, 학교 포털, 캘린더 앱 등에서 주간 시간표가 보이도록 캡처한 뒤, PNG/JPG 파일을 올려주세요.
               </p>
-              <label className="inline-flex items-center justify-center px-4 py-2 rounded-lg border-2 border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white text-sm font-medium cursor-pointer w-fit theme-transition">
+              <label className="btn-ghost-tap inline-flex items-center justify-center px-4 py-2 rounded-lg border-2 border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white text-sm font-medium cursor-pointer w-fit theme-transition">
                 <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                 {file ? '다른 이미지 선택' : '이미지 선택'}
               </label>
               {file && (
-                <p className="text-xs text-notion-muted">
-                  선택된 파일: <span className="font-medium text-notion-text">{file.name}</span>
+                <p className="text-xs text-theme-muted">
+                  선택된 파일: <span className="font-medium text-theme">{file.name}</span>
                 </p>
               )}
             </div>
             <div className="w-full sm:w-64 space-y-3">
-              <p className="text-sm font-medium text-notion-text">추가 옵션</p>
+              <p className="text-sm font-medium text-theme">추가 옵션</p>
               <div className="space-y-2">
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-notion-muted">시간표 언어</span>
+                  <span className="text-xs text-theme-muted">시간표 언어</span>
                   <select
-                    className="bg-notion-sidebar border border-notion-border rounded-lg px-3 py-2 text-sm text-notion-text"
+                    className="bg-theme-card border border-theme rounded-lg px-3 py-2 text-sm text-theme"
                     value={language}
                     onChange={(e) => setLanguage(e.target.value as 'ko' | 'en' | '')}
                   >
@@ -285,9 +285,9 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                   </select>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-notion-muted">주 시작 요일</span>
+                  <span className="text-xs text-theme-muted">주 시작 요일</span>
                   <select
-                    className="bg-notion-sidebar border border-notion-border rounded-lg px-3 py-2 text-sm text-notion-text"
+                    className="bg-theme-card border border-theme rounded-lg px-3 py-2 text-sm text-theme"
                     value={weekStartDay}
                     onChange={(e) => setWeekStartDay(e.target.value as TimetableDayOfWeek)}
                   >
@@ -303,7 +303,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                 type="button"
                 onClick={handleParse}
                 disabled={isParsing}
-                className="w-full mt-2 px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                className="btn-action-press w-full mt-2 px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {isParsing ? '시간표 해석 중...' : '시간표 해석하기'}
               </button>
@@ -314,25 +314,25 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
           {hasCandidates && (
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <p className="text-sm font-medium text-notion-text">
+                <p className="text-sm font-medium text-theme">
                   2. 인식된 시간표 확인 및 수정
-                  <span className="ml-2 text-xs text-notion-muted">(필요하면 요일·시간·강의실을 직접 수정할 수 있어요)</span>
+                  <span className="ml-2 text-xs text-theme-muted">(필요하면 요일·시간·강의실을 직접 수정할 수 있어요)</span>
                 </p>
                 <div className="flex gap-2">
-                  <label className="flex items-center gap-1 text-xs text-notion-muted">
+                  <label className="flex items-center gap-1 text-xs text-theme-muted">
                     <span>학기 시작일</span>
                     <input
                       type="date"
-                      className="bg-notion-sidebar border border-notion-border rounded px-2 py-1 text-xs text-notion-text"
+                      className="bg-theme-card border border-theme rounded px-2 py-1 text-xs text-theme"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
                     />
                   </label>
-                  <label className="flex items-center gap-1 text-xs text-notion-muted">
+                  <label className="flex items-center gap-1 text-xs text-theme-muted">
                     <span>종료일</span>
                     <input
                       type="date"
-                      className="bg-notion-sidebar border border-notion-border rounded px-2 py-1 text-xs text-notion-text"
+                      className="bg-theme-card border border-theme rounded px-2 py-1 text-xs text-theme"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
                     />
@@ -340,11 +340,11 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                 </div>
               </div>
 
-              <div className="border border-notion-border rounded-xl overflow-auto max-h-80">
+              <div className="border border-theme rounded-xl overflow-auto max-h-80">
                 <table className="w-full text-xs">
-                  <thead className="bg-notion-bg border-b border-notion-border sticky top-0 z-10">
+                  <thead className="bg-theme border-b border-theme sticky top-0 z-10">
                     <tr>
-                      <th className="px-3 py-2 text-left">
+                      <th className="px-3 py-2 text-left text-theme">
                         <input
                           type="checkbox"
                           checked={candidates.every((c) => c.selected)}
@@ -353,16 +353,16 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                           }
                         />
                       </th>
-                      <th className="px-3 py-2 text-left">과목명</th>
-                      <th className="px-3 py-2 text-left">요일</th>
-                      <th className="px-3 py-2 text-left">시작</th>
-                      <th className="px-3 py-2 text-left">종료</th>
-                      <th className="px-3 py-2 text-left">강의실</th>
+                      <th className="px-3 py-2 text-left text-theme">과목명</th>
+                      <th className="px-3 py-2 text-left text-theme">요일</th>
+                      <th className="px-3 py-2 text-left text-theme">시작</th>
+                      <th className="px-3 py-2 text-left text-theme">종료</th>
+                      <th className="px-3 py-2 text-left text-theme">강의실</th>
                     </tr>
                   </thead>
                   <tbody>
                     {candidates.map((c) => (
-                      <tr key={c.id} className="border-b border-notion-border/60 last:border-b-0">
+                      <tr key={c.id} className="border-b border-theme last:border-b-0">
                         <td className="px-3 py-2 align-middle">
                           <input
                             type="checkbox"
@@ -377,7 +377,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                         <td className="px-3 py-1">
                           <input
                             type="text"
-                            className="w-full bg-transparent border border-notion-border rounded px-2 py-1 text-xs text-notion-text"
+                            className="w-full bg-transparent border border-theme rounded px-2 py-1 text-xs text-theme"
                             value={c.title}
                             onChange={(e) =>
                               setCandidates((prev) =>
@@ -388,7 +388,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                         </td>
                         <td className="px-3 py-1">
                           <select
-                            className="w-full bg-transparent border border-notion-border rounded px-2 py-1 text-xs text-notion-text"
+                            className="w-full bg-transparent border border-theme rounded px-2 py-1 text-xs text-theme"
                             value={c.dayOfWeek}
                             onChange={(e) =>
                               setCandidates((prev) =>
@@ -406,7 +406,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                         <td className="px-3 py-1">
                           <input
                             type="time"
-                            className="w-full bg-transparent border border-notion-border rounded px-2 py-1 text-xs text-notion-text"
+                            className="w-full bg-transparent border border-theme rounded px-2 py-1 text-xs text-theme"
                             value={c.startTime || ''}
                             onChange={(e) =>
                               setCandidates((prev) =>
@@ -418,7 +418,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                         <td className="px-3 py-1">
                           <input
                             type="time"
-                            className="w-full bg-transparent border border-notion-border rounded px-2 py-1 text-xs text-notion-text"
+                            className="w-full bg-transparent border border-theme rounded px-2 py-1 text-xs text-theme"
                             value={c.endTime || ''}
                             onChange={(e) =>
                               setCandidates((prev) =>
@@ -430,7 +430,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                         <td className="px-3 py-1">
                           <input
                             type="text"
-                            className="w-full bg-transparent border border-notion-border rounded px-2 py-1 text-xs text-notion-text"
+                            className="w-full bg-transparent border border-theme rounded px-2 py-1 text-xs text-theme"
                             value={c.location || ''}
                             onChange={(e) =>
                               setCandidates((prev) =>
@@ -455,15 +455,15 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
         </div>
 
         {/* 푸터 */}
-        <div className="px-5 py-3 border-t border-notion-border flex items-center justify-between gap-3 bg-notion-bg/80">
-          <p className="text-[11px] text-notion-muted">
+        <div className="px-5 py-3 border-t border-theme flex items-center justify-between gap-3 bg-theme/80">
+          <p className="text-[11px] text-theme-muted">
             이미지 인식 결과가 완벽하지 않을 수 있어요. 저장 전에 과목/요일/시간을 한 번만 확인해주세요.
           </p>
           <div className="flex gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-notion-sidebar hover:bg-notion-hover text-notion-text"
+              className="btn-ghost-tap px-3 py-1.5 rounded-lg text-xs font-medium bg-theme-card hover:bg-[var(--hover-bg)] text-theme border border-theme"
             >
               닫기
             </button>
@@ -471,7 +471,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
               type="button"
               onClick={handleSave}
               disabled={!hasCandidates || isSaving}
-              className="px-4 py-1.5 rounded-lg text-xs font-medium bg-primary-500 hover:bg-primary-600 text-white disabled:opacity-60 disabled:cursor-not-allowed"
+              className="btn-action-press px-4 py-1.5 rounded-lg text-xs font-medium bg-primary-500 hover:bg-primary-600 text-white disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
             >
               {isSaving ? '저장 중...' : '주간 반복 일정으로 저장'}
             </button>

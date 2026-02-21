@@ -95,7 +95,7 @@ export function ConfirmModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="btn-secondary flex-1 rounded-neu py-2.5 text-sm font-medium"
+                className="btn-ghost-tap btn-secondary flex-1 rounded-neu py-2.5 text-sm font-medium"
               >
                 {cancelLabel}
               </button>
@@ -104,8 +104,8 @@ export function ConfirmModal({
                 onClick={handleConfirm}
                 className={
                   danger
-                    ? 'flex-1 rounded-neu py-2.5 text-sm font-medium text-white transition-colors bg-red-500 hover:bg-red-600 active:scale-[0.98]'
-                    : 'flex-1 rounded-neu py-2.5 text-sm font-medium text-white transition-colors bg-primary-500 hover:bg-primary-600 active:scale-[0.98]'
+                    ? 'btn-danger-press flex-1 rounded-neu py-2.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 active:scale-[0.98]'
+                    : 'btn-action-press flex-1 rounded-neu py-2.5 text-sm font-medium text-white bg-primary-500 hover:bg-primary-600 active:scale-[0.98]'
                 }
               >
                 {confirmLabel}
