@@ -20,9 +20,9 @@
   --shadow-inset-sm: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   /* 짜조 브랜드: 채도 낮은 신선한 피치·코랄 톤 */
   --primary-point: #D4A574;
-  --primary-point-ring: rgba(212, 165, 116, 0.32);
+  --primary-point-ring: rgba(212, 165, 116, 0.42);
   --primary-gradient: linear-gradient(135deg, #E8C9A8 0%, #D4A574 50%, #C4956A 100%);
-  --primary-gradient-subtle: linear-gradient(180deg, rgba(232, 201, 168, 0.12) 0%, rgba(212, 165, 116, 0.06) 100%);
+  --primary-gradient-subtle: linear-gradient(180deg, rgba(232, 201, 168, 0.22) 0%, rgba(212, 165, 116, 0.14) 100%);
   --hover-bg: #EBECEF;
   /* 개인화 강조색은 [data-accent]로 덮어씀 */
   --grid-line: rgba(0, 0, 0, 0.08);
@@ -48,9 +48,9 @@ html.dark {
   --shadow-inset-sm: inset 3px 3px 10px rgba(0, 0, 0, 0.4);
   /* 다크: 짜조 톤 유지, 약간 밝게 */
   --primary-point: #E8B86D;
-  --primary-point-ring: rgba(232, 184, 109, 0.38);
+  --primary-point-ring: rgba(232, 184, 109, 0.48);
   --primary-gradient: linear-gradient(135deg, #E8C9A8 0%, #E8B86D 50%, #D4A574 100%);
-  --primary-gradient-subtle: linear-gradient(180deg, rgba(232, 184, 109, 0.14) 0%, rgba(212, 165, 116, 0.08) 100%);
+  --primary-gradient-subtle: linear-gradient(180deg, rgba(232, 184, 109, 0.24) 0%, rgba(212, 165, 116, 0.16) 100%);
   --hover-bg: #252528;
   --grid-line: rgba(255, 255, 255, 0.06);
   /* 다크: 월간 캘린더 날짜 셀 테두리 (연하게) */
@@ -60,14 +60,14 @@ html.dark {
 }
 
 /* 개인화: 강조색 선택 (설정에서 변경). orange = 짜조 기본 톤 */
-[data-accent="orange"] { --primary-point: #D4A574; --primary-point-ring: rgba(212, 165, 116, 0.32); --primary-gradient: linear-gradient(135deg, #E8C9A8 0%, #D4A574 50%, #C4956A 100%); }
-[data-accent="blue"] { --primary-point: #5B8DEE; --primary-point-ring: rgba(91, 141, 238, 0.28); --primary-gradient: linear-gradient(135deg, #7BA3F5 0%, #5B8DEE 100%); }
-[data-accent="purple"] { --primary-point: #9B7DD4; --primary-point-ring: rgba(155, 125, 212, 0.28); --primary-gradient: linear-gradient(135deg, #B59AE0 0%, #9B7DD4 100%); }
-[data-accent="green"] { --primary-point: #6BBF8A; --primary-point-ring: rgba(107, 191, 138, 0.28); --primary-gradient: linear-gradient(135deg, #8BD4A4 0%, #6BBF8A 100%); }
-html.dark[data-accent="orange"] { --primary-point: #E8B86D; --primary-point-ring: rgba(232, 184, 109, 0.38); }
-html.dark[data-accent="blue"] { --primary-point: #6B9AF5; --primary-point-ring: rgba(107, 154, 245, 0.35); }
-html.dark[data-accent="purple"] { --primary-point: #AB8EE0; --primary-point-ring: rgba(171, 142, 224, 0.35); }
-html.dark[data-accent="green"] { --primary-point: #7BD49A; --primary-point-ring: rgba(123, 212, 154, 0.35); }
+[data-accent="orange"] { --primary-point: #D4A574; --primary-point-ring: rgba(212, 165, 116, 0.42); --primary-gradient: linear-gradient(135deg, #E8C9A8 0%, #D4A574 50%, #C4956A 100%); }
+[data-accent="blue"] { --primary-point: #5B8DEE; --primary-point-ring: rgba(91, 141, 238, 0.38); --primary-gradient: linear-gradient(135deg, #7BA3F5 0%, #5B8DEE 100%); }
+[data-accent="purple"] { --primary-point: #9B7DD4; --primary-point-ring: rgba(155, 125, 212, 0.38); --primary-gradient: linear-gradient(135deg, #B59AE0 0%, #9B7DD4 100%); }
+[data-accent="green"] { --primary-point: #6BBF8A; --primary-point-ring: rgba(107, 191, 138, 0.38); --primary-gradient: linear-gradient(135deg, #8BD4A4 0%, #6BBF8A 100%); }
+html.dark[data-accent="orange"] { --primary-point: #E8B86D; --primary-point-ring: rgba(232, 184, 109, 0.48); }
+html.dark[data-accent="blue"] { --primary-point: #6B9AF5; --primary-point-ring: rgba(107, 154, 245, 0.45); }
+html.dark[data-accent="purple"] { --primary-point: #AB8EE0; --primary-point-ring: rgba(171, 142, 224, 0.45); }
+html.dark[data-accent="green"] { --primary-point: #7BD49A; --primary-point-ring: rgba(123, 212, 154, 0.45); }
 
 /* 배경 패턴 (설정에서 켜기) */
 body.bg-pattern {
@@ -688,10 +688,10 @@ html.dark .empty-state-pattern::before {
   /* 오늘 날짜: 은은한 포인트 링 (선택과 구분) */
   .calendar-date-today:not(.neu-date-selected) {
     box-shadow: 0 0 0 1px var(--primary-point-ring) !important;
-    background: color-mix(in srgb, var(--primary-point) 6%, var(--card-bg)) !important;
+    background: color-mix(in srgb, var(--primary-point) 12%, var(--card-bg)) !important;
   }
   html.dark .calendar-date-today:not(.neu-date-selected) {
-    background: color-mix(in srgb, var(--primary-point) 12%, var(--card-bg)) !important;
+    background: color-mix(in srgb, var(--primary-point) 20%, var(--card-bg)) !important;
   }
   /* 월간 플래너 카드: 상단 그라데이션 라인으로 시선 유도 */
   .monthly-planner-card {
@@ -724,11 +724,11 @@ html.dark .empty-state-pattern::before {
     border: none;
   }
   .dew-date-selected {
-    background-color: color-mix(in srgb, var(--primary-point) 10%, var(--card-bg)) !important;
+    background-color: color-mix(in srgb, var(--primary-point) 16%, var(--card-bg)) !important;
     box-shadow: 0 0 0 1px var(--primary-point-ring) !important;
   }
   html.dark .dew-date-selected {
-    background-color: color-mix(in srgb, var(--primary-point) 18%, var(--card-bg)) !important;
+    background-color: color-mix(in srgb, var(--primary-point) 26%, var(--card-bg)) !important;
   }
 
   /* 테마 토글 스위치: 소프트 미니멀, 부드러운 전환 */
@@ -769,14 +769,14 @@ html.dark .empty-state-pattern::before {
   }
   .view-toggle-pill {
     /* 강조색을 카드 배경에 살짝 섞어 회색톤 없이 부드러운 틴트 */
-    background: color-mix(in srgb, var(--primary-point) 11%, var(--card-bg));
+    background: color-mix(in srgb, var(--primary-point) 18%, var(--card-bg));
     border-radius: 8px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     transition: background 0.3s ease, box-shadow 0.3s ease;
   }
   html.dark .view-toggle-pill {
     /* 다크: 강조색을 카드에 살짝 섞어 은은한 글로우 */
-    background: color-mix(in srgb, var(--primary-point) 18%, var(--card-bg));
+    background: color-mix(in srgb, var(--primary-point) 26%, var(--card-bg));
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   }
 
