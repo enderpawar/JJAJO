@@ -24,6 +24,8 @@ export interface Todo {
   updatedAt: string
   /** 짜조 고스트 일정 여부. true면 미확정 미리보기용 */
   isGhost?: boolean
+  /** 알림 울릴 시작 시각 기준 N분 전. 없으면 알림 없음 */
+  reminderMinutesBefore?: number
 }
 
 export interface CalendarDay {

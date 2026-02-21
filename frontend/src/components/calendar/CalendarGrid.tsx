@@ -150,7 +150,7 @@ function buildWeekEventRows(
 }
 
 export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLongPress, allowFullHeight }: CalendarGridProps) {
-  const { currentMonth, selectedDate, setCurrentMonth, setSelectedDate, getTodosByDate, todos } = useCalendarStore()
+  const { currentMonth, selectedDate, setSelectedDate, getTodosByDate, todos } = useCalendarStore()
   const lastClickedDateRef = useRef<string>('')
   const lastClickedTimeRef = useRef<number>(0)
   const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
