@@ -288,7 +288,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
               onClick={() => setMenuOpenId(null)}
             />
             <div
-              className="fixed z-[101] py-1.5 rounded-lg bg-theme-card border border-black/8 dark:border-white/10 shadow-[var(--shadow-float)] min-w-[100px]"
+              className="fixed z-[101] py-1.5 rounded-lg bg-theme-card border border-[var(--border-color)] dark:border-white/[0.12] min-w-[100px] theme-transition"
               style={{ top: menuPosition.top, right: menuPosition.right }}
               role="menu"
             >

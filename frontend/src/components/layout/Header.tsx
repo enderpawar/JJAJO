@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Menu } from '@headlessui/react'
-import { Settings, X, Copy, CalendarDays, LogIn, RotateCcw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Folder, Moon, Sun } from 'lucide-react'
+import { Settings, X, Copy, CalendarDays, LogIn, RotateCcw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MoreVertical, Moon, Sun } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { TimeSlotSettings } from '@/components/settings/TimeSlotSettings'
@@ -26,7 +26,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onOpenImportTimetable, onSwitchToWeekView, weekStripExpanded, onToggleWeekStrip }: HeaderProps) {
-  const { copyTodosFromPreviousDay, addTodos, selectedDate, isBulkSavingTimetable, getTodosByDate, deleteTodo, addTodo, viewMode, setViewMode, currentMonth, setCurrentMonth, setSelectedDate } = useCalendarStore()
+  const { copyTodosFromPreviousDay, addTodos, selectedDate, isBulkSavingTimetable, getTodosByDate, deleteTodo, addTodo, viewMode, setViewMode, currentMonth, setCurrentMonth } = useCalendarStore()
   const { addToast } = useToastStore()
   const { theme, toggleTheme, initTheme } = useSettingsStore()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -152,11 +152,6 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
     ? '오늘의 일정'
     : `${format(selectedDate, 'M월 d일', { locale: ko })} 일정`
 
-  const goToToday = () => {
-    const today = new Date()
-    setCurrentMonth(today)
-    setSelectedDate(today)
-  }
   const handlePrevMonth = () => {
     const d = new Date(currentMonth)
     d.setMonth(d.getMonth() - 1)
@@ -185,13 +180,6 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
               </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 ml-1 sm:ml-2">
-              <button
-                type="button"
-                onClick={goToToday}
-                className="shrink-0 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-tool transition-colors text-[var(--text-main)] hover:bg-[var(--hover-bg)]"
-              >
-                오늘
-              </button>
               {viewMode === 'week' && onToggleWeekStrip && (
                 <button
                   type="button"
@@ -210,14 +198,24 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
 
           {/* 정중앙: 연월 표시 + 이전/다음 (헤더 정확한 중앙) */}
           <div className="flex flex-1 min-w-0 items-center justify-center">
-            <div className="flex items-center gap-1 sm:gap-0.5 shrink-0">
-              <button type="button" onClick={handlePrevMonth} className="btn-nav-tap p-1.5 rounded-tool hover:bg-[var(--hover-bg)] text-[var(--text-muted)] shrink-0" aria-label="이전 달">
+            <div className="inline-flex items-center gap-1 sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-[var(--hover-bg)]/70 border border-[var(--border-color)]/80 shadow-[var(--shadow-float-sm)] shrink-0">
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                className="btn-nav-tap w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--card-bg)] hover:text-[var(--text-main)] transition-colors shrink-0"
+                aria-label="이전 달"
+              >
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              <span className="min-w-[4.5rem] sm:min-w-[5rem] text-center text-xs sm:text-sm font-medium tabular-nums text-[var(--text-main)] whitespace-nowrap">
+              <span className="min-w-[5rem] sm:min-w-[6.5rem] text-center text-xl sm:text-2xl font-semibold tabular-nums text-[var(--text-main)] tracking-tight whitespace-nowrap">
                 {format(currentMonth, 'M월 yyyy', { locale: ko })}
               </span>
-              <button type="button" onClick={handleNextMonth} className="btn-nav-tap p-1.5 rounded-tool hover:bg-[var(--hover-bg)] text-[var(--text-muted)] shrink-0" aria-label="다음 달">
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                className="btn-nav-tap w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--card-bg)] hover:text-[var(--text-main)] transition-colors shrink-0"
+                aria-label="다음 달"
+              >
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
@@ -269,7 +267,7 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
                 className="btn-icon-tap w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-main)] border border-[var(--border-color)]"
                 aria-label="일정 메뉴"
               >
-                <Folder className="w-4 h-4" />
+                <MoreVertical className="w-4 h-4" />
               </Menu.Button>
               <Menu.Items
                 className={cn(
@@ -385,10 +383,9 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
         >
         <div
           ref={settingsScrollRef}
-          className="settings-modal-scroll rounded-neu-lg max-w-2xl w-full max-h-[min(90vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-56px-2rem))] overflow-x-hidden overscroll-contain theme-transition bg-theme-card"
-          style={{ boxShadow: 'var(--shadow-style)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          className="settings-modal-scroll rounded-neu-lg max-w-2xl w-full max-h-[min(90vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-56px-2rem))] overflow-x-hidden overscroll-contain theme-transition bg-theme-card border border-[var(--border-color)]"
+          onClick={(e) => e.stopPropagation()}
+        >
             <div className="pt-[max(0px,env(safe-area-inset-top))]" />
             <div className="bg-theme-card theme-transition px-6 py-4 flex items-center justify-between sticky top-0 z-10 border-b border-theme">
               <div className="flex items-center gap-3">

@@ -6,7 +6,7 @@ import { cn } from '@/utils/cn'
 import type { Todo } from '@/types/calendar'
 
 const EVENT_BLOCK_COLORS = [
-  'bg-[#FF8C00]',      // 주황
+  'bg-[#FF6D00]',      // 주황 (하이라이트 통일)
   'bg-purple-500',     // 보라
   'bg-emerald-400',    // 연두
   'bg-amber-300',      // 노랑
@@ -267,8 +267,19 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
           const hiddenCount = allEventRows.length > MAX_EVENT_ROWS_PER_WEEK
             ? allEventRows.slice(MAX_EVENT_ROWS_PER_WEEK).flat().filter((c) => c !== null && c !== 'multi-continue').length
             : 0
+          const hiddenPerDay = [0, 0, 0, 0, 0, 0, 0]
+          if (allEventRows.length > MAX_EVENT_ROWS_PER_WEEK) {
+            for (const row of allEventRows.slice(MAX_EVENT_ROWS_PER_WEEK)) {
+              for (let col = 0; col < 7; col++) {
+                const cell = row[col]
+                if (cell === null || cell === 'multi-continue') continue
+                if (cell.type === 'single') hiddenPerDay[col] += 1
+                else hiddenPerDay[cell.segment.startCol] += 1
+              }
+            }
+          }
           return (
-            <div key={weekIndex} className="flex flex-col gap-1 sm:gap-0.5">
+            <div key={`${weekIndex}-${allEventRows.length}-${hiddenCount}`} className="flex flex-col gap-1 sm:gap-0.5">
               {/* 날짜 행 — 이벤트와 겹치지 않도록 아래쪽 여백 확보 */}
               <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
                 {weekDates.map((date) => {
@@ -299,17 +310,17 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
                       title={onDateLongPress ? '길게 누르면 일정 추가' : allOnDay.map((t) => t.title).join(', ') || undefined}
                       className={cn(
                         'btn-ghost-tap relative overflow-hidden aspect-square min-h-[44px] flex flex-col items-center justify-center rounded-tool',
-                        isSelected && 'ring-2 ring-[var(--primary-point)] ring-inset bg-[var(--primary-gradient-subtle)]',
+                        isSelected && 'calendar-date-selected',
                         !isSelected && 'hover:bg-gray-50 dark:hover:bg-white/5'
                       )}
                     >
                       <span
                         className={cn(
-                          'text-[13px] sm:text-sm tabular-nums shrink-0 flex items-center justify-center w-7 h-7 rounded-tool',
-                          isToday && 'bg-blue-500 text-white font-semibold',
-                          !isToday && dayOfWeek === 0 && 'text-orange-500',
-                          !isToday && dayOfWeek === 6 && 'text-blue-500',
-                          !isToday && dayOfWeek !== 0 && dayOfWeek !== 6 && 'text-gray-600 dark:text-gray-400'
+                          'text-[20px] sm:text-lg tabular-nums shrink-0 flex items-center justify-center w-9 h-9 rounded-tool font-semibold transition-colors',
+                          isToday && !isSelected && 'calendar-today-badge',
+                          !isSelected && !isToday && dayOfWeek === 0 && 'text-orange-500',
+                          !isSelected && !isToday && dayOfWeek === 6 && 'text-blue-500',
+                          !isSelected && !isToday && dayOfWeek !== 0 && dayOfWeek !== 6 && 'text-gray-600 dark:text-gray-400'
                         )}
                       >
                         {date.getDate()}
@@ -371,13 +382,18 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
                     )
                   })
                 ).flat().filter(Boolean)}
-                {hiddenCount > 0 && (
-                  <div
-                    className="min-h-[22px] flex items-center justify-center text-[12px] sm:text-sm text-theme-muted font-medium"
-                    style={{ gridRow: FIXED_EVENT_ROW_COUNT, gridColumn: '1 / -1' }}
-                  >
-                    +{hiddenCount}건 더
-                  </div>
+                {hiddenPerDay.map((count, dayCol) =>
+                  count > 0 ? (
+                    <div
+                      key={`more-${dayCol}`}
+                      className="min-h-[22px] flex items-center justify-center text-[12px] sm:text-sm text-theme-muted font-medium"
+                      style={{ gridRow: FIXED_EVENT_ROW_COUNT, gridColumn: dayCol + 1 }}
+                    >
+                      +{count}건 더
+                    </div>
+                  ) : (
+                    <div key={`more-${dayCol}`} className="min-h-[22px]" style={{ gridRow: FIXED_EVENT_ROW_COUNT, gridColumn: dayCol + 1 }} aria-hidden />
+                  )
                 )}
               </div>
             </div>

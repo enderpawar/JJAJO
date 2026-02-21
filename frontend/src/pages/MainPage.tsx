@@ -86,8 +86,8 @@ export default function MainPage() {
       )}
 
       {/* 콘텐츠 영역: 월간일 때 [매직바+캘린더 컬럼 | 메모 사이드바] 로 배치해 매직바와 캘린더 좌우 정렬 */}
-      <div className="flex-1 flex min-h-0 overflow-hidden theme-transition bg-theme">
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden theme-transition bg-theme">
+      <div className="flex-1 flex min-h-0 overflow-hidden theme-transition bg-theme relative">
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden theme-transition bg-theme relative">
           {/* 매직 바: 한 줄 자연어로 일정 추가 (월간 시 캘린더와 같은 컬럼이라 좌우 맞음) */}
           <div className="shrink-0 theme-transition bg-theme border-b border-theme">
             <MagicBar />
@@ -104,7 +104,7 @@ export default function MainPage() {
             )}
 
             {viewMode === 'month' && (
-              <div className="flex-1 overflow-auto min-h-0 flex flex-col theme-transition bg-theme-card">
+              <div className="flex-1 overflow-auto min-h-0 flex flex-col theme-transition bg-theme">
                 <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8 w-full theme-transition">
                   <CalendarGrid
                     allowFullHeight
@@ -125,22 +125,23 @@ export default function MainPage() {
               </div>
             )}
           </main>
-        </div>
 
-        {/* 월간일 때만 메모 사이드바(또는 펼치기 버튼) */}
-        {viewMode === 'month' && (
-          isMemoSidebarOpen ? (
-            <MemoSidebar onCollapse={() => setIsMemoSidebarOpen(false)} />
-          ) : (
+          {/* 월간 + 사이드바 접힌 상태: 배경 위에 화살표만 떠 있게 (flex 영역 아님) */}
+          {viewMode === 'month' && !isMemoSidebarOpen && (
             <button
               type="button"
               onClick={() => setIsMemoSidebarOpen(true)}
-              className="shrink-0 w-10 border-l border-[var(--border-color)] bg-[var(--hover-bg)] flex items-center justify-center text-theme-muted hover:text-theme transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-1.5 flex items-center justify-center text-theme-muted/60 hover:text-theme-muted transition-colors rounded-md hover:bg-[var(--hover-bg)]/30"
               aria-label="메모 패널 펼치기"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4" strokeWidth={2} />
             </button>
-          )
+          )}
+        </div>
+
+        {/* 월간 + 사이드바 펼침: 메모 사이드바 */}
+        {viewMode === 'month' && isMemoSidebarOpen && (
+          <MemoSidebar onCollapse={() => setIsMemoSidebarOpen(false)} />
         )}
       </div>
 

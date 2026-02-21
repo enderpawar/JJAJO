@@ -7,6 +7,7 @@
 
 /* ========== 테마 CSS Variables (라이트 / 다크) ========== */
 :root {
+  /* 라이트: 차분한 회색 배경, 카드는 흰색으로 구분 */
   --bg-color: #F5F6F8;
   --card-bg: #FFFFFF;
   --text-main: #1a1d21;
@@ -22,12 +23,12 @@
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
-  /* 짜조 브랜드: 채도 낮은 신선한 피치·코랄 톤 */
-  --primary-point: #D4A574;
-  --primary-point-ring: rgba(212, 165, 116, 0.42);
-  --primary-button: #B8855A; /* CTA 버튼용 — 하이라이트보다 진하게 */
-  --primary-gradient: linear-gradient(135deg, #E8C9A8 0%, #D4A574 50%, #C4956A 100%);
-  --primary-gradient-subtle: linear-gradient(180deg, rgba(232, 201, 168, 0.22) 0%, rgba(212, 165, 116, 0.14) 100%);
+  /* 하이라이트: 이미지와 동일한 비비드 오렌지 #FF6D00 */
+  --primary-point: #FF6D00;
+  --primary-point-ring: rgba(255, 109, 0, 0.42);
+  --primary-button: #E55C00; /* CTA 버튼용 — 하이라이트보다 진하게 */
+  --primary-gradient: linear-gradient(135deg, #FF8533 0%, #FF6D00 50%, #E55C00 100%);
+  --primary-gradient-subtle: linear-gradient(180deg, rgba(255, 109, 0, 0.22) 0%, rgba(255, 109, 0, 0.14) 100%);
   --hover-bg: #EBECEF;
   /* 개인화 강조색은 [data-accent]로 덮어씀 */
   --grid-line: rgba(0, 0, 0, 0.08);
@@ -39,38 +40,39 @@
 
 html.dark {
   color-scheme: dark;
-  --bg-color: #121212;
-  --card-bg: #1E1E20;
+  /* 다크: 오렌지 하이라이트와 어울리는 은은한 웜 다크 배경 */
+  --bg-color: #141210;
+  --card-bg: #1C1A18;
   --text-main: #E9ECEF;
   --text-muted: #ADB5BD;
   /* 다크 모드: 흰색 테두리 과도 강조 방지 — 투명도 낮춤 */
-  --border-color: rgba(255, 255, 255, 0.04);
+  --border-color: rgba(255, 255, 255, 0.06);
   /* 다크: 배경보다 더 어두운 톤으로 깊이감, 흰색 하이라이트 제거해 테두리처럼 보이는 현상 완화 */
   --shadow-style: 0 4px 24px rgba(0, 0, 0, 0.45);
   --shadow-float: 6px 6px 22px rgba(0, 0, 0, 0.4);
   --shadow-float-sm: 3px 3px 20px rgba(0, 0, 0, 0.35);
   --shadow-inset: inset 4px 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-inset-sm: inset 3px 3px 10px rgba(0, 0, 0, 0.4);
-  /* 다크: 짜조 톤 유지, 약간 밝게 */
-  --primary-point: #E8B86D;
-  --primary-point-ring: rgba(232, 184, 109, 0.48);
-  --primary-button: #C99550; /* 다크 CTA 버튼 — 하이라이트에 맞게 진하게 */
-  --primary-gradient: linear-gradient(135deg, #E8C9A8 0%, #E8B86D 50%, #D4A574 100%);
-  --primary-gradient-subtle: linear-gradient(180deg, rgba(232, 184, 109, 0.24) 0%, rgba(212, 165, 116, 0.16) 100%);
-  --hover-bg: #252528;
-  --grid-line: rgba(255, 255, 255, 0.06);
+  /* 다크: 동일 오렌지 톤, 약간 밝게 */
+  --primary-point: #FF8533;
+  --primary-point-ring: rgba(255, 133, 51, 0.48);
+  --primary-button: #FF6D00; /* 다크 CTA — 동일 포인트색 */
+  --primary-gradient: linear-gradient(135deg, #FF9F66 0%, #FF8533 50%, #FF6D00 100%);
+  --primary-gradient-subtle: linear-gradient(180deg, rgba(255, 109, 0, 0.24) 0%, rgba(255, 109, 0, 0.16) 100%);
+  --hover-bg: #252320;
+  --grid-line: rgba(255, 255, 255, 0.05);
   /* 다크: 월간 캘린더 날짜 셀 테두리 (연하게) */
-  --calendar-cell-border: rgba(255, 255, 255, 0.05);
+  --calendar-cell-border: rgba(255, 255, 255, 0.06);
   --card-border: rgba(255, 255, 255, 0.08);
   --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
-/* 개인화: 강조색 선택 (설정에서 변경). orange = 짜조 기본 톤 */
-[data-accent="orange"] { --primary-point: #D4A574; --primary-point-ring: rgba(212, 165, 116, 0.42); --primary-button: #B8855A; --primary-gradient: linear-gradient(135deg, #E8C9A8 0%, #D4A574 50%, #C4956A 100%); }
+/* 개인화: 강조색 선택 (설정에서 변경). orange = 기본 하이라이트 #FF6D00 */
+[data-accent="orange"] { --primary-point: #FF6D00; --primary-point-ring: rgba(255, 109, 0, 0.42); --primary-button: #E55C00; --primary-gradient: linear-gradient(135deg, #FF8533 0%, #FF6D00 50%, #E55C00 100%); }
 [data-accent="blue"] { --primary-point: #5B8DEE; --primary-point-ring: rgba(91, 141, 238, 0.38); --primary-button: #4A7BDB; --primary-gradient: linear-gradient(135deg, #7BA3F5 0%, #5B8DEE 100%); }
 [data-accent="purple"] { --primary-point: #9B7DD4; --primary-point-ring: rgba(155, 125, 212, 0.38); --primary-button: #7E5FB8; --primary-gradient: linear-gradient(135deg, #B59AE0 0%, #9B7DD4 100%); }
 [data-accent="green"] { --primary-point: #6BBF8A; --primary-point-ring: rgba(107, 191, 138, 0.38); --primary-button: #52A872; --primary-gradient: linear-gradient(135deg, #8BD4A4 0%, #6BBF8A 100%); }
-html.dark[data-accent="orange"] { --primary-point: #E8B86D; --primary-point-ring: rgba(232, 184, 109, 0.48); --primary-button: #C99550; }
+html.dark[data-accent="orange"] { --primary-point: #FF8533; --primary-point-ring: rgba(255, 133, 51, 0.48); --primary-button: #FF6D00; }
 html.dark[data-accent="blue"] { --primary-point: #6B9AF5; --primary-point-ring: rgba(107, 154, 245, 0.45); --primary-button: #5A8AE8; }
 html.dark[data-accent="purple"] { --primary-point: #AB8EE0; --primary-point-ring: rgba(171, 142, 224, 0.45); --primary-button: #8F6BC9; }
 html.dark[data-accent="green"] { --primary-point: #7BD49A; --primary-point-ring: rgba(123, 212, 154, 0.45); --primary-button: #62C082; }
@@ -739,6 +741,34 @@ html.dark .empty-state-pattern::before {
   }
   html.dark .calendar-date-today:not(.neu-date-selected) {
     background: color-mix(in srgb, var(--primary-point) 20%, var(--card-bg)) !important;
+  }
+
+  /* 선택된 날짜: 연한 회색 셀 + 밝은 회색 숫자 (테두리 없음) */
+  .calendar-date-selected {
+    box-shadow: none !important;
+    background: color-mix(in srgb, var(--text-muted) 14%, var(--card-bg)) !important;
+  }
+  .calendar-date-selected > span {
+    color: var(--text-muted) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  html.dark .calendar-date-selected {
+    background: color-mix(in srgb, rgba(255, 255, 255, 0.12) 100%, var(--card-bg)) !important;
+  }
+  html.dark .calendar-date-selected > span {
+    color: rgba(255, 255, 255, 0.75) !important;
+  }
+
+  /* 오늘 날짜 숫자 뱃지: 링 + 은은한 틴트 (단색 블록 대신 미학적으로 정리) */
+  .calendar-today-badge {
+    box-shadow: 0 0 0 1.5px var(--primary-point-ring);
+    background: color-mix(in srgb, var(--primary-point) 18%, var(--card-bg));
+    color: var(--primary-point);
+  }
+  html.dark .calendar-today-badge {
+    background: color-mix(in srgb, var(--primary-point) 28%, var(--card-bg));
+    color: #fff;
   }
   /* 월간 플래너 카드: 상단 그라데이션 라인으로 시선 유도 */
   .monthly-planner-card {
