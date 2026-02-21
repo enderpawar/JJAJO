@@ -288,7 +288,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
               onClick={() => setMenuOpenId(null)}
             />
             <div
-              className="fixed z-[101] py-1.5 rounded-xl bg-theme-card border border-black/8 dark:border-white/10 shadow-xl min-w-[100px]"
+              className="fixed z-[101] py-1.5 rounded-lg bg-theme-card border border-black/8 dark:border-white/10 shadow-[var(--shadow-float)] min-w-[100px]"
               style={{ top: menuPosition.top, right: menuPosition.right }}
               role="menu"
             >
@@ -350,10 +350,10 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
                 key={todo.id}
                 ref={isEditing ? editingCardRef : undefined}
                 className={cn(
-                  'flex items-stretch gap-0 rounded-2xl overflow-hidden transition-shadow duration-200',
-                  'border border-black/6 dark:border-white/[0.06]',
-                  'bg-black/[0.03] dark:bg-white/[0.04] shadow-sm',
-                  !isEditing && 'hover:border-black/10 dark:hover:border-white/[0.1] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_4px_16px_rgba(0,0,0,0.3)]',
+                  'flex items-stretch gap-0 rounded-lg overflow-hidden transition-colors duration-200',
+                  'border border-black/8 dark:border-white/[0.08]',
+                  'bg-black/[0.02] dark:bg-white/[0.03]',
+                  !isEditing && 'hover:border-black/12 dark:hover:border-white/[0.12]',
                   isEditing && 'ring-1 ring-primary-500/30 border-primary-500/20'
                 )}
               >
@@ -453,7 +453,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
                         ref={menuOpenId === todo.id ? menuTriggerRef : undefined}
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === todo.id ? null : todo.id) }}
-                        className="btn-icon-tap p-2 rounded-xl text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10"
+                        className="btn-icon-tap p-2 rounded-md text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10"
                         title="더보기"
                       >
                         <MoreHorizontal className="w-4 h-4" />
@@ -484,7 +484,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
             type="button"
             onClick={() => setDeleteAllTodayConfirm(true)}
             disabled={isDeletingAllToday}
-            className="btn-danger-press flex-[2] min-w-0 py-3.5 rounded-2xl text-sm font-medium text-red-500 dark:text-red-400 border border-red-500/25 dark:border-red-400/30 bg-transparent hover:bg-red-500/10 dark:hover:bg-red-500/15 active:bg-red-500/15 flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] disabled:opacity-50"
+            className="btn-danger-press flex-[2] min-w-0 py-3.5 rounded-lg text-sm font-medium text-red-500 dark:text-red-400 border border-red-500/25 dark:border-red-400/30 bg-transparent hover:bg-red-500/10 dark:hover:bg-red-500/15 active:bg-red-500/15 flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] disabled:opacity-50"
             title="오늘 일정 전체 삭제"
           >
             <Trash2 className="w-4 h-4 shrink-0" strokeWidth={2} />
@@ -496,14 +496,16 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
           onClick={startNewTodo}
           disabled={!!editingTodo}
           className={cn(
-            'btn-action-press py-3.5 rounded-2xl text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 dark:bg-primary-500 dark:hover:bg-primary-400 shadow-md hover:shadow-lg dark:shadow-[0_4px_14px_rgba(255,149,0,0.2)] dark:hover:shadow-[0_6px_20px_rgba(255,149,0,0.28)] flex items-center justify-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] active:scale-[0.98] disabled:transform-none',
+            'btn-action-press py-3.5 rounded-lg text-sm font-semibold text-white bg-primary-button shadow-[var(--shadow-float-sm)] hover:shadow-[var(--shadow-float)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-button)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] active:scale-[0.98] disabled:transform-none flex items-center justify-center',
             isTodaySelected && todos.length > 0 ? 'flex-[3] min-w-0' : 'flex-1 min-w-0'
           )}
           title="새 일정 추가"
           aria-label="새 일정 추가"
         >
-          <Plus className="w-4 h-4 shrink-0" strokeWidth={2.5} />
-          새 일정 추가
+          <span className="inline-flex items-center gap-2">
+            <Plus className="w-4 h-4 shrink-0" strokeWidth={2.5} />
+            새 일정 추가
+          </span>
         </button>
       </div>
 

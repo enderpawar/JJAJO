@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo, useState } from 'react'
+import { useRef, useEffect, useMemo } from 'react'
 import { Sparkles } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { formatDate, getCalendarDays, isSameDay } from '@/utils/dateUtils'
@@ -25,6 +25,12 @@ interface CalendarGridProps {
 
 const DOUBLE_TAP_MS = 450
 const LONG_PRESS_MS = 500
+
+/** 주당 표시할 이벤트 행 수 — 일정 개수와 관계없이 날짜 영역 높이 일관 유지 */
+const MAX_EVENT_ROWS_PER_WEEK = 2
+const ROW_HEIGHT_PX = 22
+/** 이벤트 영역 항상 표시할 행 수(이벤트 2행 + 더보기 1행 여유) */
+const FIXED_EVENT_ROW_COUNT = 3
 
 /** 여러 날에 걸친 일정의 주별 세그먼트 (한 주 안에서 startCol~endCol, endCol은 exclusive) */
 function getMultiDaySegmentsForWeek(
@@ -150,8 +156,6 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
   const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressFiredRef = useRef(false)
   const touchActiveRef = useRef(false)
-  const [rippleCell, setRippleCell] = useState<string | null>(null)
-  const [rippleKey, setRippleKey] = useState(0)
 
   useEffect(() => () => {
     if (longPressTimeoutRef.current) {
@@ -159,12 +163,6 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
       longPressTimeoutRef.current = null
     }
   }, [])
-
-  useEffect(() => {
-    if (!rippleCell) return
-    const t = setTimeout(() => setRippleCell(null), 520)
-    return () => clearTimeout(t)
-  }, [rippleCell, rippleKey])
 
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
@@ -196,8 +194,6 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
     }
     lastClickedDateRef.current = dateStr
     lastClickedTimeRef.current = now
-    setRippleCell(dateStr)
-    setRippleKey((k) => k + 1)
     setSelectedDate(date)
     if (!onDateDoubleClick) onDateSelect?.()
   }
@@ -266,7 +262,11 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
       <div className="flex flex-col gap-0.5 sm:gap-1">
         {weekRows.map((weekDates, weekIndex) => {
           const multiSegments = getMultiDaySegmentsForWeek(weekDates, todos, month, year)
-          const eventRows = buildWeekEventRows(weekDates, getTodosByDate, multiSegments)
+          const allEventRows = buildWeekEventRows(weekDates, getTodosByDate, multiSegments)
+          const eventRows = allEventRows.slice(0, MAX_EVENT_ROWS_PER_WEEK)
+          const hiddenCount = allEventRows.length > MAX_EVENT_ROWS_PER_WEEK
+            ? allEventRows.slice(MAX_EVENT_ROWS_PER_WEEK).flat().filter((c) => c !== null && c !== 'multi-continue').length
+            : 0
           return (
             <div key={weekIndex} className="flex flex-col gap-1 sm:gap-0.5">
               {/* 날짜 행 — 이벤트와 겹치지 않도록 아래쪽 여백 확보 */}
@@ -303,12 +303,9 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
                         !isSelected && 'hover:bg-gray-50 dark:hover:bg-white/5'
                       )}
                     >
-                      {rippleCell === dateStr && (
-                        <span key={rippleKey} className="ripple-effect" aria-hidden />
-                      )}
                       <span
                         className={cn(
-                          'text-[13px] sm:text-sm tabular-nums shrink-0 flex items-center justify-center w-7 h-7 rounded-full',
+                          'text-[13px] sm:text-sm tabular-nums shrink-0 flex items-center justify-center w-7 h-7 rounded-tool',
                           isToday && 'bg-blue-500 text-white font-semibold',
                           !isToday && dayOfWeek === 0 && 'text-orange-500',
                           !isToday && dayOfWeek === 6 && 'text-blue-500',
@@ -321,56 +318,68 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
                   )
                 })}
               </div>
-              {/* 이벤트 행: 단일/멀티를 createdAt 순으로 배치, 날짜와·서로 겹치지 않도록 행 높이·간격 확보 */}
-              {eventRows.length > 0 && (
-                <div className="grid grid-cols-7 gap-x-0.5 gap-y-1.5 sm:gap-y-1 auto-rows-[minmax(22px,auto)]">
-                  {eventRows.map((row, rowIndex) =>
-                    row.map((cell, colIndex) => {
-                      if (cell === 'multi-continue') return null
-                      const gridCol = cell === null ? colIndex + 1 : cell.type === 'multi' ? undefined : colIndex + 1
-                      const gridColSpan = cell !== null && cell.type === 'multi' ? `${cell.segment.startCol + 1} / ${cell.segment.endCol + 1}` : undefined
-                      const style = gridColSpan ? { gridColumn: gridColSpan } : gridCol !== undefined ? { gridColumn: gridCol } : undefined
-                      if (cell === null) {
-                        return <div key={`${rowIndex}-${colIndex}`} className="min-h-[22px]" style={style} aria-hidden />
-                      }
-                      if (cell.type === 'single') {
-                        return (
-                          <div
-                            key={`${rowIndex}-${colIndex}`}
-                            className={cn(
-                              'min-h-[22px] rounded-tool px-1.5 py-1 flex items-center gap-1 text-[10px] sm:text-xs font-medium text-white overflow-hidden',
-                              cell.colorClass
-                            )}
-                            style={style}
-                            title={cell.todo.createdBy === 'ai' ? `짜조 제안: ${cell.todo.title}` : cell.todo.title}
-                          >
-                            {cell.todo.createdBy === 'ai' && <Sparkles className="w-3 h-3 shrink-0 opacity-90" />}
-                            <span className="truncate min-w-0 block">{truncateTitle(cell.todo.title, 5)}</span>
-                          </div>
-                        )
-                      }
-                      const { segment } = cell
+              {/* 이벤트 영역: 고정 높이로 주별 블록 높이 일관 유지 */}
+              <div
+                className="grid grid-cols-7 gap-x-0.5 gap-y-1.5 sm:gap-y-1"
+                style={{ gridTemplateRows: `repeat(${FIXED_EVENT_ROW_COUNT}, ${ROW_HEIGHT_PX}px)` }}
+              >
+                {eventRows.map((row, rowIndex) =>
+                  row.map((cell, colIndex) => {
+                    if (cell === 'multi-continue') return null
+                    const gridCol = cell === null ? colIndex + 1 : cell.type === 'multi' ? undefined : colIndex + 1
+                    const gridColSpan = cell !== null && cell.type === 'multi' ? `${cell.segment.startCol + 1} / ${cell.segment.endCol + 1}` : undefined
+                    const style = {
+                      gridRow: rowIndex + 1,
+                      ...(gridColSpan ? { gridColumn: gridColSpan } : gridCol !== undefined ? { gridColumn: gridCol } : {}),
+                    }
+                    if (cell === null) {
+                      return <div key={`${rowIndex}-${colIndex}`} className="min-h-[22px]" style={style} aria-hidden />
+                    }
+                    if (cell.type === 'single') {
                       return (
                         <div
                           key={`${rowIndex}-${colIndex}`}
                           className={cn(
-                            'min-h-[22px] rounded-tool px-1.5 py-1 flex items-center gap-1 text-[10px] sm:text-xs font-medium text-white overflow-hidden',
-                            segment.colorClass
+'min-h-[22px] rounded-tool px-1.5 py-1 flex items-center gap-1 text-[12px] sm:text-sm font-medium text-white overflow-hidden',
+                              cell.colorClass
                           )}
                           style={style}
-                          title={segment.todo.startTime && segment.todo.endTime ? `${segment.todo.title} (${segment.todo.startTime}–${segment.todo.endTime})` : segment.todo.title}
+                          title={cell.todo.createdBy === 'ai' ? `짜조 제안: ${cell.todo.title}` : cell.todo.title}
                         >
-                          {segment.todo.createdBy === 'ai' && <Sparkles className="w-3 h-3 shrink-0 opacity-90" />}
-                          {segment.todo.startTime && segment.todo.endTime && (
-                            <span className="shrink-0 opacity-90 text-[9px] sm:text-[10px]">{segment.todo.startTime}–{segment.todo.endTime}</span>
-                          )}
-                          <span className="truncate min-w-0 block">{segment.todo.title}</span>
+                          {cell.todo.createdBy === 'ai' && <Sparkles className="w-3 h-3 shrink-0 opacity-90" />}
+                          <span className="truncate min-w-0 block">{truncateTitle(cell.todo.title, 5)}</span>
                         </div>
                       )
-                    })
-                  ).flat().filter(Boolean)}
-                </div>
-              )}
+                    }
+                    const { segment } = cell
+                    return (
+                      <div
+                        key={`${rowIndex}-${colIndex}`}
+                        className={cn(
+                          'min-h-[22px] rounded-tool px-1.5 py-1 flex items-center gap-1 text-[12px] sm:text-sm font-medium text-white overflow-hidden',
+                          segment.colorClass
+                        )}
+                        style={style}
+                        title={segment.todo.startTime && segment.todo.endTime ? `${segment.todo.title} (${segment.todo.startTime}–${segment.todo.endTime})` : segment.todo.title}
+                      >
+                        {segment.todo.createdBy === 'ai' && <Sparkles className="w-3 h-3 shrink-0 opacity-90" />}
+                        {segment.todo.startTime && segment.todo.endTime && (
+                          <span className="shrink-0 opacity-90 text-[11px] sm:text-[12px]">{segment.todo.startTime}–{segment.todo.endTime}</span>
+                        )}
+                        <span className="truncate min-w-0 block">{segment.todo.title}</span>
+                      </div>
+                    )
+                  })
+                ).flat().filter(Boolean)}
+                {hiddenCount > 0 && (
+                  <div
+                    className="min-h-[22px] flex items-center justify-center text-[12px] sm:text-sm text-theme-muted font-medium"
+                    style={{ gridRow: FIXED_EVENT_ROW_COUNT, gridColumn: '1 / -1' }}
+                  >
+                    +{hiddenCount}건 더
+                  </div>
+                )}
+              </div>
             </div>
           )
         })}

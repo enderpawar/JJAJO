@@ -17,6 +17,9 @@ interface DragPreview {
  * VerticalTimeline: 24시간 수직 그리드 캔버스
  * - 시간 그리드(00:00~24:00), 현재 시각 선, 일정 블록 표시
  */
+/** 플랜카드 상·하 여백(px) — 카드가 딱 붙지 않도록 호흡 공간 */
+const PLAN_CARD_GAP = 8
+
 /** HH:mm → 당일 0시 기준 분 */
 function timeToMinutes(timeStr: string): number {
   const [h, m] = timeStr.split(':').map(Number)
@@ -449,7 +452,9 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     }
 
     const baseHeight = endPixel - startPixel
-    const isCompactHeight = baseHeight < 72
+    const visualTop = startPixel + PLAN_CARD_GAP
+    const visualHeight = Math.max(44, baseHeight - PLAN_CARD_GAP * 2)
+    const isCompactHeight = visualHeight < 72
     const isPast = isSelectedDateToday && endPixel < currentTimePosition
     const isCurrent = isSelectedDateToday && startPixel <= currentTimePosition && currentTimePosition < endPixel
     const isFuture = isSelectedDateToday && startPixel > currentTimePosition
@@ -471,15 +476,15 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         animate={isJustCreated ? { scale: 1, opacity: 1 } : { opacity: 1 }}
         transition={isJustCreated ? { type: 'spring', stiffness: 380, damping: 26 } : undefined}
         className={`
-          task-card group absolute left-0 right-0 mx-auto w-[99%] max-w-[1200px] cursor-pointer active:cursor-grabbing overflow-hidden touch-none
+          task-card group absolute left-[calc(3rem+2.5%)] right-[calc(1.5rem+2.5%)] sm:left-[calc(3.5rem+2.5%)] sm:right-[calc(1.5rem+2.5%)] cursor-pointer active:cursor-grabbing overflow-hidden touch-none
           bg-theme-card theme-transition
           ${isEditingThisTask ? 'rounded-xl' : ''}
           ${isCurrent ? 'task-card-active' : ''}
           ${isCompleted && !isCurrent ? 'task-card-completed' : ''}
         `}
         style={{
-          top: `${startPixel}px`,
-          height: `${baseHeight}px`,
+          top: `${visualTop}px`,
+          height: `${visualHeight}px`,
           zIndex: isCurrent ? 10 : isPast ? 1 : 5,
           transform: `scale(${scale})`,
           opacity: styleOpacity,
@@ -729,7 +734,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     return (
       <motion.div
         key={task.id}
-        className="ghost-block ghost-block-pattern absolute left-0 right-0 mx-3 sm:mx-4 pointer-events-none rounded-neu border-[1.5px] border-dashed border-orange-400/80 bg-orange-400/5 theme-transition"
+        className="ghost-block ghost-block-pattern absolute left-[calc(3rem+2.5%)] right-[calc(1.5rem+2.5%)] sm:left-[calc(3.5rem+2.5%)] sm:right-[calc(1.5rem+2.5%)] pointer-events-none rounded-neu border-[1.5px] border-dashed border-orange-400/80 bg-orange-400/5 theme-transition"
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.1, duration: 0.2 }}
@@ -801,13 +806,18 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
               </div>
             </div>
             <div className="px-4 pb-3 pt-0">
-              <div className="h-1.5 rounded-full bg-theme-card overflow-hidden shadow-neu-inset-sm">
-                <div
-                  className="h-full bg-primary-500/80 rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${elapsedPercent}%` }}
-                />
+              <div className="flex flex-col gap-1.5">
+                <div className="h-2 rounded-full overflow-hidden border border-[var(--border-color)] bg-[var(--card-bg)]">
+                  <div
+                    className="h-full bg-[var(--primary-point)] rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${elapsedPercent}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-xs font-medium text-theme">
+                  <span>오늘의 흐른 시간</span>
+                  <span className="tabular-nums text-[var(--primary-point)]">{elapsedPercent.toFixed(0)}%</span>
+                </div>
               </div>
-              <div className="text-[10px] text-theme-muted mt-1 text-right">오늘의 흐른 시간 {elapsedPercent.toFixed(0)}%</div>
             </div>
           </div>
         )

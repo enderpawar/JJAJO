@@ -242,9 +242,10 @@ export default function MagicBar() {
           onClick={handleWandClick}
           className={`
             touch-target flex-shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px] w-10 h-10 rounded-tool transition-all duration-200
+            bg-theme-card border border-[var(--border-color)]
             ${editMode
-              ? 'neu-date-selected text-primary-500 ring-2 ring-primary-500/50'
-              : 'neu-float-sm text-theme-muted hover:text-theme hover:shadow-neu-inset-hover active:scale-[0.98]'
+              ? 'text-primary-500 border-primary-500/50 ring-2 ring-primary-500/30'
+              : 'text-theme-muted hover:text-theme hover:border-[var(--text-muted)]/40 hover:bg-black/[0.03] dark:hover:bg-white/[0.06] active:scale-[0.98]'
             }
           `}
           aria-pressed={editMode}

@@ -18,9 +18,14 @@
   --shadow-float-sm: 0 1px 4px rgba(0, 0, 0, 0.05);
   --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-inset-sm: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  /* radius 일관성 (디자인 시스템) — 선/테두리보다 작게 해서 잘리지 않게 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
   /* 짜조 브랜드: 채도 낮은 신선한 피치·코랄 톤 */
   --primary-point: #D4A574;
   --primary-point-ring: rgba(212, 165, 116, 0.42);
+  --primary-button: #B8855A; /* CTA 버튼용 — 하이라이트보다 진하게 */
   --primary-gradient: linear-gradient(135deg, #E8C9A8 0%, #D4A574 50%, #C4956A 100%);
   --primary-gradient-subtle: linear-gradient(180deg, rgba(232, 201, 168, 0.22) 0%, rgba(212, 165, 116, 0.14) 100%);
   --hover-bg: #EBECEF;
@@ -49,6 +54,7 @@ html.dark {
   /* 다크: 짜조 톤 유지, 약간 밝게 */
   --primary-point: #E8B86D;
   --primary-point-ring: rgba(232, 184, 109, 0.48);
+  --primary-button: #C99550; /* 다크 CTA 버튼 — 하이라이트에 맞게 진하게 */
   --primary-gradient: linear-gradient(135deg, #E8C9A8 0%, #E8B86D 50%, #D4A574 100%);
   --primary-gradient-subtle: linear-gradient(180deg, rgba(232, 184, 109, 0.24) 0%, rgba(212, 165, 116, 0.16) 100%);
   --hover-bg: #252528;
@@ -60,14 +66,14 @@ html.dark {
 }
 
 /* 개인화: 강조색 선택 (설정에서 변경). orange = 짜조 기본 톤 */
-[data-accent="orange"] { --primary-point: #D4A574; --primary-point-ring: rgba(212, 165, 116, 0.42); --primary-gradient: linear-gradient(135deg, #E8C9A8 0%, #D4A574 50%, #C4956A 100%); }
-[data-accent="blue"] { --primary-point: #5B8DEE; --primary-point-ring: rgba(91, 141, 238, 0.38); --primary-gradient: linear-gradient(135deg, #7BA3F5 0%, #5B8DEE 100%); }
-[data-accent="purple"] { --primary-point: #9B7DD4; --primary-point-ring: rgba(155, 125, 212, 0.38); --primary-gradient: linear-gradient(135deg, #B59AE0 0%, #9B7DD4 100%); }
-[data-accent="green"] { --primary-point: #6BBF8A; --primary-point-ring: rgba(107, 191, 138, 0.38); --primary-gradient: linear-gradient(135deg, #8BD4A4 0%, #6BBF8A 100%); }
-html.dark[data-accent="orange"] { --primary-point: #E8B86D; --primary-point-ring: rgba(232, 184, 109, 0.48); }
-html.dark[data-accent="blue"] { --primary-point: #6B9AF5; --primary-point-ring: rgba(107, 154, 245, 0.45); }
-html.dark[data-accent="purple"] { --primary-point: #AB8EE0; --primary-point-ring: rgba(171, 142, 224, 0.45); }
-html.dark[data-accent="green"] { --primary-point: #7BD49A; --primary-point-ring: rgba(123, 212, 154, 0.45); }
+[data-accent="orange"] { --primary-point: #D4A574; --primary-point-ring: rgba(212, 165, 116, 0.42); --primary-button: #B8855A; --primary-gradient: linear-gradient(135deg, #E8C9A8 0%, #D4A574 50%, #C4956A 100%); }
+[data-accent="blue"] { --primary-point: #5B8DEE; --primary-point-ring: rgba(91, 141, 238, 0.38); --primary-button: #4A7BDB; --primary-gradient: linear-gradient(135deg, #7BA3F5 0%, #5B8DEE 100%); }
+[data-accent="purple"] { --primary-point: #9B7DD4; --primary-point-ring: rgba(155, 125, 212, 0.38); --primary-button: #7E5FB8; --primary-gradient: linear-gradient(135deg, #B59AE0 0%, #9B7DD4 100%); }
+[data-accent="green"] { --primary-point: #6BBF8A; --primary-point-ring: rgba(107, 191, 138, 0.38); --primary-button: #52A872; --primary-gradient: linear-gradient(135deg, #8BD4A4 0%, #6BBF8A 100%); }
+html.dark[data-accent="orange"] { --primary-point: #E8B86D; --primary-point-ring: rgba(232, 184, 109, 0.48); --primary-button: #C99550; }
+html.dark[data-accent="blue"] { --primary-point: #6B9AF5; --primary-point-ring: rgba(107, 154, 245, 0.45); --primary-button: #5A8AE8; }
+html.dark[data-accent="purple"] { --primary-point: #AB8EE0; --primary-point-ring: rgba(171, 142, 224, 0.45); --primary-button: #8F6BC9; }
+html.dark[data-accent="green"] { --primary-point: #7BD49A; --primary-point-ring: rgba(123, 212, 154, 0.45); --primary-button: #62C082; }
 
 /* 배경 패턴 (설정에서 켜기) */
 body.bg-pattern {
@@ -91,6 +97,12 @@ html.dark body.bg-pattern {
 .text-theme { color: var(--text-main); }
 .text-theme-muted { color: var(--text-muted); }
 .border-theme { border-color: var(--border-color); }
+.bg-primary-button {
+  background-color: var(--primary-button);
+}
+.bg-primary-button:hover {
+  filter: brightness(0.92);
+}
 
 /* 라이트 테마: 로고 주변 검은색 테두리 (흰 배경에서 가독성) */
 .logo-light-outline {
@@ -547,31 +559,6 @@ input[type="range"]::-moz-range-thumb:hover {
   animation: slideOutLeft 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-/* 캘린더 날짜 클릭: 중앙에서 확산되는 Ripple */
-@keyframes ripple-expand {
-  0% {
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 0.35;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(2.5);
-    opacity: 0;
-  }
-}
-.ripple-effect {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 100%;
-  height: 100%;
-  max-width: 200%;
-  max-height: 200%;
-  border-radius: 50%;
-  background: var(--primary-point);
-  pointer-events: none;
-  animation: ripple-expand 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
 /* 토스트 등장/퇴장 */
 @keyframes toastEnter {
   from {
@@ -732,10 +719,10 @@ html.dark .empty-state-pattern::before {
     box-shadow: var(--shadow-inset-sm), 0 0 0 1px var(--primary-point-ring) !important;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
   }
-  /* 월간 캘린더 날짜 셀: 부드러운 전환, 호버 시 살짝 떠오르는 느낌 */
+  /* 월간 캘린더 날짜 셀: 부드러운 전환, 호버 시 살짝 떠오르는 느낌 (radius 일관) */
   .calendar-date-cell {
     border: 1px solid var(--calendar-cell-border) !important;
-    border-radius: 14px !important;
+    border-radius: var(--radius-lg) !important;
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
   }
   .calendar-date-cell:hover {
@@ -845,10 +832,14 @@ html.dark .empty-state-pattern::before {
     @apply shrink-0;
   }
   .view-mode-segmented-track {
-    @apply relative flex rounded-full border border-[var(--border-color)] overflow-hidden;
+    @apply relative flex rounded-lg overflow-hidden;
     min-width: 140px;
-    height: 32px;
+    height: 36px;
     background-color: var(--hover-bg);
+    border: 1.5px solid rgba(0, 0, 0, 0.12);
+  }
+  html.dark .view-mode-segmented-track {
+    border-color: rgba(255, 255, 255, 0.18);
   }
   /* 모바일: 캘린더/할일 텍스트가 버튼 밖으로 나가지 않도록 트랙 폭·버튼 패딩 확보 */
   @media (max-width: 640px) {
@@ -865,19 +856,19 @@ html.dark .empty-state-pattern::before {
     }
   }
   .view-mode-segmented-pill {
-    @apply absolute inset-y-0 rounded-full pointer-events-none transition-[left] duration-200 ease-out;
+    @apply absolute inset-y-0 rounded-md pointer-events-none transition-[left] duration-200 ease-out;
     top: 2px;
     bottom: 2px;
     width: calc(50% - 4px);
     left: 2px;
     background: var(--primary-point);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.08);
   }
   .view-mode-segmented-pill[data-active="true"] {
     left: calc(50% + 2px);
   }
   html.dark .view-mode-segmented-pill {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.12);
   }
   .view-mode-segmented-btn {
     @apply relative z-10 flex-1 flex items-center justify-center text-xs font-medium transition-colors duration-200 min-w-0;
@@ -906,7 +897,7 @@ html.dark .empty-state-pattern::before {
       bg-primary-500 text-white border-0
       hover:bg-primary-600 active:scale-[0.98]
       transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100;
-    box-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-float-sm);
   }
 
   .btn-secondary {
