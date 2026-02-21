@@ -271,9 +271,8 @@ export default function MagicBar() {
           disabled={loading || !hasValue}
           className={`
             touch-target flex-shrink-0 flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] px-4 py-2.5 rounded-tool font-medium text-sm
-            transition-all duration-200
             ${hasValue && !loading
-              ? 'bg-primary-500 text-white hover:bg-primary-600 active:scale-[0.98]'
+              ? 'btn-action-press bg-primary-500 text-white hover:bg-primary-600 active:scale-[0.98] disabled:transform-none'
               : 'neu-float-sm text-theme-muted cursor-not-allowed'
             }
             ${loading ? 'bg-primary-500/80 text-white cursor-wait' : ''}

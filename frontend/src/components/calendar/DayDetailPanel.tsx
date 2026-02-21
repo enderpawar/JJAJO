@@ -44,6 +44,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const menuTriggerRef = useRef<HTMLButtonElement | null>(null)
+  const editingCardRef = useRef<HTMLDivElement>(null)
 
   const dateStr = formatDate(selectedDate)
   const isTodaySelected = dateStr === formatDate(new Date())
@@ -249,6 +250,19 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
     return () => window.removeEventListener('keydown', handleEscape)
   }, [editingTodo])
 
+  // 빈 공간(카드 밖) 클릭 시 새 일정 생성/편집 취소
+  useEffect(() => {
+    if (!editingTodo) return
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as Node
+      if (editingCardRef.current && !editingCardRef.current.contains(target)) {
+        cancelInlineEdit()
+      }
+    }
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    return () => document.removeEventListener('pointerdown', handlePointerDown, true)
+  }, [editingTodo?.id])
+
   // 더보기 드롭다운 위치 측정 — Portal로 overflow 밖에 렌더링하기 위함
   useLayoutEffect(() => {
     if (!menuOpenId || !menuTriggerRef.current) {
@@ -282,7 +296,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
                 type="button"
                 role="menuitem"
                 onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); startEditing(openTodo) }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm font-medium text-theme hover:bg-black/5 dark:hover:bg-white/10"
+                className="btn-ghost-tap w-full flex items-center gap-2 px-3 py-2 text-left text-sm font-medium text-theme hover:bg-black/5 dark:hover:bg-white/10"
               >
                 <Edit2 className="w-3.5 h-3.5" /> 편집
               </button>
@@ -290,7 +304,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
                 type="button"
                 role="menuitem"
                 onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); setDeleteConfirmTodo(openTodo) }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm font-normal text-red-500 hover:bg-red-500/10"
+                className="btn-danger-press w-full flex items-center gap-2 px-3 py-2 text-left text-sm font-normal text-red-500 hover:bg-red-500/10"
               >
                 <Trash2 className="w-3.5 h-3.5" /> 삭제
               </button>
@@ -334,6 +348,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
             return (
               <div
                 key={todo.id}
+                ref={isEditing ? editingCardRef : undefined}
                 className={cn(
                   'flex items-stretch gap-0 rounded-2xl overflow-hidden transition-shadow duration-200',
                   'border border-black/6 dark:border-white/[0.06]',
@@ -350,7 +365,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleToggleComplete(todo) }}
                       className={cn(
-                        'shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50',
+                        'btn-icon-tap shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50',
                         isCompleted ? 'border-primary-500 bg-primary-500/20 text-primary-500' : 'border-theme-muted/50'
                       )}
                       title={isCompleted ? '완료 해제' : '완료'}
@@ -403,8 +418,8 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
                             onChange={(e) => setEditForm((f) => ({ ...f, endTime: e.target.value }))}
                             className="px-2 py-1 rounded-md border border-black/10 dark:border-white/10 bg-transparent text-theme text-xs"
                           />
-                          <button type="button" onClick={cancelInlineEdit} className="text-xs font-normal text-theme-muted">취소</button>
-                          <button type="button" onClick={saveInlineEdit} disabled={isSavingNew} className="text-xs font-medium text-primary-500 disabled:opacity-50">{(isSavingNew ? '저장 중…' : '저장')}</button>
+                          <button type="button" onClick={cancelInlineEdit} className="btn-ghost-tap text-xs font-normal text-theme-muted">취소</button>
+                          <button type="button" onClick={saveInlineEdit} disabled={isSavingNew} className="btn-action-press text-xs font-medium text-primary-500 disabled:opacity-50 disabled:transform-none">{(isSavingNew ? '저장 중…' : '저장')}</button>
                         </div>
                       </div>
                     ) : (
@@ -438,7 +453,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
                         ref={menuOpenId === todo.id ? menuTriggerRef : undefined}
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === todo.id ? null : todo.id) }}
-                        className="p-2 rounded-xl text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                        className="btn-icon-tap p-2 rounded-xl text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10"
                         title="더보기"
                       >
                         <MoreHorizontal className="w-4 h-4" />
@@ -469,7 +484,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
             type="button"
             onClick={() => setDeleteAllTodayConfirm(true)}
             disabled={isDeletingAllToday}
-            className="flex-[2] min-w-0 py-3.5 rounded-2xl text-sm font-medium text-red-500 dark:text-red-400 border border-red-500/25 dark:border-red-400/30 bg-transparent hover:bg-red-500/10 dark:hover:bg-red-500/15 active:bg-red-500/15 transition-colors flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] disabled:opacity-50"
+            className="btn-danger-press flex-[2] min-w-0 py-3.5 rounded-2xl text-sm font-medium text-red-500 dark:text-red-400 border border-red-500/25 dark:border-red-400/30 bg-transparent hover:bg-red-500/10 dark:hover:bg-red-500/15 active:bg-red-500/15 flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] disabled:opacity-50"
             title="오늘 일정 전체 삭제"
           >
             <Trash2 className="w-4 h-4 shrink-0" strokeWidth={2} />
@@ -481,7 +496,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
           onClick={startNewTodo}
           disabled={!!editingTodo}
           className={cn(
-            'py-3.5 rounded-2xl text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 dark:bg-primary-500 dark:hover:bg-primary-400 shadow-md hover:shadow-lg dark:shadow-[0_4px_14px_rgba(255,149,0,0.2)] dark:hover:shadow-[0_6px_20px_rgba(255,149,0,0.28)] transition-all duration-200 flex items-center justify-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] active:scale-[0.98]',
+            'btn-action-press py-3.5 rounded-2xl text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 dark:bg-primary-500 dark:hover:bg-primary-400 shadow-md hover:shadow-lg dark:shadow-[0_4px_14px_rgba(255,149,0,0.2)] dark:hover:shadow-[0_6px_20px_rgba(255,149,0,0.28)] flex items-center justify-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] active:scale-[0.98] disabled:transform-none',
             isTodaySelected && todos.length > 0 ? 'flex-[3] min-w-0' : 'flex-1 min-w-0'
           )}
           title="새 일정 추가"

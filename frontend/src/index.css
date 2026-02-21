@@ -261,6 +261,66 @@ html.dark body.bg-pattern {
   animation: particle 1.5s ease-out infinite;
 }
 
+/* 🎮 버튼 동작별 애니메이션 (각 버튼에 조합해서 사용) */
+@keyframes btn-press {
+  to { transform: scale(0.97); }
+}
+@keyframes btn-release {
+  to { transform: scale(1); }
+}
+@keyframes btn-success-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+/* 주요 액션(제출·저장·확인): 눌림 피드백 */
+.btn-action-press {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-action-press:hover {
+  transform: translateY(-1px);
+}
+.btn-action-press:active {
+  transform: scale(0.98) translateY(0);
+}
+.btn-action-press:disabled {
+  transform: none;
+}
+/* 아이콘/닫기 버튼: 호버 시 살짝 커짐, 누르면 눌림 */
+.btn-icon-tap {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, color 0.2s ease;
+}
+.btn-icon-tap:hover {
+  transform: scale(1.06);
+}
+.btn-icon-tap:active {
+  transform: scale(0.94);
+}
+/* 취소/닫기 등 보조 버튼: 부드러운 배경 전환 + 눌림 */
+.btn-ghost-tap {
+  transition: transform 0.15s ease, background-color 0.2s ease, color 0.2s ease;
+}
+.btn-ghost-tap:active {
+  transform: scale(0.98);
+}
+/* 네비게이션(이전/다음 달 등): 살짝 이동 느낌 */
+.btn-nav-tap {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease;
+}
+.btn-nav-tap:hover {
+  transform: scale(1.08);
+}
+.btn-nav-tap:active {
+  transform: scale(0.92);
+}
+/* 위험 액션(삭제): 눌림 + 색 유지 */
+.btn-danger-press {
+  transition: transform 0.15s ease, background-color 0.2s ease;
+}
+.btn-danger-press:active {
+  transform: scale(0.98);
+}
+
 /* 🎯 플랜 카드 — 단순·세련·라이트 시인성 */
 
 /* 기본 카드: 선 하나 + 가벼운 그림자 */

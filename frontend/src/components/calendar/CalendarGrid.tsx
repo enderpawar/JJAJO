@@ -298,7 +298,7 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
                       onMouseLeave={endLongPress}
                       title={onDateLongPress ? '길게 누르면 일정 추가' : allOnDay.map((t) => t.title).join(', ') || undefined}
                       className={cn(
-                        'relative overflow-hidden aspect-square min-h-[44px] flex flex-col items-center justify-center rounded-tool transition-colors',
+                        'btn-ghost-tap relative overflow-hidden aspect-square min-h-[44px] flex flex-col items-center justify-center rounded-tool',
                         isSelected && 'ring-2 ring-[var(--primary-point)] ring-inset bg-[var(--primary-gradient-subtle)]',
                         !isSelected && 'hover:bg-gray-50 dark:hover:bg-white/5'
                       )}

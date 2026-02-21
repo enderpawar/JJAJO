@@ -82,15 +82,24 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/60 backdrop-blur-sm theme-transition">
-      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-tool bg-theme-card border border-black/8 dark:border-white/10 shadow-xl theme-transition">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/60 backdrop-blur-sm theme-transition cursor-default"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-todo-modal-title"
+    >
+      <div
+        className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-tool bg-theme-card border border-black/8 dark:border-white/10 shadow-xl theme-transition"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* 헤더 */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-black/6 dark:border-white/10">
-          <h2 className="text-lg font-bold text-theme tracking-tight">새 일정 추가</h2>
+          <h2 id="add-todo-modal-title" className="text-lg font-bold text-theme tracking-tight">새 일정 추가</h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-tool text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+            className="btn-icon-tap flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-tool text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             aria-label="닫기"
           >
             <X className="w-5 h-5" />
@@ -189,13 +198,13 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate }: AddTodoMo
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 min-w-0 py-3.5 rounded-tool text-sm font-medium text-theme border border-black/10 dark:border-white/10 bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
+              className="btn-ghost-tap flex-1 min-w-0 py-3.5 rounded-tool text-sm font-medium text-theme border border-black/10 dark:border-white/10 bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
             >
               취소
             </button>
             <button
               type="submit"
-              className="flex-1 min-w-0 py-3.5 rounded-tool text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 dark:hover:bg-primary-400 shadow-[0_4px_14px_rgba(255,140,0,0.22)] hover:shadow-[0_6px_20px_rgba(255,140,0,0.32)] dark:shadow-[0_4px_14px_rgba(255,149,0,0.2)] dark:hover:shadow-[0_6px_20px_rgba(255,149,0,0.28)] transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] active:scale-[0.98]"
+              className="btn-action-press flex-1 min-w-0 py-3.5 rounded-tool text-sm font-semibold text-white bg-primary-500 hover:bg-primary-600 dark:hover:bg-primary-400 shadow-[0_4px_14px_rgba(255,140,0,0.22)] hover:shadow-[0_6px_20px_rgba(255,140,0,0.32)] dark:shadow-[0_4px_14px_rgba(255,149,0,0.2)] dark:hover:shadow-[0_6px_20px_rgba(255,149,0,0.28)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] active:scale-[0.98]"
             >
               추가하기
             </button>

@@ -761,7 +761,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
             <button
               type="button"
               onClick={() => setShowPastTime(false)}
-              className="touch-target w-full min-h-[44px] bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-neu transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-3 cursor-pointer"
+              className="btn-action-press touch-target w-full min-h-[44px] bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-neu active:scale-[0.98] flex items-center justify-center gap-3 cursor-pointer"
             >
               <Clock className="w-5 h-5" />
               <span>이전 기록 접기 (현재 시간으로 돌아가기) ↑</span>
@@ -784,7 +784,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
             tabIndex={0}
             onClick={() => setShowPastTime(true)}
             onKeyDown={(e) => e.key === 'Enter' && setShowPastTime(true)}
-            className="touch-target mx-3 sm:mx-4 mb-0 rounded-neu cursor-pointer overflow-hidden shadow-neu-float-date hover:shadow-neu-inset-hover active:scale-[0.98] min-h-[300px] flex flex-col items-stretch justify-center transition-all duration-200"
+            className="btn-ghost-tap touch-target mx-3 sm:mx-4 mb-0 rounded-neu cursor-pointer overflow-hidden shadow-neu-float-date hover:shadow-neu-inset-hover active:scale-[0.98] min-h-[300px] flex flex-col items-stretch justify-center"
             style={{ position: 'relative', zIndex: 100 }}
           >
             <div className="flex items-center justify-center gap-3 px-4 py-3">

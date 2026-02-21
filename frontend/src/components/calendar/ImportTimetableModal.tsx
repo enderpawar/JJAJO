@@ -244,7 +244,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
           <button
             type="button"
             onClick={onClose}
-            className="touch-target p-2 rounded-lg hover:bg-[var(--hover-bg)] text-theme-muted"
+            className="btn-icon-tap touch-target p-2 rounded-lg hover:bg-[var(--hover-bg)] text-theme-muted"
           >
             <X className="w-5 h-5" />
           </button>
@@ -259,7 +259,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
               <p className="text-xs text-theme-muted">
                 에브리타임, 학교 포털, 캘린더 앱 등에서 주간 시간표가 보이도록 캡처한 뒤, PNG/JPG 파일을 올려주세요.
               </p>
-              <label className="inline-flex items-center justify-center px-4 py-2 rounded-lg border-2 border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white text-sm font-medium cursor-pointer w-fit theme-transition">
+              <label className="btn-ghost-tap inline-flex items-center justify-center px-4 py-2 rounded-lg border-2 border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white text-sm font-medium cursor-pointer w-fit theme-transition">
                 <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                 {file ? '다른 이미지 선택' : '이미지 선택'}
               </label>
@@ -303,7 +303,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                 type="button"
                 onClick={handleParse}
                 disabled={isParsing}
-                className="w-full mt-2 px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                className="btn-action-press w-full mt-2 px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {isParsing ? '시간표 해석 중...' : '시간표 해석하기'}
               </button>
@@ -463,7 +463,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-theme-card hover:bg-[var(--hover-bg)] text-theme border border-theme"
+              className="btn-ghost-tap px-3 py-1.5 rounded-lg text-xs font-medium bg-theme-card hover:bg-[var(--hover-bg)] text-theme border border-theme"
             >
               닫기
             </button>
@@ -471,7 +471,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
               type="button"
               onClick={handleSave}
               disabled={!hasCandidates || isSaving}
-              className="px-4 py-1.5 rounded-lg text-xs font-medium bg-primary-500 hover:bg-primary-600 text-white disabled:opacity-60 disabled:cursor-not-allowed"
+              className="btn-action-press px-4 py-1.5 rounded-lg text-xs font-medium bg-primary-500 hover:bg-primary-600 text-white disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
             >
               {isSaving ? '저장 중...' : '주간 반복 일정으로 저장'}
             </button>
