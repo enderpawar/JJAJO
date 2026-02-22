@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Plus, Edit2, Trash2, Check, MoreHorizontal } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useToastStore } from '@/stores/toastStore'
+import { getEventColorMapForDay } from '@/components/calendar/CalendarGrid'
 import { deleteSchedule, updateSchedule, createSchedule } from '@/services/scheduleService'
 import { formatDate, formatDateWithDay } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
@@ -21,6 +22,7 @@ function getPriorityBarColor(priority: TodoPriority): string {
   }
 }
 import { ConfirmModal } from '@/components/ConfirmModal'
+import { hapticSuccess } from '@/utils/haptic'
 
 interface DayDetailPanelProps {
   /** 캘린더 하단 등 한 블록 안에 묶여 있을 때 true (카드 스타일 생략) */
@@ -29,10 +31,12 @@ interface DayDetailPanelProps {
   openAddModal?: boolean
   /** 일정 추가 모달을 연 뒤 호출 (openAddModal 플래그 초기화용) */
   onAddModalOpened?: () => void
+  /** PC 우측 패널에서 새 일정 추가 모달을 열 때 호출 (제공 시 하단 '새 일정 추가' 버튼이 이걸 호출) */
+  onOpenAddModal?: () => void
 }
 
-export default function DayDetailPanel({ embedded = false, openAddModal = false, onAddModalOpened }: DayDetailPanelProps = {}) {
-  const { selectedDate, getTodosByDate, deleteTodo, addTodo, updateTodo } = useCalendarStore()
+export default function DayDetailPanel({ embedded = false, openAddModal = false, onAddModalOpened, onOpenAddModal }: DayDetailPanelProps = {}) {
+  const { selectedDate, currentMonth, getTodosByDate, deleteTodo, addTodo, updateTodo, todos: allTodos } = useCalendarStore()
   const { addToast } = useToastStore()
   const [deleteConfirmTodo, setDeleteConfirmTodo] = useState<Todo | null>(null)
   const [deleteAllTodayConfirm, setDeleteAllTodayConfirm] = useState(false)
@@ -133,7 +137,9 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
   }
 
   const todos = getTodosByDate(dateStr)
-  
+  /** 캘린더 그리드와 동일한 일정별 색상 (날짜 셀 점·블록 색상과 일치) */
+  const eventColorMap = getEventColorMapForDay(dateStr, currentMonth, getTodosByDate, allTodos)
+
   // 시간별로 정렬
   const sortedTodos = [...todos].sort((a, b) => {
     if (!a.startTime) return 1
@@ -197,6 +203,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
           createdBy: 'user',
         })
         addTodo(created)
+        hapticSuccess()
       } catch (e) {
         addTodo(editingTodo)
         setEditingTodo(editingTodo)
@@ -228,6 +235,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
         description: description.trim() || undefined,
       })
       updateTodo(editingTodo.id, { updatedAt: updated.updatedAt ?? new Date().toISOString() })
+      hapticSuccess()
     } catch (e) {
       updateTodo(editingTodo.id, prev)
       addToast(`저장 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
@@ -336,9 +344,18 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
       {/* 일정 카드 리스트 */}
       <div className="flex-1 overflow-y-auto space-y-3 mb-4">
         {todos.length === 0 ? (
-          <div className="py-14 text-center">
-            <p className="text-sm text-theme-muted/90">이 날 일정이 없어요</p>
-            <p className="text-xs text-theme-muted/70 mt-1">아래 버튼으로 추가해 보세요</p>
+          <div className="py-14 flex flex-col items-center justify-center gap-4">
+            <p className="text-base font-medium text-theme">이 날 일정이 없어요</p>
+            <p className="text-sm text-theme-muted">아래 버튼으로 추가해 보세요</p>
+            <button
+              type="button"
+              onClick={onOpenAddModal ?? startNewTodo}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-primary-500 dark:text-primary-400 bg-primary-500/10 dark:bg-primary-500/15 hover:bg-primary-500/15 dark:hover:bg-primary-500/20 transition-colors"
+              aria-label="일정 추가"
+            >
+              <Plus className="w-4 h-4" />
+              일정 추가
+            </button>
           </div>
         ) : (
           sortedTodos.map((todo) => {
@@ -357,8 +374,8 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
                   isEditing && 'ring-1 ring-primary-500/30 border-primary-500/20'
                 )}
               >
-                {/* 왼쪽 컬러 바 — 상단만 둥글게 */}
-                <div className={cn('w-1 shrink-0 self-stretch rounded-l-full', getPriorityBarColor(todo.priority ?? 'medium'))} aria-hidden />
+                {/* 왼쪽 컬러 바 — 캘린더에 표시된 일정 색상과 동일 */}
+                <div className={cn('w-1 shrink-0 self-stretch rounded-l-lg', eventColorMap.get(todo.id) ?? getPriorityBarColor(todo.priority ?? 'medium'))} aria-hidden />
                 <div className={cn('flex items-center gap-3 py-3.5 px-4 flex-1 min-w-0', isEditing && 'bg-black/[0.02] dark:bg-white/[0.03]')}>
                   {!isEditing && todo.status !== 'cancelled' && (
                     <button
@@ -467,16 +484,19 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
         )}
       </div>
 
-      {/* 모바일 안내: 날짜 길게 누르면 일정 추가 */}
+      {/* 모바일 안내: 하단 + 버튼으로만 일정 추가 */}
       {embedded && (
         <p className="text-xs font-normal text-theme-muted text-center py-2 md:hidden">
-          날짜를 <strong className="font-semibold text-theme">길게 누르면</strong> 일정 추가
+          하단 <strong className="font-semibold text-theme">+ 버튼</strong>으로 일정 추가
         </p>
       )}
 
-      {/* 하단 버튼 영역 — 비율 2:3, 세련된 스타일 */}
+      {/* 하단 버튼 영역 — 모바일에서 sticky로 항상 노출, safe-area 적용 */}
       <div
-        className="shrink-0 flex gap-3 pt-5 pb-2"
+        className={cn(
+          'shrink-0 flex gap-3 pt-5 pb-2',
+          'max-md:sticky max-md:bottom-0 max-md:z-10 max-md:pt-3 max-md:bg-theme max-md:border-t max-md:border-[var(--border-color)]'
+        )}
         style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}
       >
         {isTodaySelected && todos.length > 0 && (
@@ -493,9 +513,9 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
         )}
         <button
           type="button"
-          onClick={startNewTodo}
+          onClick={onOpenAddModal ?? startNewTodo}
           disabled={!!editingTodo}
-          className={cn(
+            className={cn(
             'btn-action-press py-3.5 rounded-lg text-sm font-semibold text-white bg-primary-button shadow-[var(--shadow-float-sm)] hover:shadow-[var(--shadow-float)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-button)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] active:scale-[0.98] disabled:transform-none flex items-center justify-center',
             isTodaySelected && todos.length > 0 ? 'flex-[3] min-w-0' : 'flex-1 min-w-0'
           )}

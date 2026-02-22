@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { Sparkles } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { formatDate, getCalendarDays, isSameDay } from '@/utils/dateUtils'
@@ -18,13 +18,8 @@ const WEEK_STARTS_MONDAY = false
 
 interface CalendarGridProps {
   onDateSelect?: () => void
-  onDateDoubleClick?: () => void
-  onDateLongPress?: (date: Date) => void
   allowFullHeight?: boolean
 }
-
-const DOUBLE_TAP_MS = 450
-const LONG_PRESS_MS = 500
 
 /** 주당 표시할 이벤트 행 수 — 일정 개수와 관계없이 날짜 영역 높이 일관 유지 */
 const MAX_EVENT_ROWS_PER_WEEK = 2
@@ -149,20 +144,99 @@ function buildWeekEventRows(
   return grid
 }
 
-export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLongPress, allowFullHeight }: CalendarGridProps) {
-  const { currentMonth, selectedDate, setSelectedDate, getTodosByDate, todos } = useCalendarStore()
-  const lastClickedDateRef = useRef<string>('')
-  const lastClickedTimeRef = useRef<number>(0)
-  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const longPressFiredRef = useRef(false)
-  const touchActiveRef = useRef(false)
+/** 주 단위 정렬·색 할당과 동일하게, 해당 날짜에 닿는 일정의 색상만 반환 (그리드와 완전 일치) */
+function getEventColorsForDayInWeek(
+  weekDates: Date[],
+  dateStr: string,
+  getTodosByDate: (dateStr: string) => Todo[],
+  multiSegments: { todo: Todo; startCol: number; endCol: number; colorClass: string }[]
+): string[] {
+  type Item = { kind: 'single'; dayIndex: number; todo: Todo; createdAt: string } | { kind: 'multi'; startCol: number; endCol: number; todo: Todo; createdAt: string }
+  const items: Item[] = []
+  weekDates.forEach((date, dayIndex) => {
+    const dStr = formatDate(date)
+    getTodosByDate(dStr)
+      .filter((t) => t.status !== 'cancelled' && (!t.endDate || t.endDate === t.date))
+      .forEach((todo) => {
+        items.push({ kind: 'single', dayIndex, todo, createdAt: todo.createdAt })
+      })
+  })
+  multiSegments.forEach((seg) => {
+    items.push({
+      kind: 'multi',
+      startCol: seg.startCol,
+      endCol: seg.endCol,
+      todo: seg.todo,
+      createdAt: seg.todo.createdAt,
+    })
+  })
+  items.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
 
-  useEffect(() => () => {
-    if (longPressTimeoutRef.current) {
-      clearTimeout(longPressTimeoutRef.current)
-      longPressTimeoutRef.current = null
+  const colIndex = weekDates.findIndex((d) => formatDate(d) === dateStr)
+  if (colIndex === -1) return []
+
+  const colors: string[] = []
+  items.forEach((item, idx) => {
+    let touches = false
+    if (item.kind === 'single') touches = item.dayIndex === colIndex
+    else touches = item.startCol <= colIndex && colIndex < item.endCol
+    if (touches) colors.push(EVENT_BLOCK_COLORS[idx % EVENT_BLOCK_COLORS.length])
+  })
+  return colors.slice(0, 4)
+}
+
+/** 해당 날짜에 캘린더 그리드와 동일한 순서·색상으로 일정별 색상 맵 반환 (DayDetailPanel 등에서 사용) */
+export function getEventColorMapForDay(
+  dateStr: string,
+  currentMonth: Date,
+  getTodosByDate: (dateStr: string) => Todo[],
+  todos: Todo[]
+): Map<string, string> {
+  const year = currentMonth.getFullYear()
+  const month = currentMonth.getMonth()
+  const days = getCalendarDays(year, month, WEEK_STARTS_MONDAY)
+  const weekRows: Date[][] = []
+  for (let i = 0; i < days.length; i += 7) weekRows.push(days.slice(i, i + 7))
+  const weekRow = weekRows.find((row) => row.some((d) => formatDate(d) === dateStr))
+  if (!weekRow) return new Map()
+  const multiSegments = getMultiDaySegmentsForWeek(weekRow, todos, month, year)
+  type Item = { kind: 'single'; dayIndex: number; todo: Todo; createdAt: string } | { kind: 'multi'; startCol: number; endCol: number; todo: Todo; createdAt: string }
+  const items: Item[] = []
+  weekRow.forEach((date, dayIndex) => {
+    const dStr = formatDate(date)
+    getTodosByDate(dStr)
+      .filter((t) => t.status !== 'cancelled' && (!t.endDate || t.endDate === t.date))
+      .forEach((todo) => {
+        items.push({ kind: 'single', dayIndex, todo, createdAt: todo.createdAt })
+      })
+  })
+  multiSegments.forEach((seg) => {
+    items.push({
+      kind: 'multi',
+      startCol: seg.startCol,
+      endCol: seg.endCol,
+      todo: seg.todo,
+      createdAt: seg.todo.createdAt,
+    })
+  })
+  items.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+  const colIndex = weekRow.findIndex((d) => formatDate(d) === dateStr)
+  if (colIndex === -1) return new Map()
+  const map = new Map<string, string>()
+  items.forEach((item, idx) => {
+    let touches = false
+    if (item.kind === 'single') touches = item.dayIndex === colIndex
+    else touches = item.startCol <= colIndex && colIndex < item.endCol
+    if (touches) {
+      const todo = item.kind === 'single' ? item.todo : item.todo
+      map.set(todo.id, EVENT_BLOCK_COLORS[idx % EVENT_BLOCK_COLORS.length])
     }
-  }, [])
+  })
+  return map
+}
+
+export default function CalendarGrid({ onDateSelect, allowFullHeight }: CalendarGridProps) {
+  const { currentMonth, selectedDate, setSelectedDate, getTodosByDate, todos } = useCalendarStore()
 
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
@@ -174,65 +248,20 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
     return rows
   }, [days])
 
-
   const handleDateClick = (date: Date) => {
-    if (longPressFiredRef.current) {
-      longPressFiredRef.current = false
-      return
-    }
-    const dateStr = formatDate(date)
-    const now = Date.now()
-    const lastTime = lastClickedTimeRef.current
-    const isDouble = lastTime > 0 && dateStr === lastClickedDateRef.current && now - lastTime < DOUBLE_TAP_MS
-
-    if (isDouble) {
-      setSelectedDate(date)
-      onDateDoubleClick?.()
-      lastClickedDateRef.current = ''
-      lastClickedTimeRef.current = 0
-      return
-    }
-    lastClickedDateRef.current = dateStr
-    lastClickedTimeRef.current = now
     setSelectedDate(date)
-    if (!onDateDoubleClick) onDateSelect?.()
-  }
-
-  const clearLongPress = () => {
-    if (longPressTimeoutRef.current) {
-      clearTimeout(longPressTimeoutRef.current)
-      longPressTimeoutRef.current = null
-    }
-  }
-
-  const startLongPress = (date: Date, fromTouch: boolean) => {
-    if (fromTouch) touchActiveRef.current = true
-    clearLongPress()
-    longPressFiredRef.current = false
-    longPressTimeoutRef.current = setTimeout(() => {
-      longPressTimeoutRef.current = null
-      longPressFiredRef.current = true
-      setSelectedDate(date)
-      onDateLongPress?.(date)
-    }, LONG_PRESS_MS)
-  }
-
-  const endLongPress = () => {
-    clearLongPress()
-    if (touchActiveRef.current) {
-      setTimeout(() => { touchActiveRef.current = false }, 400)
-    }
+    onDateSelect?.()
   }
 
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
   const weekDayColors = [
-    'text-orange-500',   // 일
-    'text-gray-600',    // 월
-    'text-gray-600',    // 화
-    'text-gray-600',    // 수
-    'text-gray-600',    // 목
-    'text-gray-600',    // 금
-    'text-blue-500',    // 토
+    'text-orange-500',       // 일
+    'text-gray-700 dark:text-gray-300',   // 월 — 배경에 묻히지 않도록 채도 강화
+    'text-gray-700 dark:text-gray-300',   // 화
+    'text-gray-700 dark:text-gray-300',   // 수
+    'text-gray-700 dark:text-gray-300',   // 목
+    'text-gray-700 dark:text-gray-300',   // 금
+    'text-blue-500',        // 토
   ]
 
   /** 일정 제목을 셀 안에서 쓸 수 있도록 짧게 자름 (한 줄 스택용, 한글 기준 약 5글자) */
@@ -249,17 +278,17 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
         allowFullHeight ? 'min-h-0 flex-1' : ''
       )}
     >
-      {/* 요일 헤더 — 일 주황, 토 파랑, 나머지 회색 */}
-      <div className="grid grid-cols-7 mb-2">
+      {/* 요일 헤더 — 캘린더 본체에 가깝게, 폰트 축소해 숫자가 주인공이 되도록 */}
+      <div className="grid grid-cols-7 gap-1 mb-1.5 calendar-weekday-row">
         {weekDays.map((day, i) => (
-          <div key={day} className={cn('text-center text-[11px] font-medium py-1', weekDayColors[i])}>
+          <div key={day} className={cn('text-center text-[10px] font-medium py-0.5 text-theme-muted', weekDayColors[i])}>
             {day}
           </div>
         ))}
       </div>
 
-      {/* 주 단위: 날짜 행 + 배치 순서(createdAt)대로 단일/멀티 일정 행 */}
-      <div className="flex flex-col gap-0.5 sm:gap-1">
+      {/* 주 단위: 날짜 행 + 배치 순서(createdAt)대로 단일/멀티 일정 행 — 행 간격 1.5배 */}
+      <div className="flex flex-col gap-3">
         {weekRows.map((weekDates, weekIndex) => {
           const multiSegments = getMultiDaySegmentsForWeek(weekDates, todos, month, year)
           const allEventRows = buildWeekEventRows(weekDates, getTodosByDate, multiSegments)
@@ -279,9 +308,9 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
             }
           }
           return (
-            <div key={`${weekIndex}-${allEventRows.length}-${hiddenCount}`} className="flex flex-col gap-1 sm:gap-0.5">
-              {/* 날짜 행 — 이벤트와 겹치지 않도록 아래쪽 여백 확보 */}
-              <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
+            <div key={`${weekIndex}-${allEventRows.length}-${hiddenCount}`} className="flex flex-col gap-3">
+              {/* 날짜 행 — 연한 그리드선으로 터치 영역 시각화, 요일과 열 정렬 */}
+              <div className="grid grid-cols-7 gap-0 calendar-date-grid">
                 {weekDates.map((date) => {
                   const isCurrentMonthDay = date.getMonth() === month
                   const dateStr = formatDate(date)
@@ -289,49 +318,61 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
                   const isSelected = isSameDay(date, selectedDate)
                   const isToday = dateStr === formatDate(new Date())
                   const dayOfWeek = date.getDay()
+                  /** 그리드와 동일한 주 단위 정렬·색 할당으로 일치 (22–24일 보라 멀티데이 → 보라 바) */
+                  const eventColorsForDay = getEventColorsForDayInWeek(weekDates, dateStr, getTodosByDate, multiSegments)
 
                   if (!isCurrentMonthDay) {
-                    return <div key={`empty-${date.getTime()}`} className="aspect-square min-h-[44px] rounded-tool" aria-hidden />
+                    return <div key={`empty-${date.getTime()}`} className="aspect-square min-h-[48px] calendar-date-cell-empty" aria-hidden />
                   }
 
                   return (
                     <button
                       key={dateStr}
                       type="button"
+                      data-date={dateStr}
                       onClick={() => handleDateClick(date)}
-                      onTouchStart={() => onDateLongPress && startLongPress(date, true)}
-                      onTouchEnd={endLongPress}
-                      onTouchCancel={endLongPress}
-                      onMouseDown={() => {
-                        if (!touchActiveRef.current) onDateLongPress && startLongPress(date, false)
-                      }}
-                      onMouseUp={endLongPress}
-                      onMouseLeave={endLongPress}
-                      title={onDateLongPress ? '길게 누르면 일정 추가' : allOnDay.map((t) => t.title).join(', ') || undefined}
+                      title={allOnDay.map((t) => t.title).join(', ') || undefined}
+                      style={isSelected ? { borderRadius: '14px' } : undefined}
                       className={cn(
-                        'btn-ghost-tap relative overflow-hidden aspect-square min-h-[44px] flex flex-col items-center justify-center rounded-tool',
-                        isSelected && 'calendar-date-selected',
+                        'btn-ghost-tap relative overflow-hidden aspect-square min-h-[48px] flex flex-col items-stretch justify-between calendar-date-cell pt-1.5 pb-1 px-1.5',
+                        isSelected && 'calendar-date-selected calendar-date-selected-rounded',
+                        isToday && 'calendar-date-today',
                         !isSelected && 'hover:bg-gray-50 dark:hover:bg-white/5'
                       )}
                     >
-                      <span
-                        className={cn(
-                          'text-[20px] sm:text-lg tabular-nums shrink-0 flex items-center justify-center w-9 h-9 rounded-tool font-semibold transition-colors',
-                          isToday && !isSelected && 'calendar-today-badge',
-                          !isSelected && !isToday && dayOfWeek === 0 && 'text-orange-500',
-                          !isSelected && !isToday && dayOfWeek === 6 && 'text-blue-500',
-                          !isSelected && !isToday && dayOfWeek !== 0 && dayOfWeek !== 6 && 'text-gray-600 dark:text-gray-400'
-                        )}
-                      >
-                        {date.getDate()}
-                      </span>
+                      {/* 숫자: 오늘=포인트 색, 그 외 요일별 색상 */}
+                      <div className="flex items-center justify-start shrink-0">
+                        <span
+                          className={cn(
+                            'text-[22px] sm:text-xl tabular-nums transition-colors',
+                            isToday && 'text-[var(--primary-point)] font-semibold',
+                            !isToday && dayOfWeek === 0 && 'text-orange-500 font-semibold',
+                            !isToday && dayOfWeek === 6 && 'text-blue-500 font-semibold',
+                            !isToday && dayOfWeek !== 0 && dayOfWeek !== 6 && 'text-gray-700 dark:text-gray-300 font-semibold'
+                          )}
+                          aria-label={isToday ? '오늘' : undefined}
+                        >
+                          {date.getDate()}
+                        </span>
+                      </div>
+                      {/* 일정 인디케이터: 우측 하단 작은 점으로 숫자를 가리지 않음 */}
+                      {eventColorsForDay.length > 0 && (
+                        <div className="absolute bottom-1.5 right-1.5 flex gap-0.5 flex-row-reverse" aria-hidden>
+                          {eventColorsForDay.slice(0, 4).map((colorClass, i) => (
+                            <span
+                              key={i}
+                              className={cn('w-1.5 h-1.5 rounded-full shrink-0', colorClass)}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </button>
                   )
                 })}
               </div>
-              {/* 이벤트 영역: 고정 높이로 주별 블록 높이 일관 유지 */}
+              {/* 이벤트 영역: 행 간격 1.5배 유지, 열은 gap-1로 가독성 확보 */}
               <div
-                className="grid grid-cols-7 gap-x-0.5 gap-y-1.5 sm:gap-y-1"
+                className="grid grid-cols-7 gap-1 gap-y-1.5 sm:gap-y-1"
                 style={{ gridTemplateRows: `repeat(${FIXED_EVENT_ROW_COUNT}, ${ROW_HEIGHT_PX}px)` }}
               >
                 {eventRows.map((row, rowIndex) =>
@@ -351,7 +392,7 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
                         <div
                           key={`${rowIndex}-${colIndex}`}
                           className={cn(
-'min-h-[22px] rounded-tool px-1.5 py-1 flex items-center gap-1 text-[12px] sm:text-sm font-medium text-white overflow-hidden',
+'min-h-[22px] rounded-sm px-1.5 py-1 flex items-center gap-1 text-[12px] sm:text-sm font-medium text-white overflow-hidden',
                               cell.colorClass
                           )}
                           style={style}
@@ -367,7 +408,7 @@ export default function CalendarGrid({ onDateSelect, onDateDoubleClick, onDateLo
                       <div
                         key={`${rowIndex}-${colIndex}`}
                         className={cn(
-                          'min-h-[22px] rounded-tool px-1.5 py-1 flex items-center gap-1 text-[12px] sm:text-sm font-medium text-white overflow-hidden',
+                          'min-h-[22px] rounded-sm px-1.5 py-1 flex items-center gap-1 text-[12px] sm:text-sm font-medium text-white overflow-hidden',
                           segment.colorClass
                         )}
                         style={style}

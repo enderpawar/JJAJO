@@ -93,3 +93,18 @@ export function formatTime(time: string): string {
 export function isToday(date: Date): boolean {
   return isSameDay(date, new Date())
 }
+
+/**
+ * 해당 날짜가 포함된 주의 7일(일요일~토요일)을 반환
+ */
+export function getWeekDates(date: Date): Date[] {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const day = d.getDay()
+  d.setDate(d.getDate() - day)
+  const out: Date[] = []
+  for (let i = 0; i < 7; i++) {
+    out.push(new Date(d))
+    d.setDate(d.getDate() + 1)
+  }
+  return out
+}

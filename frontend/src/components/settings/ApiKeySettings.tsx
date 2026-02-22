@@ -3,7 +3,12 @@ import { Key, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 import { apiKeyService } from '@/services/apiKeyService'
 import { useApiKeyStore } from '@/stores/apiKeyStore'
 
-export function ApiKeySettings() {
+interface ApiKeySettingsProps {
+  /** 컴팩트 모드: 카드 레이아웃, 입력/버튼 바로 표시 */
+  compact?: boolean
+}
+
+export function ApiKeySettings({ compact = false }: ApiKeySettingsProps) {
   const { apiKey, setApiKey, clearApiKey } = useApiKeyStore()
 
   const [inputKey, setInputKey] = useState(apiKey ?? '')
@@ -62,16 +67,30 @@ export function ApiKeySettings() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-1">
-        <Key className="w-5 h-5 text-primary-500" />
-        <h3 className="text-base font-semibold text-theme">
-          Gemini API 키 설정
-        </h3>
-      </div>
-      <p className="text-xs text-theme-muted">
-        API 키는 브라우저의 로컬 저장소에만 저장되며, 로그인한 계정(userId)마다 별도로 보관돼요.
-      </p>
+    <div className={compact ? 'neu-float rounded-neu theme-transition bg-theme-card p-3 space-y-3' : 'space-y-4'}>
+      {compact ? (
+        <>
+          <h3 className="text-sm font-semibold text-theme flex items-center gap-2">
+            <Key className="w-4 h-4 text-primary-500" />
+            Gemini API 키 설정
+          </h3>
+          <p className="text-xs text-theme-muted">
+            API 키는 브라우저에만 저장되며, 계정마다 별도 보관돼요.
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="flex items-center gap-2 mb-1">
+            <Key className="w-5 h-5 text-primary-500" />
+            <h3 className="text-base font-semibold text-theme">
+              Gemini API 키 설정
+            </h3>
+          </div>
+          <p className="text-xs text-theme-muted">
+            API 키는 브라우저의 로컬 저장소에만 저장되며, 로그인한 계정(userId)마다 별도로 보관돼요.
+          </p>
+        </>
+      )}
 
       <div className="space-y-3">
         <div>

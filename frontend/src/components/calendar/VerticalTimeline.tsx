@@ -2,9 +2,10 @@ import { useMemo, useState, useEffect, useRef, useCallback, type MutableRefObjec
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useToastStore } from '@/stores/toastStore'
 import { updateSchedule, deleteSchedule, createSchedule } from '@/services/scheduleService'
+import { hapticSuccess } from '@/utils/haptic'
 import { Clock, Edit2, Trash2, ChevronDown, History, CheckSquare, Square } from 'lucide-react'
 import { format } from 'date-fns'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { Todo } from '../../types/calendar'
 
 interface DragPreview {
@@ -56,8 +57,13 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
   const draggingTaskIdRef = useRef<string | null>(null)
   const pendingReplaceRef = useRef<{ tempId: string; created: Todo } | null>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
+  const timelineContentRef = useRef<HTMLDivElement>(null)
   const hasAutoScrolled = useRef(false)
   const createdAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastTapTimeRef = useRef(0)
+  const lastTapYRef = useRef(0)
+  const DOUBLE_TAP_MS = 400
+  const DOUBLE_TAP_Y_SLOP = 60
   useEffect(() => {
     if (editingTodo) {
       setRenameInputValue(editingTodo.title ?? '')
@@ -219,13 +225,10 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     return gaps
   }, [todayTodos])
 
-  const handleDoubleClickEmpty = useCallback(
-    async (e: React.MouseEvent<HTMLDivElement>) => {
-      const target = e.target as HTMLElement
-      if (target.closest('.task-card') || target.closest('.ghost-block')) return
-
-      const rect = e.currentTarget.getBoundingClientRect()
-      const clickY = e.clientY - rect.top
+  /** 빈 시간대에 일정 추가 (clientY + rect로 위치 계산). 마우스 더블클릭·터치 더블탭 공용 */
+  const addTodoAtPosition = useCallback(
+    (clientY: number, rect: DOMRect) => {
+      const clickY = clientY - rect.top
       const clickedMinutes = Math.round((clickY / 100) * 60)
 
       const gap = gapsForDay.find(g => g.start <= clickedMinutes && clickedMinutes < g.end)
@@ -284,7 +287,6 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
           if (isDraggingRef.current && draggingTaskIdRef.current === tempId) {
             pendingReplaceRef.current = { tempId, created }
           } else {
-            // 드래그를 이미 끝낸 경우: 스토어에 있는 최신 위치(드래그 결과)를 반영
             const currentTodos = useCalendarStore.getState().todos
             const currentTodo = currentTodos.find((t) => t.id === tempId)
             const wasDragged =
@@ -315,6 +317,48 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         })
     },
     [gapsForDay, dateStr, addTodo, deleteTodo, addToast, setEditingTodo]
+  )
+
+  const handleDoubleClickEmpty = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement
+      if (target.closest('.task-card') || target.closest('.ghost-block')) return
+      addTodoAtPosition(e.clientY, e.currentTarget.getBoundingClientRect())
+    },
+    [addTodoAtPosition]
+  )
+
+  /** 터치 더블탭으로 빈 시간대에 일정 추가 (모바일) */
+  const handleTouchEndEmpty = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement
+      if (target.closest('.task-card') || target.closest('.ghost-block')) return
+
+      const touch = e.changedTouches[0]
+      if (!touch) return
+
+      const el = timelineContentRef.current
+      if (!el) return
+
+      const clientY = touch.clientY
+      const rect = el.getBoundingClientRect()
+      const now = Date.now()
+
+      if (
+        now - lastTapTimeRef.current <= DOUBLE_TAP_MS &&
+        Math.abs(clientY - lastTapYRef.current) <= DOUBLE_TAP_Y_SLOP
+      ) {
+        e.preventDefault()
+        lastTapTimeRef.current = 0
+        lastTapYRef.current = 0
+        addTodoAtPosition(clientY, rect)
+        hapticSuccess()
+      } else {
+        lastTapTimeRef.current = now
+        lastTapYRef.current = clientY
+      }
+    },
+    [addTodoAtPosition]
   )
 
   useEffect(() => {
@@ -476,7 +520,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         animate={isJustCreated ? { scale: 1, opacity: 1 } : { opacity: 1 }}
         transition={isJustCreated ? { type: 'spring', stiffness: 380, damping: 26 } : undefined}
         className={`
-          task-card group absolute left-[calc(3rem+2.5%)] right-[calc(1.5rem+2.5%)] sm:left-[calc(3.5rem+2.5%)] sm:right-[calc(1.5rem+2.5%)] cursor-pointer active:cursor-grabbing overflow-hidden touch-none
+          task-card group absolute left-[calc(5rem+2.5%)] right-[calc(3rem+2.5%)] sm:left-[calc(5.5rem+2.5%)] sm:right-[calc(3.5rem+2.5%)] cursor-pointer active:cursor-grabbing overflow-hidden touch-none
           bg-theme-card theme-transition
           ${isEditingThisTask ? 'rounded-xl' : ''}
           ${isCurrent ? 'task-card-active' : ''}
@@ -545,12 +589,17 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
             <span className="text-2xl font-black text-white animate-pulse whitespace-nowrap">{dragPreview.endTime}</span>
           </div>
         )}
-        {/* 진행 중: 카드 전체를 좌→우로 채워지는 진행률 */}
+        {/* 진행 중: 카드 전체를 좌→우로 채워지는 진행률 (모바일에서도 PC와 동일하게 좌→우 채움) */}
         {isCurrent && (
-          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-[inherit]">
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-[inherit]" style={{ minHeight: 0 }}>
             <div
-              className="h-full bg-[var(--primary-point)] transition-all duration-1000 ease-out"
-              style={{ width: `${progress}%`, opacity: 0.18 }}
+              className="absolute left-0 top-0 bottom-0 bg-[var(--primary-point)] transition-[width] duration-1000 ease-out"
+              style={{
+                width: `${Math.min(100, Math.max(0, progress))}%`,
+                opacity: 0.18,
+                minWidth: 0,
+                transform: 'translateZ(0)',
+              }}
             />
           </div>
         )}
@@ -734,7 +783,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     return (
       <motion.div
         key={task.id}
-        className="ghost-block ghost-block-pattern absolute left-[calc(3rem+2.5%)] right-[calc(1.5rem+2.5%)] sm:left-[calc(3.5rem+2.5%)] sm:right-[calc(1.5rem+2.5%)] pointer-events-none rounded-neu border-[1.5px] border-dashed border-orange-400/80 bg-orange-400/5 theme-transition"
+        className="ghost-block ghost-block-pattern absolute left-[calc(5rem+2.5%)] right-[calc(3rem+2.5%)] sm:left-[calc(5.5rem+2.5%)] sm:right-[calc(3.5rem+2.5%)] pointer-events-none rounded-neu border-[1.5px] border-dashed border-orange-400/80 bg-orange-400/5 theme-transition"
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.1, duration: 0.2 }}
@@ -759,79 +808,95 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
 
   return (
     <>
-    <div ref={timelineRef} className="timeline-scroll flex-1 min-h-0 theme-transition bg-theme relative">
-      {showPastTime && (
-        <div className="sticky top-0 left-0 right-0 z-[100] bg-gradient-to-b from-[var(--bg-color)] via-[var(--bg-color)] to-transparent pb-4 pt-4 theme-transition">
-          <div className="mx-3 sm:mx-4">
-            <button
-              type="button"
-              onClick={() => setShowPastTime(false)}
-              className="btn-action-press touch-target w-full min-h-[44px] bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-neu active:scale-[0.98] flex items-center justify-center gap-3 cursor-pointer"
-            >
-              <Clock className="w-5 h-5" />
-              <span>이전 기록 접기 (현재 시간으로 돌아가기) ↑</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {!showPastTime && currentTimePosition > 0 && (() => {
-        const pastTodos = todayTodos.filter(task => timeToPixels(task.endTime!) <= currentTimePosition)
-        const pastMinutes = getMinutesDiff(0, currentTimePosition)
-        const hours = Math.floor(pastMinutes / 60)
-        const minutes = Math.round(pastMinutes % 60)
-        const timeLabel = hours > 0 ? `${hours}시간 ${minutes > 0 ? minutes + '분' : ''}` : `${minutes}분`
-        const dayTotalPx = 24 * 100
-        const elapsedPercent = Math.min(100, (currentTimePosition / dayTotalPx) * 100)
-        return (
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => setShowPastTime(true)}
-            onKeyDown={(e) => e.key === 'Enter' && setShowPastTime(true)}
-            className="btn-ghost-tap touch-target mx-3 sm:mx-4 mb-0 rounded-neu cursor-pointer overflow-hidden shadow-neu-float-date hover:shadow-neu-inset-hover active:scale-[0.98] min-h-[300px] flex flex-col items-stretch justify-center"
-            style={{ position: 'relative', zIndex: 100 }}
+    <div ref={timelineRef} className="timeline-scroll flex-1 min-h-0 theme-transition bg-theme relative pl-5 pr-3 sm:px-4">
+      <AnimatePresence mode="wait">
+        {showPastTime && (
+          <motion.div
+            key="past-expanded-bar"
+            className="sticky top-0 left-0 right-0 z-[100] bg-gradient-to-b from-[var(--bg-color)] via-[var(--bg-color)] to-transparent pt-4 pb-4 theme-transition"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
           >
-            <div className="flex items-center justify-center gap-3 px-4 py-3">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-500/10 flex items-center justify-center">
-                <History className="w-5 h-5 text-primary-500" aria-hidden />
-              </div>
-              <div className="text-left flex-1 min-w-0">
-                <div className="text-sm font-bold text-theme">
-                  이전 기록: {timeLabel} ({pastTodos.length === 0 ? '일정 없음' : `${pastTodos.length}개 일정`})
-                </div>
-                <div className="text-xs text-theme font-medium mt-0.5">
-                  00:00 ~ {format(currentTime, 'HH:mm')} · <span className="text-primary-500">👆 클릭하여 이전 시간대 보기</span>
-                </div>
-              </div>
+            <div className="mx-3 sm:mx-4 pb-1">
+              <button
+                type="button"
+                onClick={() => setShowPastTime(false)}
+                className="btn-action-press touch-target w-full min-h-[44px] bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-neu active:scale-[0.98] flex items-center justify-center gap-3 cursor-pointer"
+              >
+                <Clock className="w-5 h-5" />
+                <span>이전 기록 접기 (현재 시간으로 돌아가기) ↑</span>
+              </button>
             </div>
-            <div className="px-4 pb-3 pt-0">
-              <div className="flex flex-col gap-1.5">
-                <div className="h-2 rounded-full overflow-hidden border border-[var(--border-color)] bg-[var(--card-bg)]">
-                  <div
-                    className="h-full bg-[var(--primary-point)] rounded-full transition-all duration-500 ease-out"
-                    style={{ width: `${elapsedPercent}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-xs font-medium text-theme">
-                  <span>오늘의 흐른 시간</span>
-                  <span className="tabular-nums text-[var(--primary-point)]">{elapsedPercent.toFixed(0)}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
+          </motion.div>
+        )}
 
-        <div
-          className="relative transition-all duration-500 theme-transition bg-theme"
-        style={{
-          height: `${timelineHeight}px`,
-          marginTop: !showPastTime ? `-${currentTimePosition - 100}px` : '0px',
-        }}
-        onDoubleClick={handleDoubleClickEmpty}
-        title="빈 칸을 더블클릭하면 일정을 추가할 수 있어요"
-      >
+        {!showPastTime && currentTimePosition > 0 && (() => {
+          const pastTodos = todayTodos.filter(task => timeToPixels(task.endTime!) <= currentTimePosition)
+          const pastMinutes = getMinutesDiff(0, currentTimePosition)
+          const hours = Math.floor(pastMinutes / 60)
+          const minutes = Math.round(pastMinutes % 60)
+          const timeLabel = hours > 0 ? `${hours}시간 ${minutes > 0 ? minutes + '분' : ''}` : `${minutes}분`
+          const dayTotalPx = 24 * 100
+          const elapsedPercent = Math.min(100, (currentTimePosition / dayTotalPx) * 100)
+          return (
+            <motion.div
+              key="past-collapsed-card"
+              role="button"
+              tabIndex={0}
+              onClick={() => setShowPastTime(true)}
+              onKeyDown={(e) => e.key === 'Enter' && setShowPastTime(true)}
+              className="btn-ghost-tap touch-target mx-3 sm:mx-4 mb-0 rounded-neu cursor-pointer overflow-hidden shadow-neu-float-date hover:shadow-neu-inset-hover active:scale-[0.98] min-h-[300px] flex flex-col items-stretch justify-center"
+              style={{ position: 'relative', zIndex: 100 }}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+            >
+              <div className="flex items-center justify-center gap-3 px-4 py-3">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-500/10 flex items-center justify-center">
+                  <History className="w-5 h-5 text-primary-500" aria-hidden />
+                </div>
+                <div className="text-left flex-1 min-w-0">
+                  <div className="text-sm font-bold text-theme">
+                    이전 기록: {timeLabel} ({pastTodos.length === 0 ? '일정 없음' : `${pastTodos.length}개 일정`})
+                  </div>
+                  <div className="text-xs text-theme font-medium mt-0.5">
+                    00:00 ~ {format(currentTime, 'HH:mm')} · <span className="text-primary-500">👆 클릭하여 이전 시간대 보기</span>
+                  </div>
+                </div>
+              </div>
+              <div className="px-4 pb-3 pt-0">
+                <div className="flex flex-col gap-1.5">
+                  <div className="h-2 rounded-full overflow-hidden border border-[var(--border-color)] bg-[var(--card-bg)]">
+                    <div
+                      className="h-full bg-[var(--primary-point)] rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${elapsedPercent}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-xs font-medium text-theme">
+                    <span>오늘의 흐른 시간</span>
+                    <span className="tabular-nums text-[var(--primary-point)]">{elapsedPercent.toFixed(0)}%</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )
+        })()}
+      </AnimatePresence>
+
+        <motion.div
+          ref={timelineContentRef}
+          className="relative theme-transition bg-theme"
+          style={{ height: `${timelineHeight}px` }}
+          initial={false}
+          animate={{ marginTop: !showPastTime ? -Math.max(0, currentTimePosition - 100) : 0 }}
+          transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+          onDoubleClick={handleDoubleClickEmpty}
+          onTouchEnd={handleTouchEndEmpty}
+          title="하단 + 버튼으로 일정을 추가할 수 있어요"
+        >
         {/* 그리드 레이어: 클릭은 부모(타임라인 컨테이너)로 전달되도록 pointer-events-none */}
         <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
           {Array.from({ length: 25 }, (_, i) => {
@@ -872,7 +937,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
             style={{ height: `${currentTimePosition}px`, zIndex: 2 }}
           />
         )}
-      </div>
+      </motion.div>
     </div>
 
     </>

@@ -23,13 +23,19 @@ interface HeaderProps {
   weekStripExpanded?: boolean
   /** 주간 날짜 strip 펼치기/접기 토글 */
   onToggleWeekStrip?: () => void
+  /** 설정 모달 제어 (모바일 하단 탭 등에서 열 때 사용) */
+  isSettingsOpen?: boolean
+  onSettingsOpenChange?: (open: boolean) => void
 }
 
-export default function Header({ onOpenImportTimetable, onSwitchToWeekView, weekStripExpanded, onToggleWeekStrip }: HeaderProps) {
+export default function Header({ onOpenImportTimetable, onSwitchToWeekView, weekStripExpanded, onToggleWeekStrip, isSettingsOpen: isSettingsOpenProp, onSettingsOpenChange }: HeaderProps) {
   const { copyTodosFromPreviousDay, addTodos, selectedDate, isBulkSavingTimetable, getTodosByDate, deleteTodo, addTodo, viewMode, setViewMode, currentMonth, setCurrentMonth } = useCalendarStore()
   const { addToast } = useToastStore()
   const { theme, toggleTheme, initTheme } = useSettingsStore()
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [internalSettingsOpen, setInternalSettingsOpen] = useState(false)
+  const isControlled = onSettingsOpenChange != null
+  const isSettingsOpen = isControlled ? (isSettingsOpenProp ?? false) : internalSettingsOpen
+  const setIsSettingsOpen = isControlled ? onSettingsOpenChange : setInternalSettingsOpen
   const [isCopying, setIsCopying] = useState(false)
   const [showResetDayConfirm, setShowResetDayConfirm] = useState(false)
   const [isResettingDay, setIsResettingDay] = useState(false)
@@ -163,109 +169,122 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
     setCurrentMonth(d)
   }
 
+  const touchStartXRef = useRef<number>(0)
+  const handleDateBarTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX
+  }
+  const handleDateBarTouchEnd = (e: React.TouchEvent) => {
+    const endX = e.changedTouches[0].clientX
+    const delta = endX - touchStartXRef.current
+    if (delta > 50) handlePrevMonth()
+    else if (delta < -50) handleNextMonth()
+  }
+
+  /** 연월 피커 블록 — 단일 행 헤더용 컴팩트(모바일) + 스와이프 지원 */
+  const datePickerBlock = (
+    <div
+      className="inline-flex items-center gap-0.5 sm:gap-2 px-1.5 py-1 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl bg-[var(--card-bg)] shadow-[var(--shadow-float-sm)] max-md:bg-[var(--hover-bg)]/60 max-md:shadow-none max-md:py-1.5 max-md:px-2"
+      onTouchStart={handleDateBarTouchStart}
+      onTouchEnd={handleDateBarTouchEnd}
+    >
+      <button
+        type="button"
+        onClick={handlePrevMonth}
+        className="btn-nav-tap touch-target w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-main)] transition-colors shrink-0"
+        aria-label="이전 달"
+      >
+        <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+      </button>
+      <span className="min-w-[4.5rem] sm:min-w-[6.5rem] text-center text-sm font-bold sm:text-2xl sm:font-semibold tabular-nums text-[var(--text-main)] tracking-tight whitespace-nowrap px-0.5">
+        {format(currentMonth, 'M월 yyyy', { locale: ko })}
+      </span>
+      <button
+        type="button"
+        onClick={handleNextMonth}
+        className="btn-nav-tap touch-target w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-main)] transition-colors shrink-0"
+        aria-label="다음 달"
+      >
+        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+      </button>
+    </div>
+  )
+
   return (
-    <header className="relative z-30 theme-transition border-b border-[var(--border-color)] bg-[var(--card-bg)]" style={{ isolation: 'isolate' }}>
-      <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 min-h-[5rem] flex flex-col justify-center">
-        <div className="flex items-center h-[52px] sm:h-[56px] gap-2 sm:gap-3">
-          {/* 왼쪽: 짜조 로고 + 오늘·주간 날짜 (동일 너비로 중앙 정렬용) */}
-          <div className="flex-1 min-w-0 flex items-center justify-start">
-            <div className="flex items-center gap-2.5 shrink-0">
-              <div className="relative flex items-center gap-0.5" aria-hidden>
-                <span className="w-6 h-6 rounded-tool shadow-sm bg-[var(--primary-point)]" />
-                <span className="w-6 h-6 rounded-tool -ml-2 mt-1 shadow-sm opacity-90" style={{ background: 'var(--primary-gradient)' }} />
-              </div>
-              <div className="flex flex-col leading-tight">
-                <span className="text-lg font-bold text-[var(--text-main)] tracking-tight">짜조</span>
-                <span className="text-[10px] font-medium text-[var(--text-muted)]">일정 짜줘</span>
-              </div>
+    <header className="relative z-30 theme-transition bg-[var(--card-bg)]" style={{ isolation: 'isolate' }}>
+      <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 sm:pb-3 min-h-[3.25rem] sm:min-h-[5rem] flex flex-col justify-center">
+        {/* 단일 행: 왼쪽 로고 / 중앙 연월 / 오른쪽 아이콘 (모바일·데스크톱 동일) */}
+        <div className="flex flex-row items-center gap-2 md:relative md:h-14 md:gap-0">
+          {/* 왼쪽: 로고 + 짜조 + (주간 시 주간 날짜 토글) */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0">
+            <div className="relative flex items-center gap-0.5 shrink-0" aria-hidden>
+              <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-tool shadow-sm bg-[var(--primary-point)]" />
+              <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-tool -ml-1.5 sm:-ml-2 mt-0.5 sm:mt-1 shadow-sm opacity-90" style={{ background: 'var(--primary-gradient)' }} />
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2 ml-1 sm:ml-2">
-              {viewMode === 'week' && onToggleWeekStrip && (
-                <button
-                  type="button"
-                  onClick={onToggleWeekStrip}
-                  className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-tool transition-colors text-[var(--text-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-main)]"
-                  aria-expanded={weekStripExpanded ?? false}
-                  aria-label={weekStripExpanded ? '주간 날짜 접기' : '주간 날짜 펼치기'}
-                  title={weekStripExpanded ? '일~월 날짜 접기' : '일~월 날짜 펼치기'}
-                >
-                  {weekStripExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  <span className="hidden sm:inline text-xs">주간 날짜</span>
-                </button>
-              )}
+            <div className="flex flex-col leading-tight min-w-0">
+              <span className="text-sm sm:text-lg font-bold text-[var(--text-main)] tracking-tight truncate">짜조</span>
+              <span className="text-[10px] font-medium text-[var(--text-muted)] hidden sm:block">일정 짜줘</span>
             </div>
-          </div>
-
-          {/* 정중앙: 연월 표시 + 이전/다음 (헤더 정확한 중앙) */}
-          <div className="flex flex-1 min-w-0 items-center justify-center">
-            <div className="inline-flex items-center gap-1 sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-[var(--hover-bg)]/70 border border-[var(--border-color)]/80 shadow-[var(--shadow-float-sm)] shrink-0">
+            {viewMode === 'week' && onToggleWeekStrip && (
               <button
                 type="button"
-                onClick={handlePrevMonth}
-                className="btn-nav-tap w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--card-bg)] hover:text-[var(--text-main)] transition-colors shrink-0"
-                aria-label="이전 달"
+                onClick={onToggleWeekStrip}
+                className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-tool transition-colors text-[var(--text-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-main)]"
+                aria-expanded={weekStripExpanded ?? false}
+                aria-label={weekStripExpanded ? '주간 날짜 접기' : '주간 날짜 펼치기'}
+                title={weekStripExpanded ? '일~월 날짜 접기' : '일~월 날짜 펼치기'}
               >
-                <ChevronLeft className="w-5 h-5" />
+                {weekStripExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                <span className="hidden sm:inline text-xs">주간 날짜</span>
               </button>
-              <span className="min-w-[5rem] sm:min-w-[6.5rem] text-center text-xl sm:text-2xl font-semibold tabular-nums text-[var(--text-main)] tracking-tight whitespace-nowrap">
-                {format(currentMonth, 'M월 yyyy', { locale: ko })}
-              </span>
-              <button
-                type="button"
-                onClick={handleNextMonth}
-                className="btn-nav-tap w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--card-bg)] hover:text-[var(--text-main)] transition-colors shrink-0"
-                aria-label="다음 달"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
+            )}
           </div>
-
-          {/* 오른쪽: 캘린더/할일 토글 + 아이콘들 (동일 너비로 중앙 정렬용) */}
-          <div className="flex flex-1 min-w-0 items-center justify-end gap-3 sm:gap-4">
-            <div className="view-mode-segmented" role="group" aria-label="캘린더 / 할일 보기 전환">
-              <div className="view-mode-segmented-track">
-                <span
-                  className="view-mode-segmented-pill"
-                  data-active={viewMode === 'week'}
-                  aria-hidden
-                />
-                <button
-                  type="button"
-                  onClick={() => setViewMode('month')}
-                  className={cn(
-                    'view-mode-segmented-btn',
-                    viewMode === 'month' && 'view-mode-segmented-btn-active'
-                  )}
-                  aria-pressed={viewMode === 'month'}
-                  aria-label="캘린더 보기"
-                  title="캘린더 보기"
-                >
-                  캘린더
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSwitchToWeekView?.()
-                    setViewMode('week')
-                  }}
-                  className={cn(
-                    'view-mode-segmented-btn',
-                    viewMode === 'week' && 'view-mode-segmented-btn-active'
-                  )}
-                  aria-pressed={viewMode === 'week'}
-                  aria-label="할일 보기"
-                  title="할일 보기"
-                >
-                  할일
-                </button>
+          {/* 중앙: 연월 피커 (모바일은 flex로 중앙, md는 절대 위치 중앙) */}
+          <div className="flex-1 flex justify-center min-w-0 md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:z-10 md:flex-initial">
+            {datePickerBlock}
+          </div>
+          {/* 오른쪽: 뷰 전환(md만) + 메뉴 + 테마 + 설정(md만) */}
+          <div className="flex items-center justify-end gap-1.5 sm:gap-3 md:gap-4 shrink-0">
+              <div className="hidden md:flex items-center gap-3 md:gap-4">
+                <div className="view-mode-segmented" role="group" aria-label="캘린더 / 할일 보기 전환">
+                  <div className="view-mode-segmented-track">
+                    <span className="view-mode-segmented-pill" data-active={viewMode === 'week'} aria-hidden />
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('month')}
+                      className={cn('view-mode-segmented-btn', viewMode === 'month' && 'view-mode-segmented-btn-active')}
+                      aria-pressed={viewMode === 'month'}
+                      aria-label="캘린더 보기"
+                      title="캘린더 보기"
+                    >
+                      캘린더
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { onSwitchToWeekView?.(); setViewMode('week') }}
+                      className={cn('view-mode-segmented-btn', viewMode === 'week' && 'view-mode-segmented-btn-active')}
+                      aria-pressed={viewMode === 'week'}
+                      aria-label="할일 보기"
+                      title="할일 보기"
+                    >
+                      할일
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-color)]"
+              aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+              title={theme === 'dark' ? '라이트 모드' : '다크 모드'}
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             <Menu as="div" className="relative">
               <Menu.Button
                 type="button"
-                className="btn-icon-tap w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-main)] border border-[var(--border-color)]"
-                aria-label="일정 메뉴"
+className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-main)] border border-[var(--border-color)]"
+              aria-label="일정 메뉴"
               >
                 <MoreVertical className="w-4 h-4" />
               </Menu.Button>
@@ -341,19 +360,11 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
                 </div>
               </Menu.Items>
             </Menu>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="btn-icon-tap w-9 h-9 rounded-tool flex items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-color)]"
-              aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
-              title={theme === 'dark' ? '라이트 모드' : '다크 모드'}
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
+            {/* 모바일에서는 하단 탭에서 설정 가능하므로 헤더 설정 버튼 숨김 */}
             <button
               type="button"
               onClick={() => setIsSettingsOpen(true)}
-              className="btn-icon-tap w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-main)] border border-[var(--border-color)]"
+              className="hidden md:flex btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-xl items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-main)] border border-[var(--border-color)]"
               aria-label="설정"
             >
               <Settings className="w-4 h-4" />
