@@ -14,7 +14,7 @@ interface DayDetailBottomSheetProps {
   onAddModalOpened?: () => void
 }
 
-const sheetTransition = { type: 'tween' as const, duration: 0.3, ease: [0.32, 0.72, 0, 1] }
+const sheetTransition = { type: 'tween' as const, duration: 0.3, ease: [0.32, 0.72, 0, 1] as const }
 
 export default function DayDetailBottomSheet({
   open,

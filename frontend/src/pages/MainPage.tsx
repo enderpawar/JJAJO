@@ -71,7 +71,7 @@ export default function MainPage() {
   const [isCopying, setIsCopying] = useState(false)
   const [isResettingDay, setIsResettingDay] = useState(false)
   const [isClearingAll, setIsClearingAll] = useState(false)
-  const [isClearingMonth, setIsClearingMonth] = useState(false)
+  const [, setIsClearingMonth] = useState(false)
   /** 모바일 월간 캘린더 슬라이드: 드래그 오프셋(px), 0이면 드래그 중 아님 */
   const [calendarDragOffsetPx, setCalendarDragOffsetPx] = useState(0)
   const [calendarIsDragging, setCalendarIsDragging] = useState(false)
@@ -694,6 +694,15 @@ export default function MainPage() {
         onConfirm={handleResetDay}
         title="하루 일정 초기화"
         message={`선택한 날짜(${format(selectedDate, 'M월 d일', { locale: ko })})의 일정 ${getTodosByDate(formatDate(selectedDate)).length}개를 모두 삭제할까요? 되돌릴 수 없어요.`}
+        confirmLabel="전체 삭제"
+        danger
+      />
+      <ConfirmModal
+        isOpen={showClearAllConfirm}
+        onClose={() => { setShowClearAllConfirm(false); setSelectionDimmed(false) }}
+        onConfirm={handleClearAllSchedules}
+        title="전체 일정 비우기"
+        message={`전체 일정 ${todos.length}개를 모두 삭제할까요? 되돌릴 수 없어요.`}
         confirmLabel="전체 삭제"
         danger
       />

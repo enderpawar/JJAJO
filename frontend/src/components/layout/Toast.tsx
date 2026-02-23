@@ -33,7 +33,7 @@ export function ToastContainer() {
   )
 }
 
-const toastTransition = { type: 'tween' as const, duration: 0.28, ease: [0.32, 0.72, 0, 1] }
+const toastTransition = { type: 'tween' as const, duration: 0.28, ease: [0.32, 0.72, 0, 1] as const }
 
 const ToastItem = forwardRef<HTMLDivElement, ToastItemProps>(function ToastItem(
   { id, message, onClose },
