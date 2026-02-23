@@ -3,31 +3,21 @@ package com.jjajo.presentation.controller;
 import com.jjajo.application.port.in.EditScheduleUseCase;
 import com.jjajo.application.port.in.ParseScheduleUseCase;
 import com.jjajo.application.port.in.PlannerScheduleUseCase;
-import com.jjajo.application.port.in.ProcessAiChatUseCase;
-import com.jjajo.application.service.BackwardsPlanningService;
-import com.jjajo.presentation.dto.AiChatRequest;
-import com.jjajo.presentation.dto.AiChatResponse;
 import com.jjajo.presentation.dto.EditScheduleRequest;
 import com.jjajo.presentation.dto.EditScheduleResponse;
 import com.jjajo.presentation.dto.ParseScheduleRequest;
 import com.jjajo.presentation.dto.PlannerScheduleRequest;
 import com.jjajo.presentation.dto.PlannerScheduleResponse;
-import com.jjajo.presentation.dto.BackwardsPlanRequest;
-import com.jjajo.presentation.dto.BackwardsPlanResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Map;
 
 /**
- * AI 채팅 컨트롤러
+ * AI 일정 관련 API 컨트롤러 (매직 바, 짜조 플래너)
  */
 @Slf4j
 @RestController
@@ -35,31 +25,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AiChatController {
 
-    private final ProcessAiChatUseCase processAiChatUseCase;
     private final ParseScheduleUseCase parseScheduleUseCase;
     private final EditScheduleUseCase editScheduleUseCase;
     private final PlannerScheduleUseCase plannerScheduleUseCase;
-    private final BackwardsPlanningService backwardsPlanningService;
-
-    @Value("${agent.log.path:}")
-    private String agentLogPath;
-
-    /**
-     * AI와 채팅하여 일정 정보 추출
-     */
-    @PostMapping("/chat")
-    public ResponseEntity<AiChatResponse> chat(
-            @Valid @RequestBody AiChatRequest request,
-            @RequestHeader("X-Gemini-API-Key") String apiKey) {
-
-        log.info("AI 채팅 요청 수신: {}", request.getMessage());
-
-        AiChatResponse response = processAiChatUseCase.processMessage(request, apiKey);
-
-        log.info("AI 채팅 응답 완료");
-
-        return ResponseEntity.ok(response);
-    }
 
     /**
      * 매직 바: 한 줄 자연어로 일정 파싱 (Gemini Function Calling)
@@ -118,57 +86,4 @@ public class AiChatController {
         PlannerScheduleResponse response = plannerScheduleUseCase.planSchedule(request, apiKey);
         return ResponseEntity.ok(response);
     }
-
-    /**
-     * 데드라인 역계산 자동 분할
-     */
-    @PostMapping("/backwards-plan")
-    public ResponseEntity<BackwardsPlanResponse> createBackwardsPlan(
-            @Valid @RequestBody BackwardsPlanRequest request,
-            @RequestHeader("X-Gemini-API-Key") String apiKey) {
-
-        // #region agent log
-        agentLog("H1", "AiChatController#createBackwardsPlan", "receivedRequest",
-                String.format("{\"goalTextLen\":%d,\"todosCount\":%d,\"timeSlots\":%d,\"daysOff\":%d}",
-                        request.getGoalText() != null ? request.getGoalText().length() : 0,
-                        request.getTodos() != null ? request.getTodos().size() : 0,
-                        request.getTimeSlotPreferences() != null ? request.getTimeSlotPreferences().size() : 0,
-                        request.getDaysOff() != null ? request.getDaysOff().size() : 0));
-        // #endregion
-
-        log.info("역계산 계획 생성 요청: {}", request.getGoalText());
-        BackwardsPlanResponse response = backwardsPlanningService.generatePlan(request, apiKey);
-
-        // #region agent log
-        agentLog("H2", "AiChatController#createBackwardsPlan", "responseSummary",
-                String.format("{\"summaryPresent\":%s,\"planDays\":%d}",
-                        response.getSummary() != null,
-                        response.getPlanDays() != null ? response.getPlanDays().size() : 0));
-        // #endregion
-
-        return ResponseEntity.ok(response);
-    }
-
-    // #region agent log
-    private void agentLog(String hypothesisId, String location, String message, String dataJson) {
-        try {
-            String payload = String.format("{\"sessionId\":\"debug-session\",\"runId\":\"pre-fix\",\"hypothesisId\":\"%s\",\"location\":\"%s\",\"message\":\"%s\",\"data\":%s,\"timestamp\":%d}%n",
-                    hypothesisId, location, message, dataJson, System.currentTimeMillis());
-
-            if (agentLogPath == null || agentLogPath.isBlank()) {
-                log.debug("agentLog skipped (no path configured): hypothesisId={}, location={}, message={}, data={}",
-                        hypothesisId, location, message, dataJson);
-                return;
-            }
-
-            Path path = Path.of(agentLogPath);
-            Path parent = path.getParent();
-            if (parent != null) {
-                Files.createDirectories(parent);
-            }
-            Files.writeString(path, payload, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-        } catch (Exception ignored) {
-        }
-    }
-    // #endregion
 }

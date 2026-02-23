@@ -32,8 +32,7 @@ import { cn } from '@/utils/cn'
 import { ChevronRight, ListTodo } from 'lucide-react'
 import { formatDate } from '@/utils/dateUtils'
 import { useCalendarStore } from '@/stores/calendarStore'
-import { useGoalStore } from '@/stores/goalStore'
-import { checkAuth, loadGoals } from '@/services/authService'
+import { checkAuth } from '@/services/authService'
 import { getSchedules, createSchedule, deleteSchedule, deleteAllSchedules } from '@/services/scheduleService'
 import { useApiKeyStore } from '@/stores/apiKeyStore'
 import { useToastStore } from '@/stores/toastStore'
@@ -61,7 +60,6 @@ export default function MainPage() {
   const calendarTouchStartX = useRef(0)
   const calendarTouchStartY = useRef(0)
   const isMobile = useIsMobile()
-  const { setGoals } = useGoalStore()
   const { setTodos, viewMode, setViewMode, selectedDate, currentMonth, setCurrentMonth, copyTodosFromPreviousDay, addTodos, getTodosByDate, deleteTodo, addTodo, clearAllTodos, clearTodosInMonth, todos, setSelectionDimmed } = useCalendarStore()
   const { addToast } = useToastStore()
   const loadApiKeyForCurrentUser = useApiKeyStore((s) => s.loadApiKeyForCurrentUser)
@@ -91,18 +89,15 @@ export default function MainPage() {
     return () => setSelectionDimmed(false)
   }, [showResetDayConfirm, showClearAllConfirm, showClearMonthConfirm, setSelectionDimmed])
 
-  // 플래너 진입 시 인증 확인 + 회원별 목표·일정 로드
+  // 플래너 진입 시 인증 확인 + 회원별 일정 로드
   useEffect(() => {
     const init = async () => {
       try {
         await checkAuth()
         // 인증 후 userId가 설정되면, 해당 계정에 대한 Gemini API 키를 localStorage에서 불러온다
         loadApiKeyForCurrentUser()
-        const [goalsList] = await Promise.all([
-          loadGoals(),
-          getSchedules().then(setTodos).catch(() => {}),
-        ])
-        setGoals(goalsList)
+        const schedules = await getSchedules().catch(() => [])
+        setTodos(schedules)
       } catch (err) {
         if (err instanceof TypeError && (err.message === 'Failed to fetch' || err.message.includes('fetch'))) {
           console.warn('백엔드에 연결할 수 없습니다. 백엔드를 실행한 뒤 새로고침하세요. (예: 포트 8080)')
@@ -114,7 +109,7 @@ export default function MainPage() {
       }
     }
     init()
-  }, [navigate, setGoals, setTodos, loadApiKeyForCurrentUser])
+  }, [navigate, setTodos, loadApiKeyForCurrentUser])
 
   /** 슬라이드 월 전환 후 오프셋 리셋 시 트랜지션 없이 바로 보이도록, 리셋 플래그를 한 프레임 후 해제 */
   useEffect(() => {

@@ -38,7 +38,6 @@ interface CalendarStore {
   /** 해당 연·월에 속한 일정만 제거 (currentMonth 기준 월간 비우기용). month는 0–11 */
   clearTodosInMonth: (year: number, month: number) => void
   getTodosByDate: (date: string) => Todo[]
-  getAiTodos: () => Todo[]
   setIsBulkSavingTimetable: (value: boolean) => void
   setSelectionDimmed: (dimmed: boolean) => void
   /** 전날 일정 복사 시 복사 대상 + 시간 중복으로 제외된 목록 반환 (상태 변경 없음). */
@@ -104,11 +103,6 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
       const end = todo.endDate || todo.date
       return todo.date <= date && date <= end
     })
-  },
-  
-  getAiTodos: () => {
-    const todos = get().todos
-    return todos.filter((todo) => todo.createdBy === 'ai')
   },
 
   setIsBulkSavingTimetable: (value) => set({ isBulkSavingTimetable: value }),
