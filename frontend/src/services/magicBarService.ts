@@ -202,13 +202,45 @@ export type SubmitMagicBarResult =
   | { success: true; plansCount: number; isGhost: true; summary?: string }
   | { success: false; message: string }
 
+export interface SubmitMagicBarOptions {
+  editMode?: boolean
+  templateCategory?: string
+  timeRange?: { start: number; end: number }
+}
+
+/**
+ * 사용자 지정 시간대(시 단위) 안으로 슬롯 클리핑. 슬롯이 구간과 겹치는 부분만 남김.
+ */
+function filterSlotsByTimeRange(
+  slots: Array<{ start: string; end: string }>,
+  timeRange: { start: number; end: number }
+): Array<{ start: string; end: string }> {
+  const rangeStartMin = timeRange.start * 60
+  const rangeEndMin = timeRange.end * 60
+  const result: Array<{ start: string; end: string }> = []
+  for (const slot of slots) {
+    const s = timeToMinutes(slot.start)
+    const e = timeToMinutes(slot.end)
+    const clippedStart = Math.max(s, rangeStartMin)
+    const clippedEnd = Math.min(e, rangeEndMin)
+    if (clippedEnd > clippedStart) {
+      result.push({
+        start: minutesToTime(clippedStart),
+        end: minutesToTime(clippedEnd),
+      })
+    }
+  }
+  return result
+}
+
 /**
  * 짜조 플래너 API 호출: 가용 시간대 내에서 일정 제안 → ghostPlans로 설정.
  * templateCategory 전달 시 백엔드에서 카테고리별 제약(블록/휴식) 반영.
+ * timeRange 전달 시 해당 시~시 구간 안의 슬롯만 사용.
  */
 export async function requestJjajoPlanner(
   command: string,
-  options?: { templateCategory?: string }
+  options?: { templateCategory?: string; timeRange?: { start: number; end: number } }
 ): Promise<JjajoPlannerResult | { success: false; message: string }> {
   const { apiKey } = useApiKeyStore.getState()
   if (!apiKey?.trim()) {
@@ -228,7 +260,10 @@ export async function requestJjajoPlanner(
     settings.timeSlotPreferences,
   )
   // 아침·점심·저녁 각 1시간은 무조건 비워두고 플래너 가용 슬롯 계산
-  const availableSlots = excludeMealBlocksFromSlots(rawSlots)
+  let availableSlots = excludeMealBlocksFromSlots(rawSlots)
+  if (options?.timeRange) {
+    availableSlots = filterSlotsByTimeRange(availableSlots, options.timeRange)
+  }
   const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 
   if (availableSlots.length === 0) {
@@ -302,7 +337,7 @@ export async function requestJjajoPlanner(
  */
 export async function submitMagicBarCommand(
   command: string,
-  options?: { editMode?: boolean; templateCategory?: string }
+  options?: SubmitMagicBarOptions
 ): Promise<SubmitMagicBarResult> {
   const trimmed = command.trim()
   if (!trimmed) {
@@ -313,6 +348,7 @@ export async function submitMagicBarCommand(
     const plannerText = wrapCommaListForPlanner(trimmed)
     const result = await requestJjajoPlanner(plannerText, {
       templateCategory: options.templateCategory,
+      timeRange: options.timeRange,
     })
     if (result.success) {
       return {

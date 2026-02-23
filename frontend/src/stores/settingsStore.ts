@@ -52,7 +52,7 @@ export const useSettingsStore = create<SettingsStore>()(
           document.body.classList.toggle('bg-pattern', bgPattern)
           const meta = document.querySelector('meta[name="theme-color"]')
           if (meta) meta.setAttribute('content', theme === 'dark' ? '#121214' : '#F8F9FA')
-          void document.body.offsetHeight
+          void document.documentElement.offsetHeight
         }
       },
 
@@ -77,8 +77,8 @@ export const useSettingsStore = create<SettingsStore>()(
             document.documentElement.classList.toggle('dark', newTheme === 'dark')
             const meta = document.querySelector('meta[name="theme-color"]')
             if (meta) meta.setAttribute('content', newTheme === 'dark' ? '#121214' : '#F8F9FA')
-            // 강제 reflow로 헤더·사이드바·중앙이 같은 프레임에 스타일 적용되도록 함
-            void document.body.offsetHeight
+            // 강제 reflow로 헤더·캘린더가 같은 프레임에 스타일 적용 후 동시에 transition
+            void document.documentElement.offsetHeight
           }
           return { theme: newTheme }
         })

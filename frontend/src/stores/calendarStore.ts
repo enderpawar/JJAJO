@@ -21,6 +21,9 @@ interface CalendarStore {
 
   // 대량 시간표 저장 진행 여부 (백그라운드 인디케이터용)
   isBulkSavingTimetable: boolean
+
+  /** 확인 모달 등이 열려 있을 때 캘린더 날짜 선택 하이라이트를 숨길지 */
+  selectionDimmed: boolean
   
   // Actions
   setSelectedDate: (date: Date) => void
@@ -32,9 +35,12 @@ interface CalendarStore {
   updateTodo: (id: string, updates: Partial<Todo>) => void
   deleteTodo: (id: string) => void
   clearAllTodos: () => void
+  /** 해당 연·월에 속한 일정만 제거 (currentMonth 기준 월간 비우기용). month는 0–11 */
+  clearTodosInMonth: (year: number, month: number) => void
   getTodosByDate: (date: string) => Todo[]
   getAiTodos: () => Todo[]
   setIsBulkSavingTimetable: (value: boolean) => void
+  setSelectionDimmed: (dimmed: boolean) => void
   /** 전날 일정 복사 시 복사 대상 + 시간 중복으로 제외된 목록 반환 (상태 변경 없음). */
   copyTodosFromPreviousDay: () => { toCopy: Todo[]; excluded: { title: string; startTime: string; endTime: string }[] }
   /** 짜조 고스트 일정 설정 (타임라인 미리보기용) */
@@ -55,6 +61,7 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   todos: [],
   ghostPlans: [],
   isBulkSavingTimetable: false,
+  selectionDimmed: false,
   
   setSelectedDate: (date) => set({ selectedDate: date }),
   
@@ -83,7 +90,14 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   })),
   
   clearAllTodos: () => set({ todos: [] }),
-  
+
+  clearTodosInMonth: (year, month) => set((state) => ({
+    todos: state.todos.filter((t) => {
+      const d = new Date(t.date + 'T12:00:00')
+      return d.getFullYear() !== year || d.getMonth() !== month
+    }),
+  })),
+
   getTodosByDate: (date) => {
     const todos = get().todos
     return todos.filter((todo) => {
@@ -98,6 +112,8 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   },
 
   setIsBulkSavingTimetable: (value) => set({ isBulkSavingTimetable: value }),
+
+  setSelectionDimmed: (dimmed) => set({ selectionDimmed: dimmed }),
 
   setGhostPlans: (plans) => set({ ghostPlans: plans }),
 

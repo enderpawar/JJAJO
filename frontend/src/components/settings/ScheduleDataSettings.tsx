@@ -1,10 +1,15 @@
 import { useState } from 'react'
-import { Trash2, AlertTriangle } from 'lucide-react'
+import { Trash2, AlertTriangle, Database } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useToastStore } from '@/stores/toastStore'
 import { deleteAllSchedules } from '@/services/scheduleService'
 
-export function ScheduleDataSettings() {
+interface ScheduleDataSettingsProps {
+  /** 컴팩트 모드: 카드 레이아웃, 초기화 버튼 바로 표시 */
+  compact?: boolean
+}
+
+export function ScheduleDataSettings({ compact = false }: ScheduleDataSettingsProps) {
   const { todos, clearAllTodos, setTodos } = useCalendarStore()
   const { addToast } = useToastStore()
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
@@ -28,24 +33,47 @@ export function ScheduleDataSettings() {
   }
 
   return (
-    <div className="pt-6 border-t border-theme">
-      <h3 className="text-sm font-semibold text-theme mb-2">일정 데이터</h3>
-      <p className="text-xs text-theme-muted mb-3">
-        저장된 모든 일정을 삭제합니다. 이 작업은 되돌릴 수 없습니다.
-      </p>
-      <button
-        type="button"
-        onClick={() => setShowConfirmDialog(true)}
-        disabled={todos.length === 0}
-        className="neu-btn touch-target w-full flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-neu theme-transition font-medium text-sm text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <Trash2 className="w-4 h-4" />
-        모든 일정 초기화
-      </button>
+    <div className={compact ? 'neu-float rounded-neu theme-transition bg-theme-card p-3 space-y-3' : 'pt-6 border-t border-theme'}>
+      {compact ? (
+        <>
+          <h3 className="text-sm font-semibold text-theme flex items-center gap-2">
+            <Database className="w-4 h-4 text-primary-500" />
+            일정 데이터
+          </h3>
+          <p className="text-xs text-theme-muted">
+            저장된 모든 일정을 삭제할 수 있습니다. 되돌릴 수 없어요.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowConfirmDialog(true)}
+            disabled={todos.length === 0}
+            className="neu-btn touch-target w-full flex items-center justify-center gap-2 rounded-neu theme-transition font-medium text-red-400 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] px-3 py-2 text-sm"
+          >
+            <Trash2 className="w-4 h-4" />
+            모든 일정 초기화
+          </button>
+        </>
+      ) : (
+        <>
+          <h3 className="text-sm font-semibold text-theme mb-2">일정 데이터</h3>
+          <p className="text-theme-muted text-xs mb-3">
+            저장된 모든 일정을 삭제합니다. 이 작업은 되돌릴 수 없습니다.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowConfirmDialog(true)}
+            disabled={todos.length === 0}
+            className="neu-btn touch-target w-full flex items-center justify-center gap-2 rounded-neu theme-transition font-medium text-red-400 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] px-4 py-2 text-sm"
+          >
+            <Trash2 className="w-4 h-4" />
+            모든 일정 초기화
+          </button>
+        </>
+      )}
 
       {showConfirmDialog && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100]">
-          <div className="neu-float rounded-2xl p-6 max-w-md w-full mx-4">
+          <div className="neu-float rounded-neu-lg p-6 max-w-md w-full mx-4">
             <div className="flex items-start gap-4 mb-4">
               <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-6 h-6 text-red-400" />
@@ -82,3 +110,4 @@ export function ScheduleDataSettings() {
     </div>
   )
 }
+

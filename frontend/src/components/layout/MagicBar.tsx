@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
 import { Wand2, Loader2, Check, Sparkles, CheckCircle2, RefreshCw, X, BookOpen, Code, Dumbbell, Coffee } from 'lucide-react'
-import { submitMagicBarCommand, requestJjajoPlanner } from '@/services/magicBarService'
+import { submitMagicBarCommand, requestJjajoPlanner, type SubmitMagicBarOptions } from '@/services/magicBarService'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { createSchedule, deleteSchedule } from '@/services/scheduleService'
+import { hapticSuccess } from '@/utils/haptic'
 
 type JjajoTemplateCategory = 'study' | 'workout' | 'coding' | 'rest'
 
@@ -62,7 +63,7 @@ function fillTemplate(category: JjajoTemplateCategory, params: TemplateParams): 
     .replace(/\{\{breakMin\}\}/g, String(params.breakMin))
 }
 
-const PLACEHOLDER = '말만 하면 짜조가 일정 짜줄게요. 예: 내일 오후 3시 회의, 다음 주 월요일 2시간 스터디'
+const PLACEHOLDER = '추가할 일정을 문장으로 입력해보세요. 예: 내일 오후 3시 회의, 다음 주 월요일 2시간 스터디'
 const JJAJO_PLACEHOLDER = "할 일을 쉼표로 구분해서 넣어주세요. 예: 과제, 오답노트, 이론 복습 → 짜조가 시간 배치해줄게요"
 
 const TEMPLATE_OPTIONS: { key: JjajoTemplateCategory; label: string; icon: typeof BookOpen; color: string }[] = [
@@ -72,12 +73,26 @@ const TEMPLATE_OPTIONS: { key: JjajoTemplateCategory; label: string; icon: typeo
   { key: 'rest', label: '휴식 템플릿', icon: Coffee, color: 'teal' },
 ]
 
-export default function MagicBar() {
+export interface MagicBarProps {
+  /** 모바일 슬라이드업 시트 등에서 열릴 때 입력창 포커스 */
+  autoFocus?: boolean
+  /** 일정 추가/적용 성공 시 호출 (모바일 시트 닫기 등) */
+  onSuccess?: () => void
+}
+
+export interface MagicBarHandle {
+  focus: () => void
+}
+
+const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ autoFocus, onSuccess }, ref) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [editMode, setEditMode] = useState(false)
+  /** 짜조 모드에서 템플릿 없이 쓸 때 사용. 스크린샷과 동일한 시간대/블록/휴식 기본값 */
+  const [jjajoParams, setJjajoParams] = useState<TemplateParams>({ start: 13, end: 23, blockMax: 90, breakMin: 15 })
   const [selectedTemplateCategory, setSelectedTemplateCategory] = useState<JjajoTemplateCategory | null>(null)
+  const [templateParams, setTemplateParams] = useState<TemplateParams | null>(null)
   const [lastPlannerCommand, setLastPlannerCommand] = useState<string | null>(null)
   const [lastPlannerSummary, setLastPlannerSummary] = useState<string | null>(null)
   const [showCelebration, setShowCelebration] = useState(false)
@@ -86,6 +101,19 @@ export default function MagicBar() {
   const ghostPlans = useCalendarStore((s) => s.ghostPlans)
   const { applyGhostPlansReplaceDate, clearGhostPlans, deleteTodo, addTodo } = useCalendarStore()
 
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      inputRef.current?.focus()
+    },
+  }), [])
+
+  useEffect(() => {
+    if (autoFocus) {
+      const t = setTimeout(() => inputRef.current?.focus(), 100)
+      return () => clearTimeout(t)
+    }
+  }, [autoFocus])
+
   const submit = useCallback(async () => {
     const trimmed = input.trim()
     if (!trimmed || loading) return
@@ -93,16 +121,23 @@ export default function MagicBar() {
     setLoading(true)
     setMessage(null)
 
-    const result = await submitMagicBarCommand(trimmed, {
+    const options: SubmitMagicBarOptions = {
       editMode,
       templateCategory: selectedTemplateCategory ?? undefined,
-    })
+    }
+    if (editMode) {
+      const params = selectedTemplateCategory && templateParams ? templateParams : jjajoParams
+      options.timeRange = { start: params.start, end: params.end }
+    }
+    const result = await submitMagicBarCommand(trimmed, options)
 
     setLoading(false)
     if (result.success) {
       setInput('')
       setShowCelebration(true)
+      hapticSuccess()
       setTimeout(() => setShowCelebration(false), 600)
+      setTimeout(() => onSuccess?.(), 400)
       if ('isGhost' in result && result.isGhost && 'plansCount' in result) {
         setLastPlannerCommand(trimmed)
         setLastPlannerSummary(
@@ -116,7 +151,7 @@ export default function MagicBar() {
     } else {
       setMessage({ type: 'error', text: result.message })
     }
-  }, [input, loading, editMode, selectedTemplateCategory])
+  }, [input, loading, editMode, selectedTemplateCategory, templateParams, jjajoParams])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
@@ -131,8 +166,6 @@ export default function MagicBar() {
     setEditMode((prev) => !prev)
     requestAnimationFrame(() => inputRef.current?.focus())
   }, [])
-
-  const [templateParams, setTemplateParams] = useState<TemplateParams | null>(null)
 
   const handleApplyTemplate = useCallback((category: JjajoTemplateCategory) => {
     setEditMode(true)
@@ -184,6 +217,7 @@ export default function MagicBar() {
     }
     setLastPlannerCommand(null)
     setShowCelebration(true)
+    hapticSuccess()
     setTimeout(() => setShowCelebration(false), 600)
     setMessage({ type: 'success', text: `${applied.length}개 일정 확정됨 (해당 날짜 기존 일정은 대체됨)` })
     setTimeout(() => setMessage(null), 3000)
@@ -227,7 +261,7 @@ export default function MagicBar() {
       )}
       <div
         className={`
-          flex items-center gap-3 rounded-tool neu-inset theme-transition
+          flex items-center gap-3 rounded-tool bg-theme-card border border-[var(--border-color)] theme-transition
           ${message?.type === 'error'
             ? 'ring-2 ring-red-400/30'
             : ''
@@ -236,16 +270,15 @@ export default function MagicBar() {
           focus-within:ring-2 focus-within:ring-primary-500/15
         `}
       >
-        {/* 마법봉: 클릭 시 짜조 모드 토글 + 테두리 강조 + 입력 포커스 */}
+        {/* 마법봉: 클릭 시 짜조 모드 토글 + 입력 포커스 (네온 테두리는 입력 전체에만 적용) */}
         <button
           type="button"
           onClick={handleWandClick}
           className={`
-            touch-target flex-shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px] w-10 h-10 rounded-tool transition-all duration-200
-            bg-theme-card border border-[var(--border-color)]
+            touch-target flex-shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px] w-10 h-10 rounded-full transition-all duration-200
             ${editMode
-              ? 'text-primary-500 border-primary-500/50 ring-2 ring-primary-500/30'
-              : 'text-theme-muted hover:text-theme hover:border-[var(--text-muted)]/40 hover:bg-black/[0.03] dark:hover:bg-white/[0.06] active:scale-[0.98]'
+              ? 'text-primary-500'
+              : 'text-theme-muted hover:text-theme active:scale-[0.98]'
             }
           `}
           aria-pressed={editMode}
@@ -290,6 +323,77 @@ export default function MagicBar() {
 
       {editMode && (
         <div className="mt-2 space-y-1.5">
+          {/* 스크린샷과 동일: 시간대 ~ 시, 블록 분, 휴식 분 — 템플릿 없이도 항상 표시 */}
+          {(() => {
+            const params = selectedTemplateCategory && templateParams ? templateParams : jjajoParams
+            const setParams = selectedTemplateCategory
+              ? (next: TemplateParams) => {
+                  setTemplateParams(next)
+                  if (selectedTemplateCategory) applyTemplateParams(selectedTemplateCategory, next)
+                }
+              : setJjajoParams
+            return (
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-theme-muted">
+                <span>시간대</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={23}
+                  value={params.start}
+                  onChange={(e) => {
+                    const v = Math.max(0, Math.min(23, Number(e.target.value) || 0))
+                    setParams({ ...params, start: v })
+                  }}
+                  className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
+                  aria-label="시작 시"
+                />
+                <span>~</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={24}
+                  value={params.end}
+                  onChange={(e) => {
+                    const v = Math.max(0, Math.min(24, Number(e.target.value) || 0))
+                    setParams({ ...params, end: v })
+                  }}
+                  className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
+                  aria-label="끝 시"
+                />
+                <span>시</span>
+                <span className="ml-1">블록</span>
+                <input
+                  type="number"
+                  min={15}
+                  max={180}
+                  step={15}
+                  value={params.blockMax}
+                  onChange={(e) => {
+                    const v = Math.max(15, Math.min(180, Number(e.target.value) || 60))
+                    setParams({ ...params, blockMax: v })
+                  }}
+                  className="w-12 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
+                  aria-label="블록 분"
+                />
+                <span>분</span>
+                <span className="ml-1">휴식</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={30}
+                  step={5}
+                  value={params.breakMin}
+                  onChange={(e) => {
+                    const v = Math.max(0, Math.min(30, Number(e.target.value) || 0))
+                    setParams({ ...params, breakMin: v })
+                  }}
+                  className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
+                  aria-label="휴식 분"
+                />
+                <span>분</span>
+              </div>
+            )
+          })()}
           <div className="flex flex-wrap items-center gap-2 text-[11px]">
             <span className="text-theme-muted">짜조 템플릿:</span>
             {TEMPLATE_OPTIONS.map((opt) => {
@@ -318,71 +422,6 @@ export default function MagicBar() {
               )
             })}
           </div>
-          {selectedTemplateCategory && templateParams && (
-            <div className="flex flex-wrap items-center gap-2 text-[11px] text-theme-muted">
-              <span>시간대</span>
-              <input
-                type="number"
-                min={0}
-                max={23}
-                value={templateParams.start}
-                onChange={(e) => {
-                  const v = Math.max(0, Math.min(23, Number(e.target.value) || 0))
-                  const next = { ...templateParams, start: v }
-                  setTemplateParams(next)
-                  applyTemplateParams(selectedTemplateCategory, next)
-                }}
-                className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
-              />
-              <span>~</span>
-              <input
-                type="number"
-                min={0}
-                max={24}
-                value={templateParams.end}
-                onChange={(e) => {
-                  const v = Math.max(0, Math.min(24, Number(e.target.value) || 0))
-                  const next = { ...templateParams, end: v }
-                  setTemplateParams(next)
-                  applyTemplateParams(selectedTemplateCategory, next)
-                }}
-                className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
-              />
-              <span>시</span>
-              <span className="ml-1">블록</span>
-              <input
-                type="number"
-                min={15}
-                max={180}
-                step={15}
-                value={templateParams.blockMax}
-                onChange={(e) => {
-                  const v = Math.max(15, Math.min(180, Number(e.target.value) || 60))
-                  const next = { ...templateParams, blockMax: v }
-                  setTemplateParams(next)
-                  applyTemplateParams(selectedTemplateCategory, next)
-                }}
-                className="w-12 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
-              />
-              <span>분</span>
-              <span className="ml-1">휴식</span>
-              <input
-                type="number"
-                min={0}
-                max={30}
-                step={5}
-                value={templateParams.breakMin}
-                onChange={(e) => {
-                  const v = Math.max(0, Math.min(30, Number(e.target.value) || 0))
-                  const next = { ...templateParams, breakMin: v }
-                  setTemplateParams(next)
-                  applyTemplateParams(selectedTemplateCategory, next)
-                }}
-                className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
-              />
-              <span>분</span>
-            </div>
-          )}
         </div>
       )}
 
@@ -440,4 +479,6 @@ export default function MagicBar() {
       )}
     </div>
   )
-}
+})
+
+export default MagicBar
