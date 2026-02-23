@@ -286,7 +286,7 @@ export default function BottomNav({
 
   return (
     <nav
-      className="fixed left-0 right-0 z-40 flex items-stretch theme-transition border-t border-[var(--border-color)] bg-[var(--card-bg)]"
+      className="fixed left-0 right-0 z-40 flex items-stretch theme-transition border-t border-[var(--border-color)] bg-[var(--card-bg)] select-none"
       style={{
         bottom: 20,
         paddingBottom: 'env(safe-area-inset-bottom)',
@@ -362,7 +362,7 @@ export default function BottomNav({
       </div>
       {radialOpen && fabCenter && typeof document !== 'undefined' && document.body &&
         createPortal(
-          <div className="fixed inset-0 z-50 pointer-events-none">
+          <div className="fixed inset-0 z-50 pointer-events-none select-none">
             <div
               className="absolute"
               style={{
