@@ -348,7 +348,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         now - lastTapTimeRef.current <= DOUBLE_TAP_MS &&
         Math.abs(clientY - lastTapYRef.current) <= DOUBLE_TAP_Y_SLOP
       ) {
-        e.preventDefault()
+        if (e.cancelable) e.preventDefault()
         lastTapTimeRef.current = 0
         lastTapYRef.current = 0
         addTodoAtPosition(clientY, rect)
@@ -689,7 +689,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
                   performDelete(task)
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
-                className={`w-7 h-7 flex items-center justify-center rounded-neu transition-all cursor-pointer ${isCurrent ? 'bg-red-500/30 hover:bg-red-500/50' : 'bg-red-500/30 hover:bg-red-500/50 group'}`}
+                className={`w-7 h-7 flex items-center justify-center rounded-tool transition-all cursor-pointer ${isCurrent ? 'bg-red-500/30 hover:bg-red-500/50' : 'bg-red-500/30 hover:bg-red-500/50 group'}`}
                 title="삭제"
               >
                 <Trash2 className="w-3.5 h-3.5 text-red-400 group-hover:text-white" />
@@ -704,7 +704,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
                 }
               }}
               onPointerDown={(e) => e.stopPropagation()}
-              className="w-7 h-7 flex items-center justify-center rounded-neu transition-all cursor-pointer neu-float-sm hover:bg-primary-500/15 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+              className="w-7 h-7 flex items-center justify-center rounded-tool transition-all cursor-pointer neu-float-sm hover:bg-primary-500/15 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
               title={isEditingThisTask ? '편집 모드 해제' : task.title === '새 일정' ? '클릭하여 이름 입력' : '편집'}
             >
               <Edit2 className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-primary-600 dark:group-hover:text-primary-400" />

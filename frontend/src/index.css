@@ -229,7 +229,7 @@ body {
 
   /* 모바일 하단 메뉴바 높이만큼 콘텐츠 하단 여백 */
   .pb-bottom-nav {
-    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
   }
 
   /* 타임라인 등 상하 스크롤: 이 컨테이너가 스크롤되므로 window가 아닌 el.scrollTo 사용 */
@@ -860,14 +860,12 @@ html.dark .empty-state-pattern::before {
   .calendar-date-cell-empty {
     background: var(--bg-color) !important;
     opacity: 1;
-    border-right-color: var(--bg-color) !important;
-    border-bottom-color: var(--bg-color) !important;
+    /* 경계 테두리 유지: 해당 월 미포함-포함 셀 사이에도 그리드선이 보이도록 border 색을 그리드선으로 유지 */
   }
-  /* 모바일: 해당 월이 아닌 빈 셀도 동일하게 테마 배경과 일치 (추가로 세로선 제거 시 border-right 없음) */
+  /* 모바일: 해당 월이 아닌 빈 셀도 동일하게 테마 배경 (테두리는 그리드선 유지) */
   @media (max-width: 767px) {
     .calendar-date-cell-empty {
       background: var(--bg-color) !important;
-      border-bottom-color: var(--bg-color) !important;
     }
   }
   /* 오늘 날짜: 은은한 포인트 링 (선택과 구분). 선택된 경우는 아래 .calendar-date-selected가 배경/링 담당 */
@@ -963,7 +961,7 @@ html.dark .empty-state-pattern::before {
     background-color: color-mix(in srgb, var(--primary-point) 26%, var(--card-bg)) !important;
   }
 
-  /* 테마 토글 스위치: 소프트 미니멀, 전환 속도 통일(헤더·중앙 동시 전환) */
+  /* 테마 토글 스위치: 플랫 스타일(움푹 들어간 효과 없음) */
   .theme-toggle-switch {
     display: inline-flex;
     align-items: center;
@@ -973,18 +971,19 @@ html.dark .empty-state-pattern::before {
     min-width: 44px;
     min-height: 44px;
     padding: 0;
-    border: none;
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     background-color: var(--card-bg);
-    box-shadow: var(--shadow-float-sm);
+    box-shadow: none;
     color: var(--text-muted);
     cursor: pointer;
-    transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing), color var(--theme-transition-duration) var(--theme-transition-easing), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), color var(--theme-transition-duration) var(--theme-transition-easing), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     transition-delay: 0s;
   }
   .theme-toggle-switch:hover {
-    color: var(--text-main);
-    box-shadow: var(--shadow-inset-sm);
+    color: var(--primary-point);
+    background-color: var(--hover-bg);
+    box-shadow: none;
   }
   .theme-toggle-switch:active {
     transform: scale(0.96);
@@ -1020,7 +1019,8 @@ html.dark .empty-state-pattern::before {
     @apply shrink-0;
   }
   .view-mode-segmented-track {
-    @apply relative flex rounded-neu overflow-hidden;
+    @apply relative flex overflow-hidden;
+    border-radius: var(--radius-lg);
     min-width: 140px;
     height: 36px;
     background-color: var(--hover-bg);
@@ -1044,7 +1044,9 @@ html.dark .empty-state-pattern::before {
     }
   }
   .view-mode-segmented-pill {
-    @apply absolute inset-y-0 rounded-neu pointer-events-none transition-[left] duration-200 ease-out;
+    @apply absolute inset-y-0 pointer-events-none transition-[left] duration-200 ease-out;
+    /* 트랙 테두리와 시각적 정렬: 트랙이 2px inset이므로 곡률을 (radius - 2px)로 맞춤 */
+    border-radius: calc(var(--radius-lg) - 2px);
     top: 2px;
     bottom: 2px;
     width: calc(50% - 4px);
@@ -1123,6 +1125,46 @@ html.dark .empty-state-pattern::before {
   }
   .input-field:focus {
     box-shadow: var(--shadow-inset), 0 0 0 1px var(--border-color);
+  }
+
+  /* 설정 모달 전용: 플랫 스타일 (움푹 들어간/돌출 효과 제거) */
+  .settings-modal-flat .neu-float,
+  .settings-modal-flat .neu-float-sm {
+    box-shadow: none;
+    border: 1px solid var(--border-color);
+  }
+  .settings-modal-flat .neu-btn,
+  .settings-modal-flat .neu-btn:hover,
+  .settings-modal-flat .neu-btn:active {
+    box-shadow: none;
+    border: 1px solid var(--border-color);
+  }
+  .settings-modal-flat .neu-date-selected {
+    box-shadow: none !important;
+    border: 1px solid var(--primary-point-ring) !important;
+  }
+  .settings-modal-flat .shadow-neu-float-date,
+  .settings-modal-flat .shadow-neu-inset-hover,
+  .settings-modal-flat .shadow-neu-float-date:hover {
+    box-shadow: none !important;
+    border: 1px solid var(--border-color);
+  }
+  .settings-modal-flat .btn-primary {
+    box-shadow: none;
+  }
+  .settings-modal-flat .btn-secondary,
+  .settings-modal-flat .btn-secondary:hover,
+  .settings-modal-flat .btn-secondary:active {
+    box-shadow: none;
+    border: 1px solid var(--border-color);
+  }
+  .settings-modal-flat .input-field,
+  .settings-modal-flat .input-field:focus {
+    box-shadow: none;
+    border: 1px solid var(--border-color);
+  }
+  .settings-modal-flat .input-field:focus {
+    border-color: var(--primary-point-ring);
   }
 
   .btn-notion {
@@ -1227,5 +1269,59 @@ html.dark ::-webkit-scrollbar-thumb {
 }
 html.dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+/* ================== FAB 라디얼 메뉴: 앱 톤에 맞춘 부드러운 전개 ================== */
+/* 이징·duration은 시트/모달과 동일(cubic-bezier 0.32,0.72,0,1 / 0.28~0.3s) */
+@keyframes radial-spring-pop {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0;
+  }
+  18% {
+    transform: translate(
+        calc(var(--radial-x, 0px) * 0.2),
+        calc(var(--radial-y, 0px) * 0.2)
+      ) scale(0.72);
+    opacity: 1;
+  }
+  88% {
+    transform: translate(
+        calc(var(--radial-x, 0px) * 1.02),
+        calc(var(--radial-y, 0px) * 1.02)
+      ) scale(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--radial-x, 0px), var(--radial-y, 0px)) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-radial-spring-pop {
+  animation: radial-spring-pop 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@keyframes radial-backdrop-scale {
+  0% {
+    transform: translateX(-50%) scale(0.72);
+    opacity: 0;
+  }
+  70% {
+    transform: translateX(-50%) scale(1.03);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-radial-backdrop {
+  animation: radial-backdrop-scale 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  transform-origin: bottom center;
+  will-change: transform, opacity;
 }
 

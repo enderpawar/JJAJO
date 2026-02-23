@@ -261,7 +261,7 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
       )}
       <div
         className={`
-          flex items-center gap-3 rounded-tool neu-inset theme-transition
+          flex items-center gap-3 rounded-tool bg-theme-card border border-[var(--border-color)] theme-transition
           ${message?.type === 'error'
             ? 'ring-2 ring-red-400/30'
             : ''
@@ -270,16 +270,15 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
           focus-within:ring-2 focus-within:ring-primary-500/15
         `}
       >
-        {/* 마법봉: 클릭 시 짜조 모드 토글 + 테두리 강조 + 입력 포커스 */}
+        {/* 마법봉: 클릭 시 짜조 모드 토글 + 입력 포커스 (네온 테두리는 입력 전체에만 적용) */}
         <button
           type="button"
           onClick={handleWandClick}
           className={`
-            touch-target flex-shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px] w-10 h-10 rounded-tool transition-all duration-200
-            bg-theme-card border border-[var(--border-color)]
+            touch-target flex-shrink-0 flex items-center justify-center min-w-[44px] min-h-[44px] w-10 h-10 rounded-full transition-all duration-200
             ${editMode
-              ? 'text-primary-500 border-primary-500/50 ring-2 ring-primary-500/30'
-              : 'text-theme-muted hover:text-theme hover:border-[var(--text-muted)]/40 hover:bg-black/[0.03] dark:hover:bg-white/[0.06] active:scale-[0.98]'
+              ? 'text-primary-500'
+              : 'text-theme-muted hover:text-theme active:scale-[0.98]'
             }
           `}
           aria-pressed={editMode}

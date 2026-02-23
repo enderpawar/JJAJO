@@ -57,14 +57,14 @@ export default function MobileSettingsPage({ onClose }: MobileSettingsPageProps)
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
         style={{ scrollbarGutter: 'stable' }}
       >
-        <div className="p-3 pb-4 space-y-4 max-w-2xl mx-auto min-w-0 w-full box-border">
+        <div className="p-3 pb-4 space-y-4 max-w-2xl mx-auto min-w-0 w-full box-border settings-modal-flat">
           {/* 계정 — 카드 스타일로 상단 섹션과 시각적 일관성 */}
-          <section className="neu-float rounded-neu theme-transition bg-theme-card p-3">
+          <section className="rounded-neu theme-transition bg-theme-card p-3 border border-[var(--border-color)]">
             <h2 className="text-xs font-semibold text-theme mb-1.5">계정</h2>
             <button
               type="button"
               onClick={handleGoogleLogin}
-              className="w-full min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-neu bg-[var(--hover-bg)] border-0 text-theme text-sm font-medium theme-transition hover:opacity-90 active:scale-[0.98]"
+              className="w-full min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-neu bg-[var(--hover-bg)] border border-[var(--border-color)] text-theme text-sm font-medium theme-transition hover:opacity-90 active:scale-[0.98]"
               title="Google 계정으로 로그인"
             >
               <LogIn className="w-4 h-4" />

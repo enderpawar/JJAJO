@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
+import { useCalendarStore } from '@/stores/calendarStore'
+import { formatDate, formatDateWithDay, isToday } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
 import DayDetailPanel from './DayDetailPanel'
 
@@ -20,6 +22,12 @@ export default function DayDetailBottomSheet({
   openAddModal = false,
   onAddModalOpened,
 }: DayDetailBottomSheetProps) {
+  const { selectedDate, getTodosByDate } = useCalendarStore()
+  const dateLabel = formatDateWithDay(selectedDate)
+  const isTodaySelected = isToday(selectedDate)
+  const dateStr = formatDate(selectedDate)
+  const scheduleCount = getTodosByDate(dateStr).length
+
   useEffect(() => {
     if (!open) return
     const prev = document.body.style.overflow
@@ -39,23 +47,29 @@ export default function DayDetailBottomSheet({
           exit={{ y: '100%', opacity: 0.98 }}
           transition={sheetTransition}
           className={cn(
-            'fixed left-0 right-0 z-50 flex flex-col rounded-t-[20px] theme-transition bg-theme shadow-[0_-4px_24px_rgba(0,0,0,0.12)]',
+            'fixed left-0 right-0 z-30 flex flex-col rounded-t-[20px] theme-transition bg-theme shadow-[0_-4px_24px_rgba(0,0,0,0.12)]',
             'max-h-[min(88vh,calc(100vh-env(safe-area-inset-top)-2rem))]'
           )}
           style={{
-            bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+            bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
             paddingBottom: 'env(safe-area-inset-bottom)',
           }}
           role="dialog"
           aria-modal="true"
-          aria-label="해당 날짜 일정"
+          aria-label={`${dateLabel} 일정`}
         >
           {/* 드래그 핸들 */}
           <div className="shrink-0 flex justify-center pt-2 pb-1">
             <div className="w-10 h-1 rounded-full bg-theme-muted/40" aria-hidden />
           </div>
           <div className="shrink-0 flex items-center justify-between px-4 pb-2">
-            <span className="text-sm font-medium text-theme-muted">해당 날짜 일정</span>
+            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+              <span className="text-sm font-semibold text-theme tracking-tight">{dateLabel}</span>
+              {isTodaySelected && (
+                <span className="text-sm font-medium text-primary-500 dark:text-primary-400 shrink-0">오늘</span>
+              )}
+              <span className="text-sm font-medium text-theme-muted shrink-0">{scheduleCount}개</span>
+            </div>
             <button
               type="button"
               onClick={onClose}
@@ -71,7 +85,7 @@ export default function DayDetailBottomSheet({
               openAddModal={openAddModal}
               onAddModalOpened={onAddModalOpened}
               showAddButton={false}
-              listMaxHeight="10rem"
+              listMaxHeight="14rem"
             />
           </div>
         </motion.div>

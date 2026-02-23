@@ -1,10 +1,17 @@
 /**
  * 모바일/터치 환경에서 진동 피드백 (Vibration API)
  * UX 흥미도 유지 및 클릭/완료 피드백 제공
+ *
+ * 일부 브라우저(Chrome 등)는 **사용자 제스처 없이** vibrate를 호출하면
+ * Intervention 경고를 띄우고 호출을 차단하므로, userActivation도 함께 검사한다.
  */
 
-const canVibrate = (): boolean =>
-  typeof navigator !== 'undefined' && 'vibrate' in navigator
+const canVibrate = (): boolean => {
+  if (typeof navigator === 'undefined' || !('vibrate' in navigator)) return false
+  const ua = (navigator as any).userActivation
+  if (ua && ua.isActive === false) return false
+  return true
+}
 
 /** 짧은 탭 피드백 — 버튼·아이콘 클릭 시 */
 export function hapticLight(): void {

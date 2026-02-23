@@ -19,6 +19,8 @@ const WEEK_STARTS_MONDAY = false
 interface CalendarGridProps {
   onDateSelect?: () => void
   allowFullHeight?: boolean
+  /** 지정 시 해당 월을 표시 (슬라이드 캐러셀용). 미지정 시 store의 currentMonth 사용 */
+  displayMonth?: Date
 }
 
 /** 주당 표시할 이벤트 행 수 — 일정 개수와 관계없이 날짜 영역 높이 일관 유지 */
@@ -235,11 +237,12 @@ export function getEventColorMapForDay(
   return map
 }
 
-export default function CalendarGrid({ onDateSelect, allowFullHeight }: CalendarGridProps) {
-  const { currentMonth, selectedDate, setSelectedDate, getTodosByDate, todos } = useCalendarStore()
+export default function CalendarGrid({ onDateSelect, allowFullHeight, displayMonth }: CalendarGridProps) {
+  const { currentMonth, selectedDate, setSelectedDate, getTodosByDate, todos, selectionDimmed } = useCalendarStore()
+  const monthToShow = displayMonth ?? currentMonth
 
-  const year = currentMonth.getFullYear()
-  const month = currentMonth.getMonth()
+  const year = monthToShow.getFullYear()
+  const month = monthToShow.getMonth()
   const days = getCalendarDays(year, month, WEEK_STARTS_MONDAY)
 
   const weekRows = useMemo(() => {
@@ -301,7 +304,7 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight }: Calendar
                   const isCurrentMonthDay = date.getMonth() === month
                   const dateStr = formatDate(date)
                   const allOnDay = getTodosByDate(dateStr).filter((t) => t.status !== 'cancelled')
-                  const isSelected = isSameDay(date, selectedDate)
+                  const isSelected = !selectionDimmed && isSameDay(date, selectedDate)
                   const isToday = dateStr === formatDate(new Date())
                   const dayOfWeek = date.getDay()
                   /** 그리드와 동일한 주 단위 정렬·색 할당으로 일치 (22–24일 보라 멀티데이 → 보라 바) */

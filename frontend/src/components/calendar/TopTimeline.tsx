@@ -6,9 +6,9 @@ import { useRef, useEffect } from 'react'
 
 /**
  * 🎨 TopTimeline: 선택한 날짜가 중앙에 오는 좌우 스크롤 날짜 바
- * - 선택일 ± N일을 렌더하고, 클릭한 날짜를 중앙으로 스크롤
+ * - 오늘 기준 좌우 2일씩, 총 5일만 표시
  */
-const DAYS_RANGE = 30 // 선택일 기준 앞뒤 30일 (총 61일)
+const DAYS_RANGE = 2 // 오늘 기준 앞뒤 2일 (총 5일: 오늘-2, 오늘-1, 오늘, 오늘+1, 오늘+2)
 
 interface TopTimelineProps {
   isExpanded: boolean
@@ -19,9 +19,9 @@ export function TopTimeline({ isExpanded }: TopTimelineProps) {
   const { todos, selectedDate } = useCalendarStore()
   const selectedCardRef = useRef<HTMLButtonElement>(null)
 
-  const centerDate = selectedDate ? startOfDay(selectedDate) : startOfDay(new Date())
+  const today = startOfDay(new Date())
   const weekDays = Array.from({ length: DAYS_RANGE * 2 + 1 }, (_, i) =>
-    addDays(centerDate, i - DAYS_RANGE)
+    addDays(today, i - DAYS_RANGE)
   )
 
   useEffect(() => {
@@ -35,13 +35,13 @@ export function TopTimeline({ isExpanded }: TopTimelineProps) {
 
   return (
     <motion.section
-      className="min-h-[96px] overflow-visible box-border flex flex-col justify-center theme-transition bg-theme py-2.5 sm:py-3 border-b border-theme"
+      className="shrink-0 min-h-[100px] overflow-visible box-border flex flex-col justify-center theme-transition bg-theme pt-3 pb-6 border-b border-theme"
       initial={false}
       animate={{ opacity: isExpanded ? 1 : 0 }}
       transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
     >
       <div
-        className="flex gap-3 sm:gap-4 overflow-x-auto overflow-y-hidden px-4 sm:px-5 scrollbar-none scroll-smooth"
+        className="flex justify-center items-center gap-3 sm:gap-4 overflow-x-auto overflow-y-visible px-4 sm:px-5 scrollbar-none scroll-smooth"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',

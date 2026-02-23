@@ -34,8 +34,13 @@ import { formatDate } from '@/utils/dateUtils'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useGoalStore } from '@/stores/goalStore'
 import { checkAuth, loadGoals } from '@/services/authService'
-import { getSchedules } from '@/services/scheduleService'
+import { getSchedules, createSchedule, deleteSchedule, deleteAllSchedules } from '@/services/scheduleService'
 import { useApiKeyStore } from '@/stores/apiKeyStore'
+import { useToastStore } from '@/stores/toastStore'
+import { format } from 'date-fns'
+import { ko } from 'date-fns/locale'
+import { ConfirmModal } from '@/components/ConfirmModal'
+import { hapticLight } from '@/utils/haptic'
 
 export default function MainPage() {
   const navigate = useNavigate()
@@ -52,10 +57,39 @@ export default function MainPage() {
   const skipNextScrollToTimeRef = useRef(false)
   const magicBarRef = useRef<{ focus: () => void } | null>(null)
   const calendarScrollRef = useRef<HTMLDivElement>(null)
+  const calendarSlideContainerRef = useRef<HTMLDivElement>(null)
+  const calendarTouchStartX = useRef(0)
+  const calendarTouchStartY = useRef(0)
   const isMobile = useIsMobile()
   const { setGoals } = useGoalStore()
-  const { setTodos, viewMode, setViewMode, selectedDate } = useCalendarStore()
+  const { setTodos, viewMode, setViewMode, selectedDate, currentMonth, setCurrentMonth, copyTodosFromPreviousDay, addTodos, getTodosByDate, deleteTodo, addTodo, clearAllTodos, clearTodosInMonth, todos, setSelectionDimmed } = useCalendarStore()
+  const { addToast } = useToastStore()
   const loadApiKeyForCurrentUser = useApiKeyStore((s) => s.loadApiKeyForCurrentUser)
+  const [showResetDayConfirm, setShowResetDayConfirm] = useState(false)
+  const [showClearAllConfirm, setShowClearAllConfirm] = useState(false)
+  const [showClearMonthConfirm, setShowClearMonthConfirm] = useState(false)
+  const [isCopying, setIsCopying] = useState(false)
+  const [isResettingDay, setIsResettingDay] = useState(false)
+  const [isClearingAll, setIsClearingAll] = useState(false)
+  const [isClearingMonth, setIsClearingMonth] = useState(false)
+  /** 모바일 월간 캘린더 슬라이드: 드래그 오프셋(px), 0이면 드래그 중 아님 */
+  const [calendarDragOffsetPx, setCalendarDragOffsetPx] = useState(0)
+  const [calendarIsDragging, setCalendarIsDragging] = useState(false)
+  /** 슬라이드 스냅 애니메이션 후 월 전환 시 사용. -100=prev, 0=center, 100=next 방향으로 이동 중 */
+  const calendarSlideTargetRef = useRef<'prev' | 'next' | null>(null)
+  const calendarSlideJustResetRef = useRef(false)
+  const calendarSlideFromMonthRef = useRef<Date>(new Date())
+  /** 가로 스와이프 중일 때 세로 스크롤 방지용 (preventDefault 호출) */
+  const calendarHorizontalSwipeRef = useRef(false)
+  /** transitionend 미발생 시 슬라이드 완료 처리용 폴백 타이머 */
+  const calendarSlideFallbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  /** 확인 모달(하루 초기화/전체 비우기/월간 비우기)이 열려 있을 때 캘린더 선택 하이라이트 제거 */
+  useEffect(() => {
+    const open = showResetDayConfirm || showClearAllConfirm || showClearMonthConfirm
+    setSelectionDimmed(open)
+    return () => setSelectionDimmed(false)
+  }, [showResetDayConfirm, showClearAllConfirm, showClearMonthConfirm, setSelectionDimmed])
 
   // 플래너 진입 시 인증 확인 + 회원별 목표·일정 로드
   useEffect(() => {
@@ -82,6 +116,26 @@ export default function MainPage() {
     init()
   }, [navigate, setGoals, setTodos, loadApiKeyForCurrentUser])
 
+  /** 슬라이드 월 전환 후 오프셋 리셋 시 트랜지션 없이 바로 보이도록, 리셋 플래그를 한 프레임 후 해제 */
+  useEffect(() => {
+    if (calendarDragOffsetPx === 0) {
+      calendarSlideJustResetRef.current = false
+    }
+  }, [calendarDragOffsetPx])
+
+  /** 모바일 캘린더: 가로 스와이프 중에는 세로 스크롤 방지 (preventDefault는 passive: false에서만 동작) */
+  useEffect(() => {
+    if (!isMobile) return
+    const el = calendarSlideContainerRef.current
+    if (!el) return
+    const onTouchMove = (e: TouchEvent) => {
+      if (!calendarHorizontalSwipeRef.current) return
+      if (e.cancelable) e.preventDefault()
+    }
+    el.addEventListener('touchmove', onTouchMove, { passive: false, capture: true })
+    return () => el.removeEventListener('touchmove', onTouchMove, { capture: true })
+  }, [isMobile])
+
   // 모바일에서 날짜 탭 시 일정 시트가 열리면, 해당 주가 시트 위에 보이도록 캘린더 스크롤(배경 블러 없이)
   useEffect(() => {
     if (!isMobile || viewMode !== 'month' || !openDaySheet) return
@@ -123,6 +177,241 @@ export default function MainPage() {
     const t = setTimeout(scrollToSelectedWeek, 150)
     return () => clearTimeout(t)
   }, [isMobile, viewMode, openDaySheet, selectedDate])
+
+  const handleCopyPreviousDay = async () => {
+    if (isCopying) return
+    const { toCopy, excluded } = copyTodosFromPreviousDay()
+    if (toCopy.length === 0 && excluded.length === 0) {
+      addToast('어제 일정이 없습니다.')
+      return
+    }
+    excluded.forEach(({ title, startTime, endTime }) => {
+      addToast(`${startTime}~${endTime}에 있는 「${title}」이 중복되어 제외했습니다!`)
+    })
+    if (toCopy.length === 0) return
+    const optimisticIds = new Set(toCopy.map((t) => t.id))
+    addTodos(toCopy)
+    setIsCopying(true)
+    try {
+      const created = await Promise.all(
+        toCopy.map((t) =>
+          createSchedule({
+            title: t.title,
+            description: t.description ?? '',
+            date: t.date,
+            startTime: t.startTime ?? '',
+            endTime: t.endTime ?? '',
+            status: t.status,
+            priority: t.priority,
+            createdBy: t.createdBy,
+          })
+        )
+      )
+      const { todos: storeTodos, setTodos: setStoreTodos } = useCalendarStore.getState()
+      setStoreTodos(
+        storeTodos.map((t) => {
+          const idx = toCopy.findIndex((c) => c.id === t.id)
+          if (idx >= 0) return { ...created[idx], clientKey: t.id }
+          return t
+        })
+      )
+      addToast(`어제 일정 ${created.length}개를 ${format(selectedDate, 'M월 d일', { locale: ko })}로 가져왔습니다!`)
+    } catch (e) {
+      const { todos: storeTodos, setTodos: setStoreTodos } = useCalendarStore.getState()
+      setStoreTodos(storeTodos.filter((t) => !optimisticIds.has(t.id)))
+      const message = e instanceof Error ? e.message : '일정 저장 실패'
+      addToast(`저장 중 오류: ${message}`)
+    } finally {
+      setIsCopying(false)
+    }
+  }
+
+  const handleResetDay = async () => {
+    const dateStr = formatDate(selectedDate)
+    const toDelete = getTodosByDate(dateStr)
+    if (toDelete.length === 0) {
+      setShowResetDayConfirm(false)
+      addToast('해당 날짜에 일정이 없어요.')
+      return
+    }
+    const copies = toDelete.map((t) => ({ ...t }))
+    setIsResettingDay(true)
+    setShowResetDayConfirm(false)
+    toDelete.forEach((t) => deleteTodo(t.id))
+    const serverIds = toDelete.filter((t) => !t.id.startsWith('opt-'))
+    const results = await Promise.allSettled(serverIds.map((t) => deleteSchedule(t.id)))
+    const failed = results.filter((r) => r.status === 'rejected') as PromiseRejectedResult[]
+    if (failed.length > 0) {
+      copies.forEach((t) => addTodo(t))
+      const msg = failed[0].reason instanceof Error ? failed[0].reason.message : String(failed[0].reason)
+      addToast(`일정 일부 삭제 실패: ${msg}`)
+    } else if (toDelete.length > 0) {
+      addToast(`${format(selectedDate, 'M월 d일', { locale: ko })} 일정 ${toDelete.length}개를 초기화했어요`)
+    }
+    setIsResettingDay(false)
+  }
+
+  const handleClearAllSchedules = async () => {
+    if (todos.length === 0) {
+      setShowClearAllConfirm(false)
+      addToast('삭제할 일정이 없어요.')
+      return
+    }
+    const count = todos.length
+    const copies = todos.map((t) => ({ ...t }))
+    setIsClearingAll(true)
+    setShowClearAllConfirm(false)
+    clearAllTodos()
+    try {
+      await deleteAllSchedules()
+      addToast(`전체 일정 ${count}개를 비웠어요.`)
+    } catch (e) {
+      const { setTodos: setStoreTodos } = useCalendarStore.getState()
+      setStoreTodos(copies)
+      const message = e instanceof Error ? e.message : '일정 삭제 실패'
+      addToast(`전체 삭제 실패: ${message}`)
+    } finally {
+      setIsClearingAll(false)
+    }
+  }
+
+  /** 헤더 currentMonth 기준 해당 월 일정만 비우기 (FAB 롱프레스 → 월간 일정 비우기) */
+  const handleClearMonthSchedules = async () => {
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth()
+    const inMonth = (d: string) => {
+      const t = new Date(d + 'T12:00:00')
+      return t.getFullYear() === year && t.getMonth() === month
+    }
+    const toRemove = todos.filter((t) => inMonth(t.date))
+    if (toRemove.length === 0) {
+      setShowClearMonthConfirm(false)
+      addToast('해당 월에 삭제할 일정이 없어요.')
+      return
+    }
+    const count = toRemove.length
+    const copies = todos.map((t) => ({ ...t }))
+    const serverIds = toRemove.filter((t) => t.id && !t.id.startsWith('opt-')).map((t) => t.id)
+    setIsClearingMonth(true)
+    setShowClearMonthConfirm(false)
+    clearTodosInMonth(year, month)
+    try {
+      await Promise.allSettled(serverIds.map((id) => deleteSchedule(id)))
+      addToast(`${format(currentMonth, 'M월', { locale: ko })} 일정 ${count}개를 비웠어요.`)
+    } catch (e) {
+      const { setTodos: setStoreTodos } = useCalendarStore.getState()
+      setStoreTodos(copies)
+      const message = e instanceof Error ? e.message : '일정 삭제 실패'
+      addToast(`월간 비우기 실패: ${message}`)
+    } finally {
+      setIsClearingMonth(false)
+    }
+  }
+
+  /** 모바일 캘린더: 좌우 스와이프로 이전/다음 월 이동 (슬라이드 애니메이션). d는 Date 또는 직렬화된 값(문자열 등) 허용 */
+  const toDate = (d: Date | string | number): Date => (d instanceof Date ? d : new Date(d))
+  const getPrevMonth = (d: Date | string | number) => {
+    const date = toDate(d)
+    return new Date(date.getFullYear(), date.getMonth() - 1, 1)
+  }
+  const getNextMonth = (d: Date | string | number) => {
+    const date = toDate(d)
+    return new Date(date.getFullYear(), date.getMonth() + 1, 1)
+  }
+
+  const handleCalendarSlideTransitionEnd = (e: React.TransitionEvent) => {
+    if (e.propertyName !== 'transform' || e.target !== e.currentTarget) return
+    const target = calendarSlideTargetRef.current
+    const fromMonth = calendarSlideFromMonthRef.current
+    if (calendarSlideFallbackTimeoutRef.current !== null) {
+      clearTimeout(calendarSlideFallbackTimeoutRef.current)
+      calendarSlideFallbackTimeoutRef.current = null
+    }
+    if (target === 'prev') {
+      setCurrentMonth(getPrevMonth(fromMonth))
+      hapticLight()
+    } else if (target === 'next') {
+      setCurrentMonth(getNextMonth(fromMonth))
+      hapticLight()
+    }
+    calendarSlideTargetRef.current = null
+    calendarSlideJustResetRef.current = true
+    setCalendarDragOffsetPx(0)
+  }
+
+  const handleCalendarTouchStart = (e: React.TouchEvent) => {
+    calendarTouchStartX.current = e.touches[0].clientX
+    calendarTouchStartY.current = e.touches[0].clientY
+    calendarHorizontalSwipeRef.current = false
+    setCalendarIsDragging(true)
+  }
+  const handleCalendarTouchMove = (e: React.TouchEvent) => {
+    const container = calendarSlideContainerRef.current
+    if (!container || calendarSlideTargetRef.current !== null) return
+    const deltaX = e.touches[0].clientX - calendarTouchStartX.current
+    const deltaY = e.touches[0].clientY - calendarTouchStartY.current
+    const absX = Math.abs(deltaX)
+    const absY = Math.abs(deltaY)
+    if (absX > absY && absX > 8) {
+      calendarHorizontalSwipeRef.current = true
+      const width = container.offsetWidth
+      const maxDrag = width * 0.45
+      const clamped = Math.max(-maxDrag, Math.min(maxDrag, deltaX))
+      setCalendarDragOffsetPx(clamped)
+    }
+  }
+  const handleCalendarTouchEnd = (e: React.TouchEvent) => {
+    const endX = e.changedTouches[0].clientX
+    const endY = e.changedTouches[0].clientY
+    const deltaX = endX - calendarTouchStartX.current
+    const deltaY = endY - calendarTouchStartY.current
+    const absX = Math.abs(deltaX)
+    const absY = Math.abs(deltaY)
+    const container = calendarSlideContainerRef.current
+    const width = container?.offsetWidth ?? 300
+    const threshold = width * 0.22
+
+    calendarHorizontalSwipeRef.current = false
+    setCalendarIsDragging(false)
+    if (calendarSlideTargetRef.current !== null) return
+
+    if (absX > absY && absX > 50) {
+      if (deltaX > threshold) {
+        calendarSlideTargetRef.current = 'prev'
+        calendarSlideFromMonthRef.current = toDate(currentMonth)
+        setCalendarDragOffsetPx(width)
+        if (calendarSlideFallbackTimeoutRef.current !== null) clearTimeout(calendarSlideFallbackTimeoutRef.current)
+        calendarSlideFallbackTimeoutRef.current = setTimeout(() => {
+          calendarSlideFallbackTimeoutRef.current = null
+          if (calendarSlideTargetRef.current !== 'prev') return
+          const from = calendarSlideFromMonthRef.current
+          setCurrentMonth(getPrevMonth(from))
+          hapticLight()
+          calendarSlideTargetRef.current = null
+          calendarSlideJustResetRef.current = true
+          setCalendarDragOffsetPx(0)
+        }, 500)
+      } else if (deltaX < -threshold) {
+        calendarSlideTargetRef.current = 'next'
+        calendarSlideFromMonthRef.current = toDate(currentMonth)
+        setCalendarDragOffsetPx(-width)
+        if (calendarSlideFallbackTimeoutRef.current !== null) clearTimeout(calendarSlideFallbackTimeoutRef.current)
+        calendarSlideFallbackTimeoutRef.current = setTimeout(() => {
+          calendarSlideFallbackTimeoutRef.current = null
+          if (calendarSlideTargetRef.current !== 'next') return
+          const from = calendarSlideFromMonthRef.current
+          setCurrentMonth(getNextMonth(from))
+          hapticLight()
+          calendarSlideTargetRef.current = null
+          calendarSlideJustResetRef.current = true
+          setCalendarDragOffsetPx(0)
+        }, 500)
+      }
+    }
+    if (calendarSlideTargetRef.current === null) {
+      setCalendarDragOffsetPx(0)
+    }
+  }
 
   if (checkingAuth) {
     return (
@@ -141,6 +430,13 @@ export default function MainPage() {
         onToggleWeekStrip={viewMode === 'week' ? () => setIsWeekStripExpanded((v) => !v) : undefined}
         isSettingsOpen={isSettingsOpen}
         onSettingsOpenChange={setIsSettingsOpen}
+        setShowResetDayConfirm={setShowResetDayConfirm}
+        setShowClearAllConfirm={setShowClearAllConfirm}
+        onCopyPreviousDay={handleCopyPreviousDay}
+        isCopying={isCopying}
+        isResettingDay={isResettingDay}
+        isClearingAll={isClearingAll}
+        todosOnSelectedDayCount={getTodosByDate(formatDate(selectedDate)).length}
       />
 
       {/* 콘텐츠 영역: 월간일 때 [매직바+캘린더 | 우측 일정 패널]. 모바일 시 하단 메뉴바 높이만큼 패딩 */}
@@ -154,9 +450,9 @@ export default function MainPage() {
           {/* 주간 모드: 매직바 바로 밑에 주간 날짜 strip (헤더에서 2월 2026 클릭 시 펼침/접힘) */}
           {viewMode === 'week' && (
             <div
-              className="overflow-hidden border-b border-theme theme-transition"
+              className="shrink-0 overflow-hidden border-b border-theme theme-transition"
               style={{
-                maxHeight: isWeekStripExpanded ? 260 : 0,
+                maxHeight: isWeekStripExpanded ? 168 : 0,
                 transition: 'max-height 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
               }}
             >
@@ -167,7 +463,7 @@ export default function MainPage() {
             </div>
           )}
 
-          {/* 주간: 타임라인 / 월간: 캘린더+일정 패널. 모바일은 좌우 스와이프로 전환 */}
+          {/* 주간: 타임라인 / 월간: 캘린더+일정 패널. 모바일은 탭으로 전환, 캘린더에서 좌우 스와이프 시 이전/다음 월 */}
           <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative z-0 theme-transition bg-theme">
             {isMobile ? (
               <MobileCalendarTodoSwitcher
@@ -177,19 +473,53 @@ export default function MainPage() {
                   if (mode === 'week') skipNextScrollToTimeRef.current = true
                 }}
                 calendarPanel={
-                  <div ref={calendarScrollRef} className="h-full overflow-auto flex flex-col theme-transition bg-theme">
+                  <div
+                    ref={calendarSlideContainerRef}
+                    className="h-full overflow-hidden touch-pan-y"
+                    onTouchStart={handleCalendarTouchStart}
+                    onTouchMove={handleCalendarTouchMove}
+                    onTouchEnd={handleCalendarTouchEnd}
+                    onTouchCancel={handleCalendarTouchEnd}
+                  >
                     <div
-                      className="max-w-2xl mx-auto px-4 py-6 sm:py-8 w-full theme-transition bg-theme flex-1"
-                      style={
-                        openDaySheet
-                          ? { paddingBottom: `min(70vh, ${DAY_SHEET_HEIGHT_PX + 40}px)` }
-                          : undefined
-                      }
+                      className="flex h-full will-change-transform"
+                      style={{
+                        width: '300%',
+                        transform: `translate3d(calc(-33.333% + ${calendarDragOffsetPx}px), 0, 0)`,
+                        transition: calendarIsDragging || calendarSlideJustResetRef.current
+                          ? 'none'
+                          : 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
+                      }}
+                      onTransitionEnd={handleCalendarSlideTransitionEnd}
                     >
-                      <CalendarGrid
-                        allowFullHeight
-                        onDateSelect={() => setOpenDaySheet(true)}
-                      />
+                      {(() => {
+                        const base = toDate(currentMonth)
+                        return [getPrevMonth(base), base, getNextMonth(base)].map((month, idx) => (
+                        <div
+                          key={month.getTime()}
+                          className="w-1/3 h-full flex-shrink-0 flex flex-col overflow-hidden"
+                        >
+                          <div
+                            ref={idx === 1 ? calendarScrollRef : undefined}
+                            className="h-full overflow-auto flex flex-col theme-transition bg-theme"
+                          >
+                            <div
+                              className="max-w-2xl mx-auto px-4 py-6 sm:py-8 w-full theme-transition bg-theme flex-1"
+                              style={
+                                openDaySheet && idx === 1
+                                  ? { paddingBottom: `min(70vh, ${DAY_SHEET_HEIGHT_PX + 40}px)` }
+                                  : undefined
+                              }
+                            >
+                              <CalendarGrid
+                                allowFullHeight
+                                displayMonth={idx !== 1 ? month : undefined}
+                                onDateSelect={idx === 1 ? () => setOpenDaySheet(true) : undefined}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))})()}
                     </div>
                   </div>
                 }
@@ -202,86 +532,94 @@ export default function MainPage() {
                 }
               />
             ) : (
-              <>
-                {viewMode === 'week' && (
-                  <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
-                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden min-w-0">
-                      <VerticalTimeline skipNextScrollToTimeRef={skipNextScrollToTimeRef} />
-                    </div>
-                  </div>
-                )}
-
-                {viewMode === 'month' && (
-                  <div className="flex-1 flex min-h-0 overflow-hidden theme-transition bg-theme relative">
-                    {/* 헤더의 2월 2026과 동일한 중앙 정렬: max-w-screen-2xl 기준으로 캘린더 중앙 컬럼 고정 */}
-                    <div
-                      className={cn(
-                        'w-full max-w-screen-2xl mx-auto grid min-h-0',
-                        pcTodoSidebarOpen ? 'grid-cols-[400px_42rem_400px]' : 'grid-cols-[1fr_42rem_1fr]'
-                      )}
-                    >
-                      <div className="min-w-0 min-h-0" aria-hidden />
-                      <div ref={calendarScrollRef} className="overflow-auto min-h-0 min-w-0 theme-transition bg-theme">
-                        <div className="w-full px-4 py-6 sm:py-8 theme-transition bg-theme">
-                          <CalendarGrid
-                            allowFullHeight
-                            onDateSelect={undefined}
-                          />
-                        </div>
-                      </div>
-                      <aside
+              /* PC: 캘린더 ↔ 할일 전환 시 슬라이드 애니메이션 */
+              <div className="flex-1 min-h-0 overflow-hidden relative">
+                <div
+                  className="flex h-full will-change-transform"
+                  style={{
+                    width: '200%',
+                    transform: viewMode === 'month' ? 'translate3d(0, 0, 0)' : 'translate3d(-50%, 0, 0)',
+                    transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
+                  }}
+                >
+                  <div className="w-1/2 h-full min-h-0 flex flex-col shrink-0 overflow-hidden">
+                    <div className="flex-1 flex min-h-0 overflow-hidden theme-transition bg-theme relative">
+                      <div
                         className={cn(
-                          'flex flex-row min-h-0 bg-theme theme-transition overflow-hidden',
-                          pcTodoSidebarOpen && 'border-l border-[var(--border-color)]'
+                          'w-full max-w-screen-2xl mx-auto grid min-h-0',
+                          pcTodoSidebarOpen ? 'grid-cols-[400px_42rem_400px]' : 'grid-cols-[1fr_42rem_1fr]'
                         )}
-                        style={{
-                          width: pcTodoSidebarOpen ? undefined : 0,
-                          minWidth: 0,
-                          transition: 'width 0.28s cubic-bezier(0.32, 0.72, 0, 1), min-width 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
-                        }}
                       >
-                        {pcTodoSidebarOpen && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => setPcTodoSidebarOpen(false)}
-                              className="shrink-0 w-10 flex flex-col items-center justify-center gap-1 py-4 border-r border-[var(--border-color)] bg-theme hover:bg-theme-hover text-theme-muted hover:text-theme transition-colors"
-                              aria-label="할일 목록 접기"
-                              title="할일 목록 접기"
-                            >
-                              <ChevronRight className="w-5 h-5 shrink-0" />
-                              <span className="text-[10px] font-medium" style={{ writingMode: 'vertical-rl' }}>접기</span>
-                            </button>
-                            <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden animate-sidebar-content-in">
-                              <DayDetailPanel
-                                embedded
-                                openAddModal={false}
-                                onAddModalOpened={() => {}}
-                              />
-                            </div>
-                          </>
-                        )}
-                      </aside>
+                        <div className="min-w-0 min-h-0" aria-hidden />
+                        <div ref={calendarScrollRef} className="overflow-auto min-h-0 min-w-0 theme-transition bg-theme">
+                          <div className="w-full px-4 py-6 sm:py-8 theme-transition bg-theme">
+                            <CalendarGrid
+                              allowFullHeight
+                              onDateSelect={undefined}
+                            />
+                          </div>
+                        </div>
+                        <aside
+                          className={cn(
+                            'flex flex-row min-h-0 bg-theme theme-transition overflow-hidden',
+                            pcTodoSidebarOpen && 'border-l border-[var(--border-color)]'
+                          )}
+                          style={{
+                            width: pcTodoSidebarOpen ? undefined : 0,
+                            minWidth: 0,
+                            transition: 'width 0.28s cubic-bezier(0.32, 0.72, 0, 1), min-width 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
+                          }}
+                        >
+                          {pcTodoSidebarOpen && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setPcTodoSidebarOpen(false)}
+                                className="shrink-0 w-10 flex flex-col items-center justify-center gap-1 py-4 border-r border-[var(--border-color)] bg-theme hover:bg-theme-hover text-theme-muted hover:text-theme transition-colors"
+                                aria-label="할일 목록 접기"
+                                title="할일 목록 접기"
+                              >
+                                <ChevronRight className="w-5 h-5 shrink-0" />
+                                <span className="text-[10px] font-medium" style={{ writingMode: 'vertical-rl' }}>접기</span>
+                              </button>
+                              <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden animate-sidebar-content-in">
+                                <DayDetailPanel
+                                  embedded
+                                  openAddModal={false}
+                                  onAddModalOpened={() => {}}
+                                />
+                              </div>
+                            </>
+                          )}
+                        </aside>
+                      </div>
                     </div>
-                    {/* 접힌 상태: 우측 고정 탭 등장 애니메이션 */}
-                    {!pcTodoSidebarOpen && (
-                      <button
-                        type="button"
-                        onClick={() => setPcTodoSidebarOpen(true)}
-                        className="fixed right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-16 flex flex-col items-center justify-center gap-1 py-2 rounded-l-neu border border-r-0 border-[var(--border-color)] bg-theme hover:bg-theme-hover shadow-md transition-colors animate-sidebar-tab-in"
-                        style={{ marginTop: 0 }}
-                        aria-label="할일 목록 펼치기"
-                        title="할일 목록 펼치기"
-                      >
-                        <ListTodo className="w-5 h-5 text-theme-muted shrink-0" />
-                        <span className="text-[10px] font-medium text-theme-muted" style={{ writingMode: 'vertical-rl' }}>
-                          할일
-                        </span>
-                      </button>
-                    )}
                   </div>
+                  <div className="w-1/2 h-full min-h-0 flex flex-col shrink-0 overflow-hidden">
+                    <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
+                      <div className="flex-1 flex flex-col min-h-0 overflow-hidden min-w-0">
+                        <VerticalTimeline skipNextScrollToTimeRef={skipNextScrollToTimeRef} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* 펼치기 버튼: transform 밖에 두어 뷰포트 기준 fixed가 동작하도록 */}
+                {viewMode === 'month' && !pcTodoSidebarOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setPcTodoSidebarOpen(true)}
+                    className="fixed right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-16 flex flex-col items-center justify-center gap-1 py-2 rounded-l-neu border border-r-0 border-[var(--border-color)] bg-theme hover:bg-theme-hover shadow-md transition-colors animate-sidebar-tab-in"
+                    style={{ marginTop: 0 }}
+                    aria-label="할일 목록 펼치기"
+                    title="할일 목록 펼치기"
+                  >
+                    <ListTodo className="w-5 h-5 text-theme-muted shrink-0" />
+                    <span className="text-[10px] font-medium text-theme-muted" style={{ writingMode: 'vertical-rl' }}>
+                      할일
+                    </span>
+                  </button>
                 )}
-              </>
+              </div>
             )}
           </main>
 
@@ -334,6 +672,10 @@ export default function MainPage() {
             setOpenAddModalFromFab(true)
           }}
           onOpenSettings={() => setMobileSettingsPageOpen(true)}
+          onOpenImportTimetable={() => setShowImportTimetable(true)}
+          onCopyPreviousDay={handleCopyPreviousDay}
+          onResetDayConfirm={() => setShowResetDayConfirm(true)}
+          onClearMonthConfirm={() => setShowClearMonthConfirm(true)}
         />
       )}
 
@@ -344,6 +686,35 @@ export default function MainPage() {
           onClose={() => setShowImportTimetable(false)}
         />
       )}
+
+      {/* 하루 일정 초기화 / 전체 일정 비우기 확인 모달 (모바일 FAB 롱프레스 메뉴 등에서 사용) */}
+      <ConfirmModal
+        isOpen={showResetDayConfirm}
+        onClose={() => { setShowResetDayConfirm(false); setSelectionDimmed(false) }}
+        onConfirm={handleResetDay}
+        title="하루 일정 초기화"
+        message={`선택한 날짜(${format(selectedDate, 'M월 d일', { locale: ko })})의 일정 ${getTodosByDate(formatDate(selectedDate)).length}개를 모두 삭제할까요? 되돌릴 수 없어요.`}
+        confirmLabel="전체 삭제"
+        danger
+      />
+      <ConfirmModal
+        isOpen={showClearMonthConfirm}
+        onClose={() => { setShowClearMonthConfirm(false); setSelectionDimmed(false) }}
+        onConfirm={handleClearMonthSchedules}
+        title="월간 일정 비우기"
+        message={(() => {
+          const year = currentMonth.getFullYear()
+          const month = currentMonth.getMonth()
+          const inMonth = (d: string) => {
+            const t = new Date(d + 'T12:00:00')
+            return t.getFullYear() === year && t.getMonth() === month
+          }
+          const count = todos.filter((t) => inMonth(t.date)).length
+          return `${format(currentMonth, 'yyyy년 M월', { locale: ko })} 일정 ${count}개를 모두 삭제할까요? 되돌릴 수 없어요.`
+        })()}
+        confirmLabel="전체 삭제"
+        danger
+      />
     </div>
   )
 }

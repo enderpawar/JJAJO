@@ -323,7 +323,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                     <span>학기 시작일</span>
                     <input
                       type="date"
-                      className="bg-theme-card border border-theme rounded px-2 py-1 text-xs text-theme"
+                      className="bg-theme-card border border-theme rounded-neu px-2 py-1 text-xs text-theme"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
                     />
@@ -332,7 +332,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                     <span>종료일</span>
                     <input
                       type="date"
-                      className="bg-theme-card border border-theme rounded px-2 py-1 text-xs text-theme"
+                      className="bg-theme-card border border-theme rounded-neu px-2 py-1 text-xs text-theme"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
                     />
@@ -377,7 +377,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                         <td className="px-3 py-1">
                           <input
                             type="text"
-                            className="w-full bg-transparent border border-theme rounded px-2 py-1 text-xs text-theme"
+                            className="w-full bg-transparent border border-theme rounded-neu px-2 py-1 text-xs text-theme"
                             value={c.title}
                             onChange={(e) =>
                               setCandidates((prev) =>
@@ -388,7 +388,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                         </td>
                         <td className="px-3 py-1">
                           <select
-                            className="w-full bg-transparent border border-theme rounded px-2 py-1 text-xs text-theme"
+                            className="w-full bg-transparent border border-theme rounded-neu px-2 py-1 text-xs text-theme"
                             value={c.dayOfWeek}
                             onChange={(e) =>
                               setCandidates((prev) =>
@@ -406,7 +406,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                         <td className="px-3 py-1">
                           <input
                             type="time"
-                            className="w-full bg-transparent border border-theme rounded px-2 py-1 text-xs text-theme"
+                            className="w-full bg-transparent border border-theme rounded-neu px-2 py-1 text-xs text-theme"
                             value={c.startTime || ''}
                             onChange={(e) =>
                               setCandidates((prev) =>
@@ -418,7 +418,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                         <td className="px-3 py-1">
                           <input
                             type="time"
-                            className="w-full bg-transparent border border-theme rounded px-2 py-1 text-xs text-theme"
+                            className="w-full bg-transparent border border-theme rounded-neu px-2 py-1 text-xs text-theme"
                             value={c.endTime || ''}
                             onChange={(e) =>
                               setCandidates((prev) =>
@@ -430,7 +430,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                         <td className="px-3 py-1">
                           <input
                             type="text"
-                            className="w-full bg-transparent border border-theme rounded px-2 py-1 text-xs text-theme"
+                            className="w-full bg-transparent border border-theme rounded-neu px-2 py-1 text-xs text-theme"
                             value={c.location || ''}
                             onChange={(e) =>
                               setCandidates((prev) =>
@@ -455,10 +455,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
         </div>
 
         {/* 푸터 */}
-        <div className="px-5 py-3 border-t border-theme flex items-center justify-between gap-3 bg-theme/80">
-          <p className="text-[11px] text-theme-muted">
-            이미지 인식 결과가 완벽하지 않을 수 있어요. 저장 전에 과목/요일/시간을 한 번만 확인해주세요.
-          </p>
+        <div className="px-5 py-3 border-t border-theme flex items-center justify-end gap-2 bg-theme/80">
           <div className="flex gap-2">
             <button
               type="button"
@@ -473,7 +470,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
               disabled={!hasCandidates || isSaving}
               className="btn-action-press px-4 py-1.5 rounded-neu text-xs font-medium bg-primary-500 hover:bg-primary-600 text-white disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
             >
-              {isSaving ? '저장 중...' : '주간 반복 일정으로 저장'}
+              {isSaving ? '저장 중...' : '저장'}
             </button>
           </div>
         </div>

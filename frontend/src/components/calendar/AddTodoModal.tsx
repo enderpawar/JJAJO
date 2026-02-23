@@ -5,7 +5,7 @@ import { useToastStore } from '@/stores/toastStore'
 import { createSchedule } from '@/services/scheduleService'
 import { formatDate, formatDateWithDay } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
-import type { TodoPriority, TodoStatus } from '@/types/calendar'
+import type { Todo, TodoPriority, TodoStatus } from '@/types/calendar'
 
 interface AddTodoModalProps {
   isOpen: boolean
@@ -52,26 +52,25 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
       addToast('제목을 입력해주세요')
       return
     }
-    try {
-      const endDate =
-        formData.endDate && formData.endDate >= formData.date ? formData.endDate : undefined
-      const saved = await createSchedule({
-        title: formData.title,
-        description: formData.description || undefined,
-        date: formData.date,
-        endDate,
-        startTime: formData.startTime || undefined,
-        endTime: formData.endTime || undefined,
-        status: formData.status,
-        priority: formData.priority,
-        createdBy: 'user',
-      })
-      addTodo(saved)
-    } catch (e) {
-      console.error('일정 추가 실패:', e)
-      addToast(`일정 추가 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
-      return
+    const endDate =
+      formData.endDate && formData.endDate >= formData.date ? formData.endDate : undefined
+    const now = new Date().toISOString()
+    const optimisticId = `opt-new-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    const optimistic: Todo = {
+      id: optimisticId,
+      title: formData.title.trim(),
+      description: formData.description?.trim() || undefined,
+      date: formData.date,
+      endDate,
+      startTime: formData.startTime || undefined,
+      endTime: formData.endTime || undefined,
+      status: formData.status,
+      priority: formData.priority,
+      createdBy: 'user',
+      createdAt: now,
+      updatedAt: now,
     }
+    addTodo(optimistic)
     setFormData({
       title: '',
       description: '',
@@ -83,6 +82,27 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
       status: 'pending',
     })
     onClose()
+
+    try {
+      const saved = await createSchedule({
+        title: optimistic.title,
+        description: optimistic.description ?? '',
+        date: optimistic.date,
+        endDate: optimistic.endDate,
+        startTime: optimistic.startTime,
+        endTime: optimistic.endTime,
+        status: optimistic.status,
+        priority: optimistic.priority,
+        createdBy: 'user',
+      })
+      const { deleteTodo: removeTodo, addTodo: addTodoToStore } = useCalendarStore.getState()
+      removeTodo(optimisticId)
+      addTodoToStore(saved)
+    } catch (e) {
+      console.error('일정 추가 실패:', e)
+      useCalendarStore.getState().deleteTodo(optimisticId)
+      addToast(`일정 추가 실패: ${e instanceof Error ? e.message : '알 수 없음'}`)
+    }
   }
 
   useEffect(() => {
