@@ -1,4 +1,3 @@
-import { format } from 'date-fns'
 import { getApiBase, apiRequest } from '@/utils/api'
 import { sendDebugIngest } from '@/utils/debugIngest'
 import type { Todo } from '@/types/calendar'
@@ -99,61 +98,5 @@ export async function deleteAllSchedules(): Promise<void> {
   await apiRequest<void>(getSchedulesApiBase(), {
     method: 'DELETE',
     parseJson: false,
-  })
-}
-
-export interface DailyScheduleRequest {
-  goalId?: string
-  goalTitle: string
-  goalDescription?: string
-  estimatedHours: number
-  priority: 'high' | 'medium' | 'low'
-  targetDate: Date
-  workStartTime?: string
-  workEndTime?: string
-  breakDuration?: number
-}
-
-export interface ScheduleItem {
-  startTime: string
-  endTime: string
-  title: string
-  description: string
-  type: 'work' | 'break' | 'meal'
-  priority: string
-  energyLevel: string
-}
-
-export interface DailyScheduleResponse {
-  schedule: ScheduleItem[]
-  summary: {
-    totalWorkBlocks: number
-    totalBreaks: number
-    bufferTime: string
-    completionProbability: string
-  }
-  conflicts: Array<{
-    time: string
-    existingTask: string
-    newTask: string
-    suggestion: string
-  }>
-}
-
-/**
- * AI 하루 일정 생성
- */
-export const generateDailySchedule = async (
-  request: DailyScheduleRequest
-): Promise<DailyScheduleResponse> => {
-  const url = '/api/schedule/generate-daily'
-  const payload = {
-    ...request,
-    targetDate: format(request.targetDate, 'yyyy-MM-dd'),
-  }
-
-  return apiRequest<DailyScheduleResponse>(url, {
-    method: 'POST',
-    body: payload,
   })
 }
