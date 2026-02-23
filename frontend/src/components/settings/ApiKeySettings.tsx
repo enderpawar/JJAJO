@@ -74,9 +74,6 @@ export function ApiKeySettings({ compact = false }: ApiKeySettingsProps) {
             <Key className="w-4 h-4 text-primary-500" />
             Gemini API 키 설정
           </h3>
-          <p className="text-xs text-theme-muted">
-            API 키는 브라우저에만 저장되며, 계정마다 별도 보관돼요.
-          </p>
         </>
       ) : (
         <>
@@ -86,9 +83,6 @@ export function ApiKeySettings({ compact = false }: ApiKeySettingsProps) {
               Gemini API 키 설정
             </h3>
           </div>
-          <p className="text-xs text-theme-muted">
-            API 키는 브라우저의 로컬 저장소에만 저장되며, 로그인한 계정(userId)마다 별도로 보관돼요.
-          </p>
         </>
       )}
 

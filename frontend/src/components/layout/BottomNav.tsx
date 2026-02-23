@@ -100,7 +100,7 @@ export default function BottomNav({
           aria-label={label}
           onClick={onClick}
           className={cn(
-            'flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[44px] transition-colors duration-200 btn-ghost-tap',
+            'flex-1 flex flex-col items-center justify-center gap-[2px] py-2 min-h-[44px] transition-colors duration-200 btn-ghost-tap',
             active
               ? 'text-[var(--primary-point)]'
               : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
@@ -108,7 +108,7 @@ export default function BottomNav({
         >
           <Icon
             className={cn('w-6 h-6 shrink-0', active && 'drop-shadow-sm')}
-            strokeWidth={active ? 2.5 : 1.8}
+            strokeWidth={active ? 2.5 : 2}
           />
           <span className="text-[11px] font-medium tabular-nums">{label}</span>
         </button>
@@ -133,7 +133,7 @@ export default function BottomNav({
           aria-label={label}
           onClick={onClick}
           className={cn(
-            'flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[44px] transition-colors duration-200 btn-ghost-tap',
+            'flex-1 flex flex-col items-center justify-center gap-[2px] py-2 min-h-[44px] transition-colors duration-200 btn-ghost-tap',
             active
               ? 'text-[var(--primary-point)]'
               : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
@@ -141,7 +141,7 @@ export default function BottomNav({
         >
           <Icon
             className={cn('w-6 h-6 shrink-0', active && 'drop-shadow-sm')}
-            strokeWidth={active ? 2.5 : 1.8}
+            strokeWidth={active ? 2.5 : 2}
           />
           <span className="text-[11px] font-medium tabular-nums">{label}</span>
         </button>

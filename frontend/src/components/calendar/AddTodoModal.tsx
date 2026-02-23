@@ -109,7 +109,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
         <button
           type="button"
           onClick={onClose}
-          className="btn-icon-tap flex items-center justify-center w-9 h-9 rounded-md text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10"
+          className="btn-icon-tap flex items-center justify-center w-9 h-9 rounded-tool text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10"
           aria-label="닫기"
         >
           <X className="w-4 h-4" />
@@ -125,7 +125,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="새 일정"
-              className="w-full min-h-[44px] px-3 py-2.5 rounded-lg border border-black/10 dark:border-white/10 bg-theme text-theme text-base font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
+              className="w-full min-h-[44px] px-3 py-2.5 rounded-neu border border-black/10 dark:border-white/10 bg-theme text-theme text-base font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
               required
             />
             {/* 날짜: 터치 시 네이티브 휠/달력 팝업 — 터치 영역 확대 */}
@@ -135,7 +135,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="min-h-[44px] flex-1 min-w-0 px-3 py-2.5 rounded-lg border border-black/10 dark:border-white/10 bg-theme text-theme text-sm"
+                className="min-h-[44px] flex-1 min-w-0 px-3 py-2.5 rounded-neu border border-black/10 dark:border-white/10 bg-theme text-theme text-sm"
                 title="시작일"
               />
               <input
@@ -144,7 +144,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
                 min={formData.date}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                 placeholder="종료일"
-                className="min-h-[44px] w-[120px] px-3 py-2.5 rounded-lg border border-black/10 dark:border-white/10 bg-theme text-theme text-sm placeholder:text-theme-muted/70"
+                className="min-h-[44px] w-[120px] px-3 py-2.5 rounded-neu border border-black/10 dark:border-white/10 bg-theme text-theme text-sm placeholder:text-theme-muted/70"
                 title="종료일 (여러 날 일정)"
               />
             </div>
@@ -155,14 +155,14 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
                 type="time"
                 value={formData.startTime}
                 onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                className="min-h-[44px] flex-1 min-w-0 px-3 py-2.5 rounded-lg border border-black/10 dark:border-white/10 bg-theme text-theme text-sm"
+                className="min-h-[44px] flex-1 min-w-0 px-3 py-2.5 rounded-neu border border-black/10 dark:border-white/10 bg-theme text-theme text-sm"
               />
               <span className="text-theme-muted">~</span>
               <input
                 type="time"
                 value={formData.endTime}
                 onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                className="min-h-[44px] flex-1 min-w-0 px-3 py-2.5 rounded-lg border border-black/10 dark:border-white/10 bg-theme text-theme text-sm"
+                className="min-h-[44px] flex-1 min-w-0 px-3 py-2.5 rounded-neu border border-black/10 dark:border-white/10 bg-theme text-theme text-sm"
               />
             </div>
           </div>
@@ -175,13 +175,13 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
           <button
             type="button"
             onClick={onClose}
-            className="btn-ghost-tap min-h-[48px] px-5 rounded-xl text-sm font-medium text-theme-muted border border-black/10 dark:border-white/10"
+            className="btn-ghost-tap min-h-[48px] px-5 rounded-neu text-sm font-medium text-theme-muted border border-black/10 dark:border-white/10"
           >
             취소
           </button>
           <button
             type="submit"
-            className="btn-action-press flex-1 min-h-[48px] rounded-xl text-base font-semibold text-white bg-primary-button shadow-[var(--shadow-float-sm)] hover:shadow-[var(--shadow-float)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+            className="btn-action-press flex-1 min-h-[48px] rounded-neu text-base font-semibold text-white bg-primary-button shadow-[var(--shadow-float-sm)] hover:shadow-[var(--shadow-float)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
           >
             저장
           </button>
@@ -196,7 +196,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
         'w-full overflow-y-auto bg-theme-card theme-transition',
         variant === 'sheet' && 'rounded-t-[20px] max-h-[85vh]',
         isPanel && 'h-full flex flex-col border-0 shadow-none rounded-none',
-        isCardLike && !isPanel && 'max-w-md max-h-[90vh] rounded-lg border border-black/8 dark:border-white/10 shadow-[var(--shadow-float)]'
+        isCardLike && !isPanel && 'max-w-md max-h-[90vh] rounded-neu border border-black/8 dark:border-white/10 shadow-[var(--shadow-float)]'
       )}
       onClick={variant === 'modal' ? (e) => e.stopPropagation() : undefined}
     >
@@ -206,7 +206,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
           <button
             type="button"
             onClick={onClose}
-            className="btn-icon-tap flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-md text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+            className="btn-icon-tap flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-tool text-theme-muted hover:text-theme hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             aria-label="닫기"
           >
             <X className="w-5 h-5" />
@@ -305,13 +305,13 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
             <button
               type="button"
               onClick={onClose}
-              className="btn-ghost-tap flex-1 min-w-0 py-3.5 rounded-md text-sm font-medium text-theme border border-black/10 dark:border-white/10 bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
+              className="btn-ghost-tap flex-1 min-w-0 py-3.5 rounded-tool text-sm font-medium text-theme border border-black/10 dark:border-white/10 bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40"
             >
               취소
             </button>
             <button
               type="submit"
-              className="btn-action-press flex-1 min-w-0 py-3.5 rounded-md text-sm font-semibold text-white bg-primary-button shadow-[var(--shadow-float-sm)] hover:shadow-[var(--shadow-float)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-button)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] active:scale-[0.98]"
+              className="btn-action-press flex-1 min-w-0 py-3.5 rounded-tool text-sm font-semibold text-white bg-primary-button shadow-[var(--shadow-float-sm)] hover:shadow-[var(--shadow-float)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-button)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-color)] active:scale-[0.98]"
             >
               추가하기
             </button>

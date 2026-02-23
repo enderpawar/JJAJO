@@ -183,7 +183,7 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
   /** 연월 피커 블록 — 단일 행 헤더용 컴팩트(모바일) + 스와이프 지원 */
   const datePickerBlock = (
     <div
-      className="inline-flex items-center gap-0.5 sm:gap-2 px-1.5 py-1 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl bg-[var(--card-bg)] shadow-[var(--shadow-float-sm)] max-md:bg-[var(--hover-bg)]/60 max-md:shadow-none max-md:py-1.5 max-md:px-2"
+      className="inline-flex items-center gap-0.5 sm:gap-2 px-1.5 py-1 sm:px-4 sm:py-2.5 rounded-neu sm:rounded-neu bg-[var(--card-bg)] shadow-[var(--shadow-float-sm)] max-md:bg-[var(--hover-bg)]/60 max-md:shadow-none max-md:py-1.5 max-md:px-2"
       onTouchStart={handleDateBarTouchStart}
       onTouchEnd={handleDateBarTouchEnd}
     >
@@ -195,9 +195,22 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
       >
         <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
       </button>
-      <span className="min-w-[4.5rem] sm:min-w-[6.5rem] text-center text-sm font-bold sm:text-2xl sm:font-semibold tabular-nums text-[var(--text-main)] tracking-tight whitespace-nowrap px-0.5">
-        {format(currentMonth, 'M월 yyyy', { locale: ko })}
-      </span>
+      {viewMode === 'week' && onToggleWeekStrip ? (
+        <button
+          type="button"
+          onClick={onToggleWeekStrip}
+          className="min-w-[4.5rem] sm:min-w-[6.5rem] text-center text-lg font-bold sm:text-2xl md:text-3xl sm:font-semibold tabular-nums text-[var(--text-main)] tracking-tight whitespace-nowrap px-2 py-1 rounded-tool hover:bg-[var(--hover-bg)] transition-colors cursor-pointer"
+          aria-expanded={weekStripExpanded ?? false}
+          aria-label={weekStripExpanded ? '주간 날짜 접기' : '주간 날짜 펼치기'}
+          title={weekStripExpanded ? '클릭하면 주간 날짜 접기' : '클릭하면 주간 날짜 펼치기'}
+        >
+          {format(currentMonth, 'M월 yyyy', { locale: ko })}
+        </button>
+      ) : (
+        <span className="min-w-[4.5rem] sm:min-w-[6.5rem] text-center text-lg font-bold sm:text-2xl md:text-3xl sm:font-semibold tabular-nums text-[var(--text-main)] tracking-tight whitespace-nowrap px-0.5">
+          {format(currentMonth, 'M월 yyyy', { locale: ko })}
+        </span>
+      )}
       <button
         type="button"
         onClick={handleNextMonth}
@@ -214,7 +227,7 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
       <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 sm:pb-3 min-h-[3.25rem] sm:min-h-[5rem] flex flex-col justify-center">
         {/* 단일 행: 왼쪽 로고 / 중앙 연월 / 오른쪽 아이콘 (모바일·데스크톱 동일) */}
         <div className="flex flex-row items-center gap-2 md:relative md:h-14 md:gap-0">
-          {/* 왼쪽: 로고 + 짜조 + (주간 시 주간 날짜 토글) */}
+          {/* 왼쪽: 로고 + 짜조 (PC에서만 주간 날짜 토글 표시) */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0">
             <div className="relative flex items-center gap-0.5 shrink-0" aria-hidden>
               <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-tool shadow-sm bg-[var(--primary-point)]" />
@@ -222,28 +235,28 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
             </div>
             <div className="flex flex-col leading-tight min-w-0">
               <span className="text-sm sm:text-lg font-bold text-[var(--text-main)] tracking-tight truncate">짜조</span>
-              <span className="text-[10px] font-medium text-[var(--text-muted)] hidden sm:block">일정 짜줘</span>
+              <span className="text-[10px] font-medium text-[var(--text-muted)] hidden sm:block">일정을 짜줘</span>
             </div>
             {viewMode === 'week' && onToggleWeekStrip && (
               <button
                 type="button"
                 onClick={onToggleWeekStrip}
-                className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-tool transition-colors text-[var(--text-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-main)]"
+                className="hidden md:flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-tool transition-colors text-[var(--text-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-main)]"
                 aria-expanded={weekStripExpanded ?? false}
                 aria-label={weekStripExpanded ? '주간 날짜 접기' : '주간 날짜 펼치기'}
                 title={weekStripExpanded ? '일~월 날짜 접기' : '일~월 날짜 펼치기'}
               >
                 {weekStripExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                <span className="hidden sm:inline text-xs">주간 날짜</span>
+                <span className="text-xs">주간 날짜</span>
               </button>
             )}
           </div>
-          {/* 중앙: 연월 피커 (모바일은 flex로 중앙, md는 절대 위치 중앙) */}
+          {/* 중앙: 연월 피커 (모바일 주간 날짜 토글은 아래 행에 배치) */}
           <div className="flex-1 flex justify-center min-w-0 md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:z-10 md:flex-initial">
             {datePickerBlock}
           </div>
-          {/* 오른쪽: 뷰 전환(md만) + 메뉴 + 테마 + 설정(md만) */}
-          <div className="flex items-center justify-end gap-1.5 sm:gap-3 md:gap-4 shrink-0">
+          {/* 오른쪽: 뷰 전환(md만) + 메뉴 + 테마 + 설정(md만) — PC에서 우측 정렬 */}
+          <div className="flex items-center justify-end gap-1.5 sm:gap-3 md:gap-4 shrink-0 md:ml-auto">
               <div className="hidden md:flex items-center gap-3 md:gap-4">
                 <div className="view-mode-segmented" role="group" aria-label="캘린더 / 할일 보기 전환">
                   <div className="view-mode-segmented-track">
@@ -274,7 +287,7 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
             <button
               type="button"
               onClick={toggleTheme}
-              className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-color)]"
+              className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-neu flex items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-color)]"
               aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
               title={theme === 'dark' ? '라이트 모드' : '다크 모드'}
             >
@@ -283,14 +296,14 @@ export default function Header({ onOpenImportTimetable, onSwitchToWeekView, week
             <Menu as="div" className="relative">
               <Menu.Button
                 type="button"
-className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-main)] border border-[var(--border-color)]"
+className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-neu flex items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-main)] border border-[var(--border-color)]"
               aria-label="일정 메뉴"
               >
                 <MoreVertical className="w-4 h-4" />
               </Menu.Button>
               <Menu.Items
                 className={cn(
-                  'absolute right-0 mt-2 w-52 origin-top-right rounded-xl border focus:outline-none z-20 theme-transition',
+                  'absolute right-0 mt-2 w-52 origin-top-right rounded-neu border focus:outline-none z-20 theme-transition',
                   'bg-[var(--card-bg)] border-[var(--border-color)] shadow-lg'
                 )}
               >
@@ -306,7 +319,7 @@ className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justi
                         onClick={handleCopyPreviousDay}
                         disabled={isCopying}
                         className={cn(
-                          'w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium btn-ghost-tap',
+                          'w-full flex items-center gap-2 rounded-tool px-3 py-2 text-sm font-medium btn-ghost-tap',
                           'disabled:opacity-50 disabled:cursor-not-allowed',
                           active ? 'bg-[var(--hover-bg)]' : '',
                           'text-[var(--text-main)]'
@@ -325,7 +338,7 @@ className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justi
                           type="button"
                           onClick={onOpenImportTimetable}
                           className={cn(
-                            'w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium btn-ghost-tap',
+                            'w-full flex items-center gap-2 rounded-tool px-3 py-2 text-sm font-medium btn-ghost-tap',
                             active ? 'bg-[var(--hover-bg)]' : '',
                             'text-[var(--text-main)]'
                           )}
@@ -345,7 +358,7 @@ className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justi
                         onClick={() => setShowResetDayConfirm(true)}
                         disabled={isResettingDay || todosOnSelectedDay.length === 0}
                         className={cn(
-                          'w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium btn-ghost-tap',
+                          'w-full flex items-center gap-2 rounded-tool px-3 py-2 text-sm font-medium btn-ghost-tap',
                           'disabled:opacity-50 disabled:cursor-not-allowed',
                           active ? 'bg-[var(--hover-bg)]' : '',
                           'text-[var(--text-main)]'
@@ -364,7 +377,7 @@ className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justi
             <button
               type="button"
               onClick={() => setIsSettingsOpen(true)}
-              className="hidden md:flex btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-xl items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-main)] border border-[var(--border-color)]"
+              className="hidden md:flex btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-neu items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-main)] border border-[var(--border-color)]"
               aria-label="설정"
             >
               <Settings className="w-4 h-4" />
@@ -424,9 +437,6 @@ className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justi
                   <LogIn className="w-4 h-4" />
                   Google 로그인
                 </button>
-                <p className="text-xs text-theme-muted mt-2">
-                  Google 계정으로 로그인하면 일정을 동기화할 수 있습니다.
-                </p>
               </div>
               <TimeSlotSettings />
               <div className="pt-6 border-t border-theme">

@@ -73,7 +73,7 @@ export function ScheduleDataSettings({ compact = false }: ScheduleDataSettingsPr
 
       {showConfirmDialog && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100]">
-          <div className="neu-float rounded-2xl p-6 max-w-md w-full mx-4">
+          <div className="neu-float rounded-neu-lg p-6 max-w-md w-full mx-4">
             <div className="flex items-start gap-4 mb-4">
               <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-6 h-6 text-red-400" />

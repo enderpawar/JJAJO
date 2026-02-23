@@ -61,7 +61,7 @@ export function WeeklyDailySummary() {
   return (
     <div
       className={cn(
-        'rounded-xl border border-black/8 dark:border-white/10',
+        'rounded-neu border border-black/8 dark:border-white/10',
         'bg-theme-card/50 dark:bg-theme-card/30',
         'px-4 py-3'
       )}

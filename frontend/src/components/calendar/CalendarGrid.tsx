@@ -24,8 +24,8 @@ interface CalendarGridProps {
 /** 주당 표시할 이벤트 행 수 — 일정 개수와 관계없이 날짜 영역 높이 일관 유지 */
 const MAX_EVENT_ROWS_PER_WEEK = 2
 const ROW_HEIGHT_PX = 22
-/** 이벤트 영역 항상 표시할 행 수(이벤트 2행 + 더보기 1행 여유) */
-const FIXED_EVENT_ROW_COUNT = 3
+/** 이벤트 영역 최대 표시 높이(2행 + 간격), 그 이상은 스크롤 */
+const EVENT_AREA_MAX_HEIGHT_PX = ROW_HEIGHT_PX * MAX_EVENT_ROWS_PER_WEEK + 6
 
 /** 여러 날에 걸친 일정의 주별 세그먼트 (한 주 안에서 startCol~endCol, endCol은 exclusive) */
 function getMultiDaySegmentsForWeek(
@@ -292,23 +292,9 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight }: Calendar
         {weekRows.map((weekDates, weekIndex) => {
           const multiSegments = getMultiDaySegmentsForWeek(weekDates, todos, month, year)
           const allEventRows = buildWeekEventRows(weekDates, getTodosByDate, multiSegments)
-          const eventRows = allEventRows.slice(0, MAX_EVENT_ROWS_PER_WEEK)
-          const hiddenCount = allEventRows.length > MAX_EVENT_ROWS_PER_WEEK
-            ? allEventRows.slice(MAX_EVENT_ROWS_PER_WEEK).flat().filter((c) => c !== null && c !== 'multi-continue').length
-            : 0
-          const hiddenPerDay = [0, 0, 0, 0, 0, 0, 0]
-          if (allEventRows.length > MAX_EVENT_ROWS_PER_WEEK) {
-            for (const row of allEventRows.slice(MAX_EVENT_ROWS_PER_WEEK)) {
-              for (let col = 0; col < 7; col++) {
-                const cell = row[col]
-                if (cell === null || cell === 'multi-continue') continue
-                if (cell.type === 'single') hiddenPerDay[col] += 1
-                else hiddenPerDay[cell.segment.startCol] += 1
-              }
-            }
-          }
+          const rowCount = Math.max(1, allEventRows.length)
           return (
-            <div key={`${weekIndex}-${allEventRows.length}-${hiddenCount}`} className="flex flex-col gap-3">
+            <div key={`${weekIndex}-${allEventRows.length}`} className="flex flex-col gap-3">
               {/* 날짜 행 — 연한 그리드선으로 터치 영역 시각화, 요일과 열 정렬 */}
               <div className="grid grid-cols-7 gap-0 calendar-date-grid">
                 {weekDates.map((date) => {
@@ -332,7 +318,7 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight }: Calendar
                       data-date={dateStr}
                       onClick={() => handleDateClick(date)}
                       title={allOnDay.map((t) => t.title).join(', ') || undefined}
-                      style={isSelected ? { borderRadius: '14px' } : undefined}
+                      style={undefined}
                       className={cn(
                         'btn-ghost-tap relative overflow-hidden aspect-square min-h-[48px] flex flex-col items-stretch justify-between calendar-date-cell pt-1.5 pb-1 px-1.5',
                         isSelected && 'calendar-date-selected calendar-date-selected-rounded',
@@ -370,12 +356,16 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight }: Calendar
                   )
                 })}
               </div>
-              {/* 이벤트 영역: 행 간격 1.5배 유지, 열은 gap-1로 가독성 확보 */}
+              {/* 이벤트 영역: 최대 2행 높이, 그 이상은 스크롤로 표시 */}
               <div
-                className="grid grid-cols-7 gap-1 gap-y-1.5 sm:gap-y-1"
-                style={{ gridTemplateRows: `repeat(${FIXED_EVENT_ROW_COUNT}, ${ROW_HEIGHT_PX}px)` }}
+                className="grid grid-cols-7 gap-1 gap-y-1.5 sm:gap-y-1 overflow-y-auto overflow-x-hidden overscroll-contain"
+                style={{
+                  gridTemplateRows: rowCount > 0 ? `repeat(${rowCount}, ${ROW_HEIGHT_PX}px)` : undefined,
+                  minHeight: ROW_HEIGHT_PX,
+                  maxHeight: EVENT_AREA_MAX_HEIGHT_PX,
+                }}
               >
-                {eventRows.map((row, rowIndex) =>
+                {allEventRows.map((row, rowIndex) =>
                   row.map((cell, colIndex) => {
                     if (cell === 'multi-continue') return null
                     const gridCol = cell === null ? colIndex + 1 : cell.type === 'multi' ? undefined : colIndex + 1
@@ -392,7 +382,7 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight }: Calendar
                         <div
                           key={`${rowIndex}-${colIndex}`}
                           className={cn(
-'min-h-[22px] rounded-sm px-1.5 py-1 flex items-center gap-1 text-[12px] sm:text-sm font-medium text-white overflow-hidden',
+'min-h-[22px] rounded-tool px-1.5 py-1 flex items-center gap-1 text-[12px] sm:text-sm font-medium text-white overflow-hidden',
                               cell.colorClass
                           )}
                           style={style}
@@ -408,7 +398,7 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight }: Calendar
                       <div
                         key={`${rowIndex}-${colIndex}`}
                         className={cn(
-                          'min-h-[22px] rounded-sm px-1.5 py-1 flex items-center gap-1 text-[12px] sm:text-sm font-medium text-white overflow-hidden',
+                          'min-h-[22px] rounded-tool px-1.5 py-1 flex items-center gap-1 text-[12px] sm:text-sm font-medium text-white overflow-hidden',
                           segment.colorClass
                         )}
                         style={style}
@@ -423,19 +413,6 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight }: Calendar
                     )
                   })
                 ).flat().filter(Boolean)}
-                {hiddenPerDay.map((count, dayCol) =>
-                  count > 0 ? (
-                    <div
-                      key={`more-${dayCol}`}
-                      className="min-h-[22px] flex items-center justify-center text-[12px] sm:text-sm text-theme-muted font-medium"
-                      style={{ gridRow: FIXED_EVENT_ROW_COUNT, gridColumn: dayCol + 1 }}
-                    >
-                      +{count}건 더
-                    </div>
-                  ) : (
-                    <div key={`more-${dayCol}`} className="min-h-[22px]" style={{ gridRow: FIXED_EVENT_ROW_COUNT, gridColumn: dayCol + 1 }} aria-hidden />
-                  )
-                )}
               </div>
             </div>
           )

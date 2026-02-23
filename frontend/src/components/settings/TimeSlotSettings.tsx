@@ -150,7 +150,7 @@ export function TimeSlotSettings({ defaultTimeSlotsExpanded = true, compact = fa
                 className={`
                   bg-theme-card rounded-neu theme-transition border-0 min-w-0
                   ${compact ? 'p-2.5' : 'p-4'}
-                  ${pref.enabled ? 'shadow-neu-float-date ring-2 ring-primary-500/10' : 'shadow-neu-float-date opacity-60'}
+                  ${pref.enabled ? 'shadow-neu-float-date' : 'shadow-neu-float-date opacity-60'}
                 `}
               >
                 <div className={`flex items-center min-w-0 ${compact ? 'gap-2' : 'gap-4'}`}>

@@ -96,6 +96,10 @@ html {
   transition: background-color var(--theme-transition-duration) var(--theme-transition-easing);
   transition-delay: 0s;
 }
+body {
+  transition: background-color var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
+}
 .theme-transition,
 .theme-transition * {
   transition: background-color var(--theme-transition-duration) var(--theme-transition-easing),
@@ -254,7 +258,7 @@ html {
 
   ::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.15);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
   }
 
   ::-webkit-scrollbar-thumb:hover {
@@ -314,10 +318,11 @@ html {
   animation: btn-success-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* 앱 전역: 버튼·클릭 가능 요소 터치/클릭 애니메이션 (미적용 요소 기본 피드백) */
+/* 앱 전역: 버튼·클릭 가능 요소 터치/클릭 애니메이션 (테마 전환과 동기화) */
 button:not(:disabled),
 [role="button"]:not([aria-disabled="true"]) {
-  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), background-color var(--theme-transition-duration) var(--theme-transition-easing), color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing), opacity var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
 }
 button:not(:disabled):active,
 [role="button"]:not([aria-disabled="true"]):active {
@@ -330,7 +335,8 @@ button:disabled:active,
 
 /* 주요 액션(제출·저장·확인): 눌림 피드백 */
 .btn-action-press {
-  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
 }
 .btn-action-press:hover {
   transform: translateY(-1px);
@@ -343,7 +349,8 @@ button:disabled:active,
 }
 /* 아이콘/닫기 버튼: 호버 시 살짝 커짐, 누르면 눌림 */
 .btn-icon-tap {
-  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, color 0.2s ease;
+  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), background-color var(--theme-transition-duration) var(--theme-transition-easing), color var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
 }
 .btn-icon-tap:hover {
   transform: scale(1.06);
@@ -353,14 +360,16 @@ button:disabled:active,
 }
 /* 취소/닫기 등 보조 버튼: 부드러운 배경 전환 + 눌림 */
 .btn-ghost-tap {
-  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, color 0.2s ease;
+  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), background-color var(--theme-transition-duration) var(--theme-transition-easing), color var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
 }
 .btn-ghost-tap:active {
   transform: scale(0.98);
 }
 /* 네비게이션(이전/다음 달 등): 살짝 이동 느낌 */
 .btn-nav-tap {
-  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease;
+  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), background-color var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
 }
 .btn-nav-tap:hover {
   transform: scale(1.08);
@@ -370,7 +379,8 @@ button:disabled:active,
 }
 /* 위험 액션(삭제): 눌림 + 색 유지 */
 .btn-danger-press {
-  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease;
+  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), background-color var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
 }
 .btn-danger-press:active {
   transform: scale(0.98);
@@ -383,10 +393,11 @@ button:disabled:active,
 
 /* 기본 카드: 선 하나 + 가벼운 그림자 */
 .task-card:not(.task-card-active):not(.task-card-completed) {
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--card-border);
   box-shadow: var(--card-shadow);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
 }
 
 .task-card:not(.task-card-active):not(.task-card-completed):hover {
@@ -405,11 +416,12 @@ html.dark .task-card:not(.task-card-active):not(.task-card-completed):hover {
 
 /* 진행 중 */
 .task-card-active {
-  border-radius: 12px !important;
+  border-radius: var(--radius-lg) !important;
   background: var(--card-bg) !important;
   border: 2px solid var(--primary-point) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
 }
 
 /* 과거 */
@@ -419,7 +431,7 @@ html.dark .task-card:not(.task-card-active):not(.task-card-completed):hover {
 
 /* 완료: 초록 띠 없음, 체크 아이콘·취소선으로만 표시 */
 .task-card-completed {
-  border-radius: 12px !important;
+  border-radius: var(--radius-lg) !important;
   background: var(--card-bg) !important;
 }
 
@@ -441,12 +453,13 @@ html.dark .plan-card-time {
 /* 3. 빈 시간 슬롯 (Hover - 주황 포인트) */
 .free-time-slot {
   border: none;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   color: transparent;
-  transition: all 0.3s ease;
+  transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing), color 0.3s ease;
+  transition-delay: 0s;
   background: var(--card-bg);
   box-shadow: var(--shadow-inset-sm);
 }
@@ -466,7 +479,8 @@ html.dark .plan-card-time {
   justify-content: center;
   mask-image: linear-gradient(to bottom, transparent, black 10px, black calc(100% - 10px), transparent);
   -webkit-mask-image: linear-gradient(to bottom, transparent, black 10px, black calc(100% - 10px), transparent);
-  transition: all 0.3s ease;
+  transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
   box-shadow: var(--shadow-inset-sm);
 }
 
@@ -502,11 +516,12 @@ html.dark .plan-card-time {
 
 .question-card {
   background: var(--card-bg);
-  border-radius: 24px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-float);
   will-change: transform;
   backface-visibility: hidden;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
 }
 
 .rationale {
@@ -514,9 +529,10 @@ html.dark .plan-card-time {
   font-size: 14px;
   line-height: 1.5;
   background: var(--card-bg);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-inset);
-  transition: background 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+  transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing), color var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
 }
 
 /* 슬라이더 커스텀 스타일 */
@@ -532,7 +548,8 @@ input[type="range"]::-webkit-slider-track {
   border-radius: 9999px;
   height: 12px;
   box-shadow: var(--shadow-inset-sm);
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
 }
 
 input[type="range"]::-moz-range-track {
@@ -540,7 +557,8 @@ input[type="range"]::-moz-range-track {
   border-radius: 9999px;
   height: 12px;
   box-shadow: var(--shadow-inset-sm);
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -552,7 +570,8 @@ input[type="range"]::-webkit-slider-thumb {
   background: var(--primary-point);
   cursor: pointer;
   box-shadow: var(--shadow-float-sm);
-  transition: transform 0.2s, background 0.3s ease;
+  transition: transform 0.2s, background-color var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
@@ -567,7 +586,8 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   box-shadow: var(--shadow-float-sm);
   border: none;
-  transition: transform 0.2s, background 0.3s ease;
+  transition: transform 0.2s, background-color var(--theme-transition-duration) var(--theme-transition-easing);
+  transition-delay: 0s;
 }
 
 input[type="range"]::-moz-range-thumb:hover {
@@ -632,37 +652,6 @@ input[type="range"]::-moz-range-thumb:hover {
 
 .animate-sidebar-content-in {
   animation: sidebarContentFadeIn 0.22s ease-out 0.06s forwards;
-}
-
-/* 토스트 등장/퇴장 */
-@keyframes toastEnter {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes toastExit {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-}
-
-.toast-enter {
-  animation: toastEnter 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-.toast-exit {
-  animation: toastExit 0.22s cubic-bezier(0.55, 0, 0.1, 1) forwards;
 }
 
 /* 로딩 애니메이션 */
@@ -739,33 +728,33 @@ html.dark .empty-state-pattern::before {
 
 /* 🎨 뉴모피즘 유틸리티 클래스 (테마 변수 적용) */
 @layer components {
-  /* Floating: 배경에서 튀어나온 효과 (카드, 버튼) — 4px 전문 툴 톤 */
+  /* Floating: 배경에서 튀어나온 효과 (카드, 버튼) — 디자인 시스템 --radius-sm */
   .neu-float {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     box-shadow: var(--shadow-float);
     transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
   }
   .neu-float-sm {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     box-shadow: var(--shadow-float-sm);
     transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
   }
-  /* Inset: 안으로 오목하게 들어간 효과 (입력창) — 4px 전문 툴 톤 */
+  /* Inset: 안으로 오목하게 들어간 효과 (입력창) — 디자인 시스템 --radius-sm */
   .neu-inset {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     box-shadow: var(--shadow-inset);
     transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
   }
   .neu-inset-sm {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     box-shadow: var(--shadow-inset-sm);
     transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
   }
@@ -773,7 +762,7 @@ html.dark .empty-state-pattern::before {
   .neu-pressed {
     background-color: var(--card-bg);
     border: none;
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow-inset), 0 0 0 1px var(--primary-point-ring);
     transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
   }
@@ -797,6 +786,11 @@ html.dark .empty-state-pattern::before {
     box-shadow: var(--shadow-inset-sm), 0 0 0 1px var(--primary-point-ring) !important;
     transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
   }
+  /* 스크롤 영역 내 선택 날짜: 테두리 잘림 방지를 위해 border 사용 (box-shadow 링 대신) */
+  .top-timeline-card.neu-date-selected {
+    box-shadow: var(--shadow-inset-sm) !important;
+    border: 1px solid var(--primary-point-ring) !important;
+  }
   /* 월간 캘린더: 날짜 사이 연한 그리드로 터치 영역 시각화, 모서리 8px 통일 */
   .calendar-date-grid {
     gap: 0;
@@ -814,10 +808,10 @@ html.dark .empty-state-pattern::before {
   .calendar-date-cell:not(.calendar-date-selected) {
     border-radius: 0;
   }
-  /* 선택된 셀은 항상 둥근 타원형(어떤 날이든 동일) — 클래스+인라인 이중 적용 */
+  /* PC: 선택된 날짜 — 회색 사각형(radius 없음) */
   .calendar-date-selected-rounded,
   .calendar-date-cell.calendar-date-selected {
-    border-radius: 14px !important;
+    border-radius: 0 !important;
   }
   .calendar-date-grid .calendar-date-cell:nth-child(7n),
   .calendar-date-grid .calendar-date-cell-empty:nth-child(7n) {
@@ -828,8 +822,8 @@ html.dark .empty-state-pattern::before {
     border-right: none !important;
   }
 
-  /* 모바일: 세로선 제거해 시인성 개선, 선택된 날짜만 둥근 사각형 하이라이트 (오늘/다른 날 동일하게 radius 적용) */
-  @media (max-width: 767px) {
+    /* 모바일: 세로선 제거해 시인성 개선, 선택된 날짜는 정사각형(radius 없음) 하이라이트 */
+    @media (max-width: 767px) {
     .calendar-date-grid {
       border-left: none !important;
     }
@@ -844,7 +838,7 @@ html.dark .empty-state-pattern::before {
     .calendar-date-selected-rounded,
     .calendar-date-cell.calendar-date-selected,
     .calendar-date-cell.calendar-date-today.calendar-date-selected {
-      border-radius: 14px !important;
+      border-radius: 0 !important;
       position: relative;
       z-index: 1;
     }
@@ -864,8 +858,17 @@ html.dark .empty-state-pattern::before {
     transform: scale(0.97);
   }
   .calendar-date-cell-empty {
-    background: var(--card-bg);
-    opacity: 0.4;
+    background: var(--bg-color) !important;
+    opacity: 1;
+    border-right-color: var(--bg-color) !important;
+    border-bottom-color: var(--bg-color) !important;
+  }
+  /* 모바일: 해당 월이 아닌 빈 셀도 동일하게 테마 배경과 일치 (추가로 세로선 제거 시 border-right 없음) */
+  @media (max-width: 767px) {
+    .calendar-date-cell-empty {
+      background: var(--bg-color) !important;
+      border-bottom-color: var(--bg-color) !important;
+    }
   }
   /* 오늘 날짜: 은은한 포인트 링 (선택과 구분). 선택된 경우는 아래 .calendar-date-selected가 배경/링 담당 */
   .calendar-date-today:not(.calendar-date-selected):not(.neu-date-selected) {
@@ -960,7 +963,7 @@ html.dark .empty-state-pattern::before {
     background-color: color-mix(in srgb, var(--primary-point) 26%, var(--card-bg)) !important;
   }
 
-  /* 테마 토글 스위치: 소프트 미니멀, 부드러운 전환 */
+  /* 테마 토글 스위치: 소프트 미니멀, 전환 속도 통일(헤더·중앙 동시 전환) */
   .theme-toggle-switch {
     display: inline-flex;
     align-items: center;
@@ -971,12 +974,13 @@ html.dark .empty-state-pattern::before {
     min-height: 44px;
     padding: 0;
     border: none;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     background-color: var(--card-bg);
     box-shadow: var(--shadow-float-sm);
     color: var(--text-muted);
     cursor: pointer;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing), color var(--theme-transition-duration) var(--theme-transition-easing), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition-delay: 0s;
   }
   .theme-toggle-switch:hover {
     color: var(--text-main);
@@ -988,20 +992,22 @@ html.dark .empty-state-pattern::before {
   .theme-toggle-switch svg {
     transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  /* 주간|월간 슬라이드 토글: 트랙 + 강조색 pill (깨끗한 파스텔 톤) */
+  /* 주간|월간 슬라이드 토글: 트랙 + 강조색 pill, 전환 속도 통일 */
   .view-toggle-track {
     background-color: var(--card-bg);
     box-shadow: var(--shadow-inset-sm);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     padding: 4px;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
+    transition-delay: 0s;
   }
   .view-toggle-pill {
     /* 강조색을 카드 배경에 살짝 섞어 회색톤 없이 부드러운 틴트 */
     background: color-mix(in srgb, var(--primary-point) 18%, var(--card-bg));
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    transition: background 0.3s ease, box-shadow 0.3s ease;
+    transition: background var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
+    transition-delay: 0s;
   }
   html.dark .view-toggle-pill {
     /* 다크: 강조색을 카드에 살짝 섞어 은은한 글로우 */
@@ -1014,7 +1020,7 @@ html.dark .empty-state-pattern::before {
     @apply shrink-0;
   }
   .view-mode-segmented-track {
-    @apply relative flex rounded-full overflow-hidden;
+    @apply relative flex rounded-neu overflow-hidden;
     min-width: 140px;
     height: 36px;
     background-color: var(--hover-bg);
@@ -1038,7 +1044,7 @@ html.dark .empty-state-pattern::before {
     }
   }
   .view-mode-segmented-pill {
-    @apply absolute inset-y-0 rounded-full pointer-events-none transition-[left] duration-200 ease-out;
+    @apply absolute inset-y-0 rounded-neu pointer-events-none transition-[left] duration-200 ease-out;
     top: 2px;
     bottom: 2px;
     width: calc(50% - 4px);
@@ -1055,7 +1061,8 @@ html.dark .empty-state-pattern::before {
   .view-mode-segmented-btn {
     @apply relative z-10 flex-1 flex items-center justify-center text-xs font-medium min-w-0;
     color: var(--text-muted);
-    transition: color 0.2s ease, transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: color var(--theme-transition-duration) var(--theme-transition-easing), transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    transition-delay: 0s;
   }
   .view-mode-segmented-btn:hover {
     color: var(--text-main);
@@ -1092,7 +1099,8 @@ html.dark .empty-state-pattern::before {
     background-color: var(--card-bg);
     color: var(--text-main);
     box-shadow: var(--shadow-float-sm);
-    transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, transform 0.2s ease;
+    transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing), color var(--theme-transition-duration) var(--theme-transition-easing), transform 0.2s ease;
+    transition-delay: 0s;
   }
   .btn-secondary:hover {
     box-shadow: var(--shadow-inset-sm);
@@ -1107,7 +1115,8 @@ html.dark .empty-state-pattern::before {
     color: var(--text-main);
     border: none;
     box-shadow: var(--shadow-inset);
-    transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+    transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing), color var(--theme-transition-duration) var(--theme-transition-easing);
+    transition-delay: 0s;
   }
   .input-field::placeholder {
     color: var(--text-muted);
@@ -1121,10 +1130,11 @@ html.dark .empty-state-pattern::before {
     color: var(--text-main);
     font-weight: 500;
     padding: 0.5rem 1rem;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     border: none;
     box-shadow: var(--shadow-float-sm);
-    transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, transform 0.2s ease;
+    transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing), color var(--theme-transition-duration) var(--theme-transition-easing), transform 0.2s ease;
+    transition-delay: 0s;
   }
   .btn-notion:hover {
     box-shadow: var(--shadow-inset-sm);
@@ -1140,13 +1150,14 @@ html.dark .empty-state-pattern::before {
   .input-notion {
     width: 100%;
     padding: 0.5rem 1rem;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     border: none;
     background-color: var(--card-bg);
     color: var(--text-main);
     font-size: 14px;
     box-shadow: var(--shadow-inset);
-    transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+    transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing), color var(--theme-transition-duration) var(--theme-transition-easing);
+    transition-delay: 0s;
   }
   .input-notion::placeholder {
     color: var(--text-muted);
@@ -1158,11 +1169,12 @@ html.dark .empty-state-pattern::before {
   
   .card-notion {
     background-color: var(--card-bg);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     border: none;
     padding: 1rem;
     box-shadow: var(--shadow-float);
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
+    transition-delay: 0s;
   }
 
   /* card: AuthPage 등에서 사용 */
@@ -1172,14 +1184,15 @@ html.dark .empty-state-pattern::before {
     border: none;
     padding: 1.5rem;
     box-shadow: var(--shadow-float);
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    transition: background-color var(--theme-transition-duration) var(--theme-transition-easing), box-shadow var(--theme-transition-duration) var(--theme-transition-easing);
+    transition-delay: 0s;
   }
   
   .tag-pill {
     display: inline-flex;
     align-items: center;
     padding: 0.125rem 0.5rem;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     font-size: 12px;
     font-weight: 500;
   }

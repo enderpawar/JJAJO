@@ -227,11 +227,11 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-theme-card rounded-2xl border border-theme w-full max-w-4xl max-h-[90vh] flex flex-col theme-transition">
+      <div className="bg-theme-card rounded-neu-lg border border-theme w-full max-w-4xl max-h-[90vh] flex flex-col theme-transition">
         {/* 헤더 */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-theme">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary-500/20 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-neu bg-primary-500/20 flex items-center justify-center">
               <UploadCloud className="w-5 h-5 text-primary-400" />
             </div>
             <div>
@@ -244,7 +244,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
           <button
             type="button"
             onClick={onClose}
-            className="btn-icon-tap touch-target p-2 rounded-lg hover:bg-[var(--hover-bg)] text-theme-muted"
+            className="btn-icon-tap touch-target p-2 rounded-neu hover:bg-[var(--hover-bg)] text-theme-muted"
           >
             <X className="w-5 h-5" />
           </button>
@@ -253,13 +253,13 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
         {/* 컨텐츠 */}
         <div className="flex-1 overflow-auto p-4 sm:p-5 space-y-4">
           {/* 업로드 섹션 */}
-          <div className="bg-theme rounded-xl border border-dashed border-theme p-4 sm:p-5 flex flex-col sm:flex-row gap-4">
+          <div className="bg-theme rounded-neu border border-dashed border-theme p-4 sm:p-5 flex flex-col sm:flex-row gap-4">
             <div className="flex-1 space-y-3">
               <p className="text-sm font-medium text-theme">1. 시간표 이미지 업로드</p>
               <p className="text-xs text-theme-muted">
                 에브리타임, 학교 포털, 캘린더 앱 등에서 주간 시간표가 보이도록 캡처한 뒤, PNG/JPG 파일을 올려주세요.
               </p>
-              <label className="btn-ghost-tap inline-flex items-center justify-center px-4 py-2 rounded-lg border-2 border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white text-sm font-medium cursor-pointer w-fit theme-transition">
+              <label className="btn-ghost-tap inline-flex items-center justify-center px-4 py-2 rounded-neu border-2 border-primary-500 text-primary-500 hover:bg-primary-500 hover:text-white text-sm font-medium cursor-pointer w-fit theme-transition">
                 <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                 {file ? '다른 이미지 선택' : '이미지 선택'}
               </label>
@@ -275,7 +275,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                 <label className="flex flex-col gap-1">
                   <span className="text-xs text-theme-muted">시간표 언어</span>
                   <select
-                    className="bg-theme-card border border-theme rounded-lg px-3 py-2 text-sm text-theme"
+                    className="bg-theme-card border border-theme rounded-neu px-3 py-2 text-sm text-theme"
                     value={language}
                     onChange={(e) => setLanguage(e.target.value as 'ko' | 'en' | '')}
                   >
@@ -287,7 +287,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                 <label className="flex flex-col gap-1">
                   <span className="text-xs text-theme-muted">주 시작 요일</span>
                   <select
-                    className="bg-theme-card border border-theme rounded-lg px-3 py-2 text-sm text-theme"
+                    className="bg-theme-card border border-theme rounded-neu px-3 py-2 text-sm text-theme"
                     value={weekStartDay}
                     onChange={(e) => setWeekStartDay(e.target.value as TimetableDayOfWeek)}
                   >
@@ -303,7 +303,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                 type="button"
                 onClick={handleParse}
                 disabled={isParsing}
-                className="btn-action-press w-full mt-2 px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                className="btn-action-press w-full mt-2 px-4 py-2 rounded-neu bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {isParsing ? '시간표 해석 중...' : '시간표 해석하기'}
               </button>
@@ -340,7 +340,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
                 </div>
               </div>
 
-              <div className="border border-theme rounded-xl overflow-auto max-h-80">
+              <div className="border border-theme rounded-neu overflow-auto max-h-80">
                 <table className="w-full text-xs">
                   <thead className="bg-theme border-b border-theme sticky top-0 z-10">
                     <tr>
@@ -448,7 +448,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
           )}
 
           {error && (
-            <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/40 rounded-lg px-3 py-2">
+            <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/40 rounded-neu px-3 py-2">
               {error}
             </p>
           )}
@@ -463,7 +463,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
             <button
               type="button"
               onClick={onClose}
-              className="btn-ghost-tap px-3 py-1.5 rounded-lg text-xs font-medium bg-theme-card hover:bg-[var(--hover-bg)] text-theme border border-theme"
+              className="btn-ghost-tap px-3 py-1.5 rounded-neu text-xs font-medium bg-theme-card hover:bg-[var(--hover-bg)] text-theme border border-theme"
             >
               닫기
             </button>
@@ -471,7 +471,7 @@ export function ImportTimetableModal({ isOpen, onClose }: ImportTimetableModalPr
               type="button"
               onClick={handleSave}
               disabled={!hasCandidates || isSaving}
-              className="btn-action-press px-4 py-1.5 rounded-lg text-xs font-medium bg-primary-500 hover:bg-primary-600 text-white disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+              className="btn-action-press px-4 py-1.5 rounded-neu text-xs font-medium bg-primary-500 hover:bg-primary-600 text-white disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
             >
               {isSaving ? '저장 중...' : '주간 반복 일정으로 저장'}
             </button>

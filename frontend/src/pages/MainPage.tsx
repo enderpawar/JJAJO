@@ -2,87 +2,8 @@ import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const MOBILE_BREAKPOINT = 768
-/** 일정 추가 모달 대략 높이(px) — 선택한 주가 모달 '바로 위'에 오도록 스크롤할 때 사용 */
-const ADD_SCHEDULE_MODAL_HEIGHT_PX = 380
-
-/** 모바일 전용: 캘린더 스크롤로 선택한 주가 모달 바로 위에 보이게, 플랜 카드만 슬라이드업 */
-function AddScheduleCard({
-  onClose,
-  defaultDate,
-}: {
-  onClose: () => void
-  defaultDate: Date
-}) {
-  const [visible, setVisible] = useState(false)
-  const [sheetMaxHeight, setSheetMaxHeight] = useState('min(88vh, 420px)')
-
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    let timeoutId: ReturnType<typeof setTimeout>
-    const raf1 = requestAnimationFrame(() => {
-      const raf2 = requestAnimationFrame(() => {
-        timeoutId = setTimeout(() => setVisible(true), 32)
-      })
-      return () => cancelAnimationFrame(raf2)
-    })
-    return () => {
-      cancelAnimationFrame(raf1)
-      clearTimeout(timeoutId)
-      document.body.style.overflow = prevOverflow
-    }
-  }, [])
-
-  // 키보드 올라올 때 시트를 visualViewport 높이에 맞춰 확장 — 입력 칸이 키보드 바로 위에 오도록
-  useEffect(() => {
-    const vv = window.visualViewport
-    if (!vv) return
-    const update = () => {
-      const h = vv.height
-      const threshold = window.screen.height * 0.75
-      if (h < threshold) {
-        setSheetMaxHeight(`calc(${h}px - 56px - env(safe-area-inset-bottom, 0px))`)
-      } else {
-        setSheetMaxHeight('min(88vh, 420px)')
-      }
-    }
-    update()
-    vv.addEventListener('resize', update)
-    vv.addEventListener('scroll', update)
-    return () => {
-      vv.removeEventListener('resize', update)
-      vv.removeEventListener('scroll', update)
-    }
-  }, [])
-
-  return (
-    <>
-      {/* 슬라이드 패널: 키보드 시 visualViewport 높이만큼 확장 */}
-      <div
-        className="fixed left-0 right-0 z-30 w-full will-change-transform flex flex-col"
-        style={{
-          bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
-          maxHeight: sheetMaxHeight,
-          transform: visible ? 'translate3d(0, 0, 0)' : 'translate3d(0, 100%, 0)',
-          transition: 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), max-height 0.2s ease-out',
-        }}
-        role="dialog"
-        aria-modal="true"
-        aria-label="새 일정 추가"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="w-full min-h-0 overflow-y-auto overscroll-contain">
-          <AddTodoModal
-            isOpen
-            onClose={onClose}
-            defaultDate={defaultDate}
-            variant="card"
-          />
-        </div>
-      </div>
-    </>
-  )
-}
+/** 날짜별 일정 시트 대략 높이(px) — 선택한 주가 시트 위에 보이도록 스크롤할 때 사용 */
+const DAY_SHEET_HEIGHT_PX = 420
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false)
@@ -105,7 +26,6 @@ import DayDetailBottomSheet from '@/components/calendar/DayDetailBottomSheet'
 import { TopTimeline } from '@/components/calendar/TopTimeline'
 import { VerticalTimeline } from '@/components/calendar/VerticalTimeline'
 import { ImportTimetableModal } from '@/components/calendar/ImportTimetableModal'
-import AddTodoModal from '@/components/calendar/AddTodoModal'
 import MobileSettingsPage from '@/components/layout/MobileSettingsPage'
 import { FocusModeView } from '@/components/calendar/FocusModeView'
 import { cn } from '@/utils/cn'
@@ -126,8 +46,7 @@ export default function MainPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [mobileSettingsPageOpen, setMobileSettingsPageOpen] = useState(false)
   const [focusModeOpen, setFocusModeOpen] = useState(false)
-  const [addScheduleModalOpen, setAddScheduleModalOpen] = useState(false)
-  const [addScheduleSheetOpen, setAddScheduleSheetOpen] = useState(false)
+  const [openAddModalFromFab, setOpenAddModalFromFab] = useState(false)
   /** PC 월간 뷰: 할일 목록 사이드바 펼침 여부. 접으면 캘린더 중앙 정렬, 펼치면 캘린더가 좌측으로 밀림 */
   const [pcTodoSidebarOpen, setPcTodoSidebarOpen] = useState(true)
   const skipNextScrollToTimeRef = useRef(false)
@@ -163,27 +82,47 @@ export default function MainPage() {
     init()
   }, [navigate, setGoals, setTodos, loadApiKeyForCurrentUser])
 
-  // 모바일에서 일정 추가 모달이 열리면, 해당 주차(날짜 행 + 일정 목록)만 보이고 다음 주는 모달에 가려지도록 스크롤
+  // 모바일에서 날짜 탭 시 일정 시트가 열리면, 해당 주가 시트 위에 보이도록 캘린더 스크롤(배경 블러 없이)
   useEffect(() => {
-    if (!isMobile || viewMode !== 'month' || !addScheduleSheetOpen) return
+    if (!isMobile || viewMode !== 'month' || !openDaySheet) return
     const scrollToSelectedWeek = () => {
       const container = calendarScrollRef.current
       const dateStr = formatDate(selectedDate)
       const cell = container?.querySelector(`[data-date="${dateStr}"]`) as HTMLElement | null
       if (!container || !cell) return
-      // 해당 주 전체 블록(날짜 행 + 일정 목록) — calendar-date-grid의 부모
       const dateGrid = cell.closest('.calendar-date-grid')
       const weekBlock = dateGrid?.parentElement as HTMLElement | null
       const targetEl = weekBlock || cell
       const containerRect = container.getBoundingClientRect()
       const targetRect = targetEl.getBoundingClientRect()
-      const targetBottom = containerRect.bottom - ADD_SCHEDULE_MODAL_HEIGHT_PX
+      const targetBottom = containerRect.bottom - DAY_SHEET_HEIGHT_PX
       const targetScrollTop = container.scrollTop + (targetRect.bottom - targetBottom)
       container.scrollTo({ top: Math.max(0, targetScrollTop), behavior: 'smooth' })
     }
     const t = setTimeout(scrollToSelectedWeek, 150)
     return () => clearTimeout(t)
-  }, [isMobile, viewMode, addScheduleSheetOpen, selectedDate])
+  }, [isMobile, viewMode, openDaySheet, selectedDate])
+
+  // 모바일에서 날짜 탭 시 일정 시트가 열리면, 해당 주가 시트 위에 보이도록 캘린더 스크롤(배경 블러 없이)
+  useEffect(() => {
+    if (!isMobile || viewMode !== 'month' || !openDaySheet) return
+    const scrollToSelectedWeek = () => {
+      const container = calendarScrollRef.current
+      const dateStr = formatDate(selectedDate)
+      const cell = container?.querySelector(`[data-date="${dateStr}"]`) as HTMLElement | null
+      if (!container || !cell) return
+      const dateGrid = cell.closest('.calendar-date-grid')
+      const weekBlock = dateGrid?.parentElement as HTMLElement | null
+      const targetEl = weekBlock || cell
+      const containerRect = container.getBoundingClientRect()
+      const targetRect = targetEl.getBoundingClientRect()
+      const targetBottom = containerRect.bottom - DAY_SHEET_HEIGHT_PX
+      const targetScrollTop = container.scrollTop + (targetRect.bottom - targetBottom)
+      container.scrollTo({ top: Math.max(0, targetScrollTop), behavior: 'smooth' })
+    }
+    const t = setTimeout(scrollToSelectedWeek, 150)
+    return () => clearTimeout(t)
+  }, [isMobile, viewMode, openDaySheet, selectedDate])
 
   if (checkingAuth) {
     return (
@@ -204,22 +143,6 @@ export default function MainPage() {
         onSettingsOpenChange={setIsSettingsOpen}
       />
 
-      {/* 주간 모드: 헤더 아래·매직바 위에 주간 날짜 strip (토글 시 max-height 애니메이션) */}
-      {viewMode === 'week' && (
-        <div
-          className="overflow-hidden"
-          style={{
-            maxHeight: isWeekStripExpanded ? 260 : 0,
-            transition: 'max-height 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
-          }}
-        >
-          <TopTimeline
-            isExpanded={isWeekStripExpanded}
-            onCollapse={() => setIsWeekStripExpanded(false)}
-          />
-        </div>
-      )}
-
       {/* 콘텐츠 영역: 월간일 때 [매직바+캘린더 | 우측 일정 패널]. 모바일 시 하단 메뉴바 높이만큼 패딩 */}
       <div className={cn('flex-1 flex min-h-0 overflow-hidden theme-transition bg-theme relative', isMobile && 'pb-bottom-nav')}>
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden theme-transition bg-theme relative">
@@ -227,6 +150,22 @@ export default function MainPage() {
           <div className="shrink-0 theme-transition bg-theme border-b border-theme">
             <MagicBar ref={magicBarRef} />
           </div>
+
+          {/* 주간 모드: 매직바 바로 밑에 주간 날짜 strip (헤더에서 2월 2026 클릭 시 펼침/접힘) */}
+          {viewMode === 'week' && (
+            <div
+              className="overflow-hidden border-b border-theme theme-transition"
+              style={{
+                maxHeight: isWeekStripExpanded ? 260 : 0,
+                transition: 'max-height 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
+              }}
+            >
+              <TopTimeline
+                isExpanded={isWeekStripExpanded}
+                onCollapse={() => setIsWeekStripExpanded(false)}
+              />
+            </div>
+          )}
 
           {/* 주간: 타임라인 / 월간: 캘린더+일정 패널. 모바일은 좌우 스와이프로 전환 */}
           <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative z-0 theme-transition bg-theme">
@@ -242,14 +181,14 @@ export default function MainPage() {
                     <div
                       className="max-w-2xl mx-auto px-4 py-6 sm:py-8 w-full theme-transition bg-theme flex-1"
                       style={
-                        addScheduleSheetOpen
-                          ? { paddingBottom: 'min(70vh, 520px)' }
+                        openDaySheet
+                          ? { paddingBottom: `min(70vh, ${DAY_SHEET_HEIGHT_PX + 40}px)` }
                           : undefined
                       }
                     >
                       <CalendarGrid
                         allowFullHeight
-                        onDateSelect={undefined}
+                        onDateSelect={() => setOpenDaySheet(true)}
                       />
                     </div>
                   </div>
@@ -274,61 +213,62 @@ export default function MainPage() {
 
                 {viewMode === 'month' && (
                   <div className="flex-1 flex min-h-0 overflow-hidden theme-transition bg-theme relative">
-                    <div ref={calendarScrollRef} className="flex-1 overflow-auto min-h-0 theme-transition bg-theme min-w-0">
-                      <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8 w-full theme-transition bg-theme">
-                        <CalendarGrid
-                          allowFullHeight
-                          onDateSelect={undefined}
-                        />
-                      </div>
-                    </div>
-                    {/* PC 할일 사이드바: width 전환으로 열림/닫힘 애니메이션, 접으면 캘린더 중앙 */}
-                    <aside
-                      className="shrink-0 border-l border-[var(--border-color)] flex flex-row min-h-0 bg-theme theme-transition overflow-hidden"
-                      style={{
-                        width: pcTodoSidebarOpen ? 400 : 0,
-                        minWidth: pcTodoSidebarOpen ? 320 : 0,
-                        transition: 'width 0.28s cubic-bezier(0.32, 0.72, 0, 1), min-width 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
-                      }}
+                    {/* 헤더의 2월 2026과 동일한 중앙 정렬: max-w-screen-2xl 기준으로 캘린더 중앙 컬럼 고정 */}
+                    <div
+                      className={cn(
+                        'w-full max-w-screen-2xl mx-auto grid min-h-0',
+                        pcTodoSidebarOpen ? 'grid-cols-[400px_42rem_400px]' : 'grid-cols-[1fr_42rem_1fr]'
+                      )}
                     >
-                      {pcTodoSidebarOpen && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => setPcTodoSidebarOpen(false)}
-                            className="shrink-0 w-10 flex flex-col items-center justify-center gap-1 py-4 border-r border-[var(--border-color)] bg-theme hover:bg-theme-hover text-theme-muted hover:text-theme transition-colors"
-                            aria-label="할일 목록 접기"
-                            title="할일 목록 접기"
-                          >
-                            <ChevronRight className="w-5 h-5 shrink-0" />
-                            <span className="text-[10px] font-medium" style={{ writingMode: 'vertical-rl' }}>접기</span>
-                          </button>
-                          <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden animate-sidebar-content-in">
-                            {addScheduleModalOpen ? (
-                              <AddTodoModal
-                                isOpen
-                                onClose={() => setAddScheduleModalOpen(false)}
-                                defaultDate={selectedDate}
-                                variant="panel"
-                              />
-                            ) : (
+                      <div className="min-w-0 min-h-0" aria-hidden />
+                      <div ref={calendarScrollRef} className="overflow-auto min-h-0 min-w-0 theme-transition bg-theme">
+                        <div className="w-full px-4 py-6 sm:py-8 theme-transition bg-theme">
+                          <CalendarGrid
+                            allowFullHeight
+                            onDateSelect={undefined}
+                          />
+                        </div>
+                      </div>
+                      <aside
+                        className={cn(
+                          'flex flex-row min-h-0 bg-theme theme-transition overflow-hidden',
+                          pcTodoSidebarOpen && 'border-l border-[var(--border-color)]'
+                        )}
+                        style={{
+                          width: pcTodoSidebarOpen ? undefined : 0,
+                          minWidth: 0,
+                          transition: 'width 0.28s cubic-bezier(0.32, 0.72, 0, 1), min-width 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
+                        }}
+                      >
+                        {pcTodoSidebarOpen && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setPcTodoSidebarOpen(false)}
+                              className="shrink-0 w-10 flex flex-col items-center justify-center gap-1 py-4 border-r border-[var(--border-color)] bg-theme hover:bg-theme-hover text-theme-muted hover:text-theme transition-colors"
+                              aria-label="할일 목록 접기"
+                              title="할일 목록 접기"
+                            >
+                              <ChevronRight className="w-5 h-5 shrink-0" />
+                              <span className="text-[10px] font-medium" style={{ writingMode: 'vertical-rl' }}>접기</span>
+                            </button>
+                            <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden animate-sidebar-content-in">
                               <DayDetailPanel
                                 embedded
                                 openAddModal={false}
                                 onAddModalOpened={() => {}}
-                                onOpenAddModal={() => setAddScheduleModalOpen(true)}
                               />
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </aside>
+                            </div>
+                          </>
+                        )}
+                      </aside>
+                    </div>
                     {/* 접힌 상태: 우측 고정 탭 등장 애니메이션 */}
                     {!pcTodoSidebarOpen && (
                       <button
                         type="button"
                         onClick={() => setPcTodoSidebarOpen(true)}
-                        className="fixed right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-16 flex flex-col items-center justify-center gap-1 py-2 rounded-l-lg border border-r-0 border-[var(--border-color)] bg-theme hover:bg-theme-hover shadow-md transition-colors animate-sidebar-tab-in"
+                        className="fixed right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-16 flex flex-col items-center justify-center gap-1 py-2 rounded-l-neu border border-r-0 border-[var(--border-color)] bg-theme hover:bg-theme-hover shadow-md transition-colors animate-sidebar-tab-in"
                         style={{ marginTop: 0 }}
                         aria-label="할일 목록 펼치기"
                         title="할일 목록 펼치기"
@@ -371,13 +311,13 @@ export default function MainPage() {
         </div>
       )}
 
-      {/* 모바일 월간: 날짜 클릭 시 하단 시트(해당 날짜 일정) */}
+      {/* 모바일 월간: 날짜 클릭 시 하단 시트(해당 날짜 일정). + 버튼으로 인라인 추가 트리거 */}
       {viewMode === 'month' && isMobile && (
         <DayDetailBottomSheet
           open={openDaySheet}
           onClose={() => setOpenDaySheet(false)}
-          openAddModal={false}
-          onAddModalOpened={() => {}}
+          openAddModal={openAddModalFromFab}
+          onAddModalOpened={() => setOpenAddModalFromFab(false)}
         />
       )}
 
@@ -388,16 +328,12 @@ export default function MainPage() {
           onOpenFocus={() => setFocusModeOpen(true)}
           onCloseFocus={() => setFocusModeOpen(false)}
           onSwitchToWeekView={() => { skipNextScrollToTimeRef.current = true }}
-          onAddSchedule={() => setAddScheduleSheetOpen(true)}
+          onAddSchedule={() => {
+            setViewMode('month')
+            setOpenDaySheet(true)
+            setOpenAddModalFromFab(true)
+          }}
           onOpenSettings={() => setMobileSettingsPageOpen(true)}
-        />
-      )}
-
-      {/* 모바일: + 탭 시 플랜 카드 한 장 슬라이드업 (모달 아님, PC와 동일 카드 UX) */}
-      {isMobile && addScheduleSheetOpen && (
-        <AddScheduleCard
-          onClose={() => setAddScheduleSheetOpen(false)}
-          defaultDate={selectedDate}
         />
       )}
 

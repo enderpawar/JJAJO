@@ -520,9 +520,9 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         animate={isJustCreated ? { scale: 1, opacity: 1 } : { opacity: 1 }}
         transition={isJustCreated ? { type: 'spring', stiffness: 380, damping: 26 } : undefined}
         className={`
-          task-card group absolute left-[calc(5rem+2.5%)] right-[calc(3rem+2.5%)] sm:left-[calc(5.5rem+2.5%)] sm:right-[calc(3.5rem+2.5%)] cursor-pointer active:cursor-grabbing overflow-hidden touch-none
+          task-card group absolute left-[calc(5rem+0.5rem)] right-[0.5rem] sm:left-[calc(5.5rem+2.5%)] sm:right-[calc(3.5rem+2.5%)] cursor-pointer active:cursor-grabbing overflow-hidden touch-none
           bg-theme-card theme-transition
-          ${isEditingThisTask ? 'rounded-xl' : ''}
+          ${isEditingThisTask ? 'rounded-neu' : ''}
           ${isCurrent ? 'task-card-active' : ''}
           ${isCompleted && !isCurrent ? 'task-card-completed' : ''}
         `}
@@ -583,7 +583,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         }}
       >
         {dragPreview && dragPreview.taskId === task.id && (
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-md flex flex-row flex-wrap items-center justify-center gap-x-2 gap-y-1 z-30 rounded-xl px-3 py-2">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-md flex flex-row flex-wrap items-center justify-center gap-x-2 gap-y-1 z-30 rounded-neu px-3 py-2">
             <span className="text-2xl font-black text-white animate-pulse whitespace-nowrap">{dragPreview.startTime}</span>
             <span className="text-xl text-white/70">~</span>
             <span className="text-2xl font-black text-white animate-pulse whitespace-nowrap">{dragPreview.endTime}</span>
@@ -666,7 +666,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
               if (!isDraggingRef.current) handleToggleComplete(task)
             }}
             onPointerDown={(e) => e.stopPropagation()}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 flex items-center justify-center rounded-md transition-colors touch-target
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 flex items-center justify-center rounded-tool transition-colors touch-target
               text-theme-muted hover:bg-primary-500/15 hover:text-primary-600 dark:hover:text-primary-400
               focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             title={isCompleted ? '완료 해제' : '완료로 표시'}
@@ -689,7 +689,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
                   performDelete(task)
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
-                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer ${isCurrent ? 'bg-red-500/30 hover:bg-red-500/50' : 'bg-red-500/30 hover:bg-red-500/50 group'}`}
+                className={`w-7 h-7 flex items-center justify-center rounded-neu transition-all cursor-pointer ${isCurrent ? 'bg-red-500/30 hover:bg-red-500/50' : 'bg-red-500/30 hover:bg-red-500/50 group'}`}
                 title="삭제"
               >
                 <Trash2 className="w-3.5 h-3.5 text-red-400 group-hover:text-white" />
@@ -704,7 +704,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
                 }
               }}
               onPointerDown={(e) => e.stopPropagation()}
-              className="w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer neu-float-sm hover:bg-primary-500/15 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+              className="w-7 h-7 flex items-center justify-center rounded-neu transition-all cursor-pointer neu-float-sm hover:bg-primary-500/15 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
               title={isEditingThisTask ? '편집 모드 해제' : task.title === '새 일정' ? '클릭하여 이름 입력' : '편집'}
             >
               <Edit2 className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-primary-600 dark:group-hover:text-primary-400" />
@@ -733,7 +733,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className={`min-w-0 w-full sm:w-[25%] mb-2 leading-snug neu-inset-sm rounded px-4 py-1.5 focus:outline-none focus:ring-0 focus-visible:ring-0 theme-transition text-theme placeholder-theme-muted text-center placeholder:text-center ${
+              className={`min-w-0 w-full sm:w-[25%] mb-2 leading-snug neu-inset-sm rounded-tool px-4 py-1.5 focus:outline-none focus:ring-0 focus-visible:ring-0 theme-transition text-theme placeholder-theme-muted text-center placeholder:text-center ${
                 isCompactHeight ? 'text-lg font-semibold' : 'text-xl sm:text-2xl font-bold'
               }`}
               placeholder="제목"
@@ -783,7 +783,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     return (
       <motion.div
         key={task.id}
-        className="ghost-block ghost-block-pattern absolute left-[calc(5rem+2.5%)] right-[calc(3rem+2.5%)] sm:left-[calc(5.5rem+2.5%)] sm:right-[calc(3.5rem+2.5%)] pointer-events-none rounded-neu border-[1.5px] border-dashed border-orange-400/80 bg-orange-400/5 theme-transition"
+        className="ghost-block ghost-block-pattern absolute left-[calc(5rem+0.5rem)] right-[0.5rem] sm:left-[calc(5.5rem+2.5%)] sm:right-[calc(3.5rem+2.5%)] pointer-events-none rounded-neu border-[1.5px] border-dashed border-orange-400/80 bg-orange-400/5 theme-transition"
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.1, duration: 0.2 }}
@@ -794,7 +794,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         }}
       >
         <div className="relative z-10 p-4 h-full flex flex-col justify-center">
-          <span className="inline-flex items-center w-fit px-2 py-0.5 rounded-md text-[10px] font-semibold bg-orange-400/20 text-orange-500 border border-orange-400/40 mb-2">짜조 제안</span>
+          <span className="inline-flex items-center w-fit px-2 py-0.5 rounded-tool text-[10px] font-semibold bg-orange-400/20 text-orange-500 border border-orange-400/40 mb-2">짜조 제안</span>
           <div className="text-sm font-medium text-theme">{task.title}</div>
           <div className="text-xs text-theme-muted mt-1">
             {task.startTime} - {task.endTime}
@@ -804,11 +804,9 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     )
   }, [timeToPixels])
 
-  const getMinutesDiff = (startPixel: number, endPixel: number) => ((endPixel - startPixel) / 100) * 60
-
   return (
     <>
-    <div ref={timelineRef} className="timeline-scroll flex-1 min-h-0 theme-transition bg-theme relative pl-5 pr-3 sm:px-4">
+    <div ref={timelineRef} className="timeline-scroll flex-1 min-h-0 theme-transition bg-theme relative pl-5 pr-2 sm:px-4">
       <AnimatePresence mode="wait">
         {showPastTime && (
           <motion.div
@@ -834,12 +832,10 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
 
         {!showPastTime && currentTimePosition > 0 && (() => {
           const pastTodos = todayTodos.filter(task => timeToPixels(task.endTime!) <= currentTimePosition)
-          const pastMinutes = getMinutesDiff(0, currentTimePosition)
-          const hours = Math.floor(pastMinutes / 60)
-          const minutes = Math.round(pastMinutes % 60)
-          const timeLabel = hours > 0 ? `${hours}시간 ${minutes > 0 ? minutes + '분' : ''}` : `${minutes}분`
           const dayTotalPx = 24 * 100
           const elapsedPercent = Math.min(100, (currentTimePosition / dayTotalPx) * 100)
+          const timeRangeLabel = `00:00 ~ ${format(currentTime, 'HH:mm')}`
+          const scheduleLabel = pastTodos.length === 0 ? '일정 없음' : `${pastTodos.length}개`
           return (
             <motion.div
               key="past-collapsed-card"
@@ -847,38 +843,34 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
               tabIndex={0}
               onClick={() => setShowPastTime(true)}
               onKeyDown={(e) => e.key === 'Enter' && setShowPastTime(true)}
-              className="btn-ghost-tap touch-target mx-3 sm:mx-4 mb-0 rounded-neu cursor-pointer overflow-hidden shadow-neu-float-date hover:shadow-neu-inset-hover active:scale-[0.98] min-h-[300px] flex flex-col items-stretch justify-center"
+              className="btn-ghost-tap touch-target mx-3 sm:mx-4 mb-0 rounded-neu cursor-pointer overflow-hidden shadow-neu-float-date hover:shadow-neu-inset-hover active:scale-[0.98] min-h-0 flex flex-col"
               style={{ position: 'relative', zIndex: 100 }}
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
             >
-              <div className="flex items-center justify-center gap-3 px-4 py-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-500/10 flex items-center justify-center">
-                  <History className="w-5 h-5 text-primary-500" aria-hidden />
+              {/* 8px 그리드: 패딩 12px(1.5), 간격 8px */}
+              <div className="grid grid-cols-[auto_1fr_auto] gap-x-2 gap-y-1.5 items-center px-3 py-2.5">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-500/10 flex items-center justify-center row-span-2 self-center" aria-hidden>
+                  <History className="w-4 h-4 text-primary-500" />
                 </div>
-                <div className="text-left flex-1 min-w-0">
-                  <div className="text-sm font-bold text-theme">
-                    이전 기록: {timeLabel} ({pastTodos.length === 0 ? '일정 없음' : `${pastTodos.length}개 일정`})
-                  </div>
-                  <div className="text-xs text-theme font-medium mt-0.5">
-                    00:00 ~ {format(currentTime, 'HH:mm')} · <span className="text-primary-500">👆 클릭하여 이전 시간대 보기</span>
-                  </div>
+                <div className="min-w-0 flex items-baseline gap-1.5 flex-wrap">
+                  <span className="text-xs font-semibold text-theme tabular-nums">{timeRangeLabel}</span>
+                  <span className="text-[11px] text-theme-muted">· 이전 시간대 보기</span>
                 </div>
-              </div>
-              <div className="px-4 pb-3 pt-0">
-                <div className="flex flex-col gap-1.5">
-                  <div className="h-2 rounded-full overflow-hidden border border-[var(--border-color)] bg-[var(--card-bg)]">
+                <span className="text-[10px] font-medium text-theme-muted bg-black/5 dark:bg-white/10 rounded px-1.5 py-0.5 row-span-2 self-center">
+                  {scheduleLabel}
+                </span>
+                <div className="col-start-2 col-end-3 flex items-center gap-2 min-w-0">
+                  <span className="text-[10px] font-medium text-theme-muted shrink-0">흐른 시간</span>
+                  <div className="flex-1 min-w-0 h-1.5 rounded-full overflow-hidden bg-[var(--card-bg)] border border-[var(--border-color)]">
                     <div
                       className="h-full bg-[var(--primary-point)] rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${elapsedPercent}%` }}
                     />
                   </div>
-                  <div className="flex items-center justify-between text-xs font-medium text-theme">
-                    <span>오늘의 흐른 시간</span>
-                    <span className="tabular-nums text-[var(--primary-point)]">{elapsedPercent.toFixed(0)}%</span>
-                  </div>
+                  <span className="text-[10px] font-semibold tabular-nums text-[var(--primary-point)] shrink-0 w-7 text-right">{elapsedPercent.toFixed(0)}%</span>
                 </div>
               </div>
             </motion.div>
@@ -926,8 +918,8 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
 
         <div className="absolute left-0 right-0 z-50 transition-all duration-1000 ease-linear" style={{ top: `${currentTimePosition}px` }}>
           <div className="relative h-0.5 bg-primary-500">
-            <div className="absolute -left-2 -top-4 bg-primary-500 text-white text-xs font-bold px-2 py-1 rounded">{format(currentTime, 'HH:mm:ss')}</div>
-            <div className="absolute right-0 -top-1.5 w-4 h-4 bg-primary-500 rounded-full animate-pulse" />
+            <div className="absolute -left-2 -top-4 z-10 bg-primary-500 text-white text-[10px] sm:text-xs font-bold px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-sm">{format(currentTime, 'HH:mm:ss')}</div>
+            <div className="absolute right-0 -top-1 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-primary-500/90 rounded-full animate-pulse ring-2 ring-[var(--bg-color)]" />
           </div>
         </div>
 

@@ -57,7 +57,7 @@ export default function MobileSettingsPage({ onClose }: MobileSettingsPageProps)
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
         style={{ scrollbarGutter: 'stable' }}
       >
-        <div className="p-3 pb-4 space-y-4 max-w-2xl mx-auto">
+        <div className="p-3 pb-4 space-y-4 max-w-2xl mx-auto min-w-0 w-full box-border">
           {/* 계정 — 카드 스타일로 상단 섹션과 시각적 일관성 */}
           <section className="neu-float rounded-neu theme-transition bg-theme-card p-3">
             <h2 className="text-xs font-semibold text-theme mb-1.5">계정</h2>
@@ -70,9 +70,6 @@ export default function MobileSettingsPage({ onClose }: MobileSettingsPageProps)
               <LogIn className="w-4 h-4" />
               Google 로그인
             </button>
-            <p className="text-xs text-theme-muted mt-1.5">
-              Google 계정으로 로그인하면 일정을 동기화할 수 있습니다.
-            </p>
           </section>
 
           <TimeSlotSettings defaultTimeSlotsExpanded={false} compact />

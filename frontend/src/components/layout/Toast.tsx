@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useToastStore } from '@/stores/toastStore'
 import { cn } from '@/utils/cn'
 
@@ -13,12 +14,16 @@ export function ToastContainer() {
       role="region"
       aria-label="알림"
     >
-      {toasts.map((t) => (
-        <ToastItem key={t.id} id={t.id} message={t.message} onClose={() => removeToast(t.id)} />
-      ))}
+      <AnimatePresence mode="popLayout">
+        {toasts.map((t) => (
+          <ToastItem key={t.id} id={t.id} message={t.message} onClose={() => removeToast(t.id)} />
+        ))}
+      </AnimatePresence>
     </div>
   )
 }
+
+const toastTransition = { type: 'tween' as const, duration: 0.28, ease: [0.32, 0.72, 0, 1] }
 
 function ToastItem({
   id,
@@ -29,38 +34,25 @@ function ToastItem({
   message: string
   onClose: () => void
 }) {
-  const [isExiting, setIsExiting] = useState(false)
-  const elRef = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
-    const timer = setTimeout(() => setIsExiting(true), TOAST_DURATION_MS)
+    const timer = setTimeout(() => onClose(), TOAST_DURATION_MS)
     return () => clearTimeout(timer)
-  }, [id])
-
-  useEffect(() => {
-    if (!isExiting) return
-    const el = elRef.current
-    if (!el) {
-      onClose()
-      return
-    }
-    const handleEnd = () => onClose()
-    el.addEventListener('animationend', handleEnd, { once: true })
-    return () => el.removeEventListener('animationend', handleEnd)
-  }, [isExiting, onClose])
+  }, [id, onClose])
 
   return (
-    <div
-      ref={elRef}
+    <motion.div
+      layout
+      initial={{ x: '100%', opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: '100%', opacity: 0 }}
+      transition={toastTransition}
       className={cn(
         'rounded-neu neu-float px-4 py-3 text-sm',
-        'text-theme',
-        'toast-enter',
-        isExiting && 'toast-exit'
+        'text-theme'
       )}
       role="status"
     >
       <p className="leading-snug">{message}</p>
-    </div>
+    </motion.div>
   )
 }
