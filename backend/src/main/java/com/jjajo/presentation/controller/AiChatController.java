@@ -3,6 +3,7 @@ package com.jjajo.presentation.controller;
 import com.jjajo.application.port.in.EditScheduleUseCase;
 import com.jjajo.application.port.in.ParseScheduleUseCase;
 import com.jjajo.application.port.in.PlannerScheduleUseCase;
+import com.jjajo.presentation.dto.AiChatResponse;
 import com.jjajo.presentation.dto.EditScheduleRequest;
 import com.jjajo.presentation.dto.EditScheduleResponse;
 import com.jjajo.presentation.dto.ParseScheduleRequest;

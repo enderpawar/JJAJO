@@ -3,6 +3,7 @@ package com.jjajo.application.service;
 import com.jjajo.application.port.in.EditScheduleUseCase;
 import com.jjajo.application.port.in.ParseScheduleUseCase;
 import com.jjajo.application.port.in.PlannerScheduleUseCase;
+import com.jjajo.domain.model.ScheduleRequest;
 import com.jjajo.infrastructure.gemini.GeminiChatAdapter;
 import com.jjajo.presentation.dto.AiChatResponse;
 import com.jjajo.presentation.dto.EditScheduleResponse;
