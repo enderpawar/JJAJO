@@ -67,19 +67,42 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 theme-transition bg-theme text-theme">
-      <div className="max-w-md w-full">
-        {/* 헤더 */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-theme">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 theme-transition bg-theme text-theme relative overflow-hidden">
+      {/* 배경: 로고 톤에 맞는 은은한 그라데이션 */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.07]"
+        style={{ background: 'var(--primary-gradient)' }}
+        aria-hidden
+      />
+      <div className="absolute top-1/4 -left-1/4 w-96 h-96 rounded-full opacity-30 blur-3xl bg-[var(--primary-point)] pointer-events-none" aria-hidden />
+      <div className="absolute bottom-1/4 -right-1/4 w-80 h-80 rounded-full opacity-20 blur-3xl bg-[var(--primary-point)] pointer-events-none" aria-hidden />
+
+      <div className="max-w-md w-full relative z-10 flex flex-col items-center">
+        {/* 짜조 로고 (Header와 동일한 비주얼) */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="relative flex items-center gap-0.5 shrink-0" aria-hidden>
+              <span className="w-10 h-10 sm:w-12 sm:h-12 rounded-tool shadow-md bg-[var(--primary-point)]" />
+              <span
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-tool -ml-3 sm:-ml-4 mt-1 sm:mt-1.5 shadow-md opacity-90"
+                style={{ background: 'var(--primary-gradient)' }}
+              />
+            </div>
+            <div className="flex flex-col leading-tight text-left">
+              <span className="font-display text-2xl sm:text-3xl font-bold text-[var(--text-main)] tracking-tight">
+                짜조
+              </span>
+              <span className="font-display text-xs sm:text-sm font-medium text-[var(--text-muted)]">
+                일정을 짜줘
+              </span>
+            </div>
+          </div>
+          <p className="text-theme-muted text-sm text-center max-w-[280px]">
             짜조에 오신 것을 환영해요!
-          </h1>
-          <p className="text-sm text-theme-muted">
-            먼저 계정을 연결한 뒤, 안에서 설정을 통해 Gemini API 키를 입력할 수 있어요.
           </p>
         </div>
 
-        <div className="card space-y-4">
+        <div className="card space-y-4 w-full shadow-[var(--shadow-float)]">
           {/* 로그인 상태 확인 중 표시 */}
           {checking && (
             <p className="text-xs text-theme-muted mb-2">
@@ -87,21 +110,19 @@ export default function AuthPage() {
             </p>
           )}
 
-          {/* Google 로그인: iOS Safari 호환을 위해 <a href> 사용 (클릭 핸들러 내 location.href는 차단될 수 있음) */}
+          {/* Google 로그인: iOS Safari 호환을 위해 <a href> 사용 */}
           <a
             href={googleLoginUrl}
-            className="btn-primary w-full flex items-center justify-center gap-2 no-underline text-inherit"
+            className="btn-primary w-full flex items-center justify-center gap-2 no-underline text-inherit min-h-[48px]"
             onClick={() => {
-              // #region agent log
               debugLog('AuthPage.tsx:googleLoginLink', 'Google login link tapped', { url: googleLoginUrl }, 'H2')
-              // #endregion
             }}
           >
-            <LogIn className="w-5 h-5" />
+            <LogIn className="w-5 h-5 shrink-0" />
             <span>Google 계정으로 시작하기</span>
           </a>
 
-          {/* 안내 문구 - 다크 모드에서도 가독성 확보 (테마 색상 사용) */}
+          {/* 안내 문구 */}
           <div className="mt-2 p-4 neu-inset rounded-neu text-sm text-theme-muted">
             <p className="mb-1 text-theme">
               로그인 후 오른쪽 상단 <strong className="text-theme">설정</strong> 버튼에서 Gemini API 키를 설정하면
@@ -113,7 +134,7 @@ export default function AuthPage() {
           <button
             type="button"
             onClick={handleEnterPlanner}
-            className="w-full text-xs text-theme-muted hover:text-theme underline-offset-2 hover:underline mt-2 transition-colors"
+            className="w-full text-xs text-theme-muted hover:text-theme underline-offset-2 hover:underline mt-2 transition-colors py-2"
           >
             이미 로그인하셨나요? 플래너로 이동하기
           </button>

@@ -523,8 +523,13 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     const progress = isCurrent
       ? ((currentTimePosition - startPixel) / (endPixel - startPixel)) * 100
       : 0
-    const scale = 1
     const isEditingThisTask = editingTodo?.id === task.id
+
+    /** 터치/호버 시 "움직일 수 있음" 피드백: 10% 확대 + 회색톤 테두리 글로우 (편집 중이 아닐 때만) */
+    const dragReadyGlow = '0 0 28px rgba(140, 140, 150, 0.5), 0 0 14px rgba(180, 180, 190, 0.45)'
+    const dragReadyProps = isEditingThisTask
+      ? undefined
+      : { scale: 1.1, boxShadow: dragReadyGlow }
 
     const isJustCreated = task.id === lastCreatedTodoId
     const isCompleted = task.status === 'completed'
@@ -535,8 +540,8 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         {...(isEditingThisTask && { 'data-editing-card': 'true' })}
         key={`${task.clientKey ?? task.id}-${task.startTime}-${task.endTime}`}
         initial={isJustCreated ? { scale: 0.92, opacity: 0 } : false}
-        animate={isJustCreated ? { scale: 1, opacity: 1 } : { opacity: 1 }}
-        transition={isJustCreated ? { type: 'spring', stiffness: 380, damping: 26 } : undefined}
+        animate={isJustCreated ? { scale: 1, opacity: 1 } : { scale: 1, opacity: 1 }}
+        transition={isJustCreated ? { type: 'spring', stiffness: 380, damping: 26 } : { type: 'tween', duration: 0.2 }}
         className={`
           task-card group absolute left-[calc(5rem+0.5rem)] right-[0.5rem] sm:left-[calc(5.5rem+2.5%)] sm:right-[calc(3.5rem+2.5%)] cursor-pointer active:cursor-grabbing overflow-hidden touch-none
           bg-theme-card theme-transition
@@ -548,14 +553,19 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
           top: `${visualTop}px`,
           height: `${visualHeight}px`,
           zIndex: isCurrent ? 10 : isPast ? 1 : 5,
-          transform: `scale(${scale})`,
           opacity: styleOpacity,
           transition: 'none',
         }}
+        whileHover={dragReadyProps}
+        whileTap={dragReadyProps}
         drag={isEditingThisTask ? false : 'y'}
         dragElastic={0}
         dragMomentum={false}
-        whileDrag={isEditingThisTask ? undefined : { scale: 1.05, zIndex: 100, cursor: 'grabbing' }}
+        whileDrag={
+          isEditingThisTask
+            ? undefined
+            : { scale: 1.1, zIndex: 100, cursor: 'grabbing', boxShadow: dragReadyGlow, transition: { duration: 0.15 } }
+        }
         onPointerDown={(e) => {
           // #region agent log
           fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cf01a6'},body:JSON.stringify({sessionId:'cf01a6',location:'VerticalTimeline.tsx:card-pointerdown',message:'Card pointer down',data:{pointerType:e.pointerType,taskId:task.id,isTouch:e.pointerType==='touch'},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});

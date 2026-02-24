@@ -538,13 +538,6 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
         )}
       </div>
 
-      {/* 모바일 안내: 하단 + 버튼으로만 일정 추가 */}
-      {embedded && !showAddButton && (
-        <p className="text-xs font-normal text-theme-muted text-center py-2 md:hidden">
-          하단 <strong className="font-semibold text-theme">+ 버튼</strong>으로 일정 추가
-        </p>
-      )}
-
       {/* 하단 버튼 영역 — showAddButton일 때만 새 일정 추가 버튼 표시 */}
       {showAddButton && (
       <div
