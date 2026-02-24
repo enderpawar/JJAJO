@@ -120,7 +120,7 @@ public class SecurityConfig {
 
     /**
      * OAuth2 로그인 성공 시 JWT 발급 후 프론트엔드로 리다이렉트.
-     * 토큰은 URL hash(#token=xxx)로 전달해 Safari 크로스 사이트 추적 방지 환경에서도 동작.
+     * 토큰은 ?token=xxx 로 전달 (iOS Safari에서 302 리다이렉트 시 #hash가 유실되는 문제 회피).
      */
     @Bean
     public AuthenticationSuccessHandler redirectToFrontendSuccessHandler() {
@@ -150,7 +150,7 @@ public class SecurityConfig {
                 String picture = (String) oAuth2User.getAttributes().getOrDefault("picture", null);
                 if (userId != null) {
                     String token = jwtService.generateToken(userId, email, name, picture);
-                    target = target + "#token=" + java.net.URLEncoder.encode(token, java.nio.charset.StandardCharsets.UTF_8);
+                    target = target + "?token=" + java.net.URLEncoder.encode(token, java.nio.charset.StandardCharsets.UTF_8);
                 }
             }
 

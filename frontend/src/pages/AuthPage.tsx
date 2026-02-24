@@ -12,14 +12,17 @@ export default function AuthPage() {
 
   useEffect(() => {
     const checkLogin = async () => {
-      // 1. OAuth 리다이렉트 후 URL hash에 토큰이 있으면 저장 (Safari 크로스 사이트 대응)
+      // 1. OAuth 리다이렉트 후 URL에서 토큰 추출 (?token= 또는 #token=, iOS Safari 302 시 # 유실 대응)
       const hash = window.location.hash
-      if (hash.startsWith('#token=')) {
-        const token = decodeURIComponent(hash.slice(7).trim())
-        if (token) {
-          setToken(token)
-          window.history.replaceState(null, '', window.location.pathname + window.location.search)
-        }
+      const params = new URLSearchParams(window.location.search)
+      const tokenFromHash = hash.startsWith('#token=') ? decodeURIComponent(hash.slice(7).trim()) : null
+      const tokenFromQuery = params.get('token')
+      const tokenFromUrl = tokenFromHash || tokenFromQuery
+      if (tokenFromUrl) {
+        setToken(tokenFromUrl)
+        // URL에서 토큰 제거 (보안·북마크 시 노출 방지)
+        const cleanPath = window.location.pathname || '/'
+        window.history.replaceState(null, '', cleanPath)
       }
 
       try {
