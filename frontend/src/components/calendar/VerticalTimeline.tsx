@@ -536,9 +536,9 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
           opacity: styleOpacity,
           transition: 'none',
         }}
+        whileHover={dragReadyProps}
         whileTap={dragReadyProps}
         drag={isEditingThisTask ? false : 'y'}
-        dragElastic={0}
         dragMomentum={false}
         whileDrag={
           isEditingThisTask
