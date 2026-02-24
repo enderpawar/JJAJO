@@ -18,7 +18,7 @@ function normalizeTimeStr(s: string | undefined): string {
 }
 import { useCalendarStore } from '@/stores/calendarStore'
 import { createSchedule, updateSchedule, deleteSchedule } from '@/services/scheduleService'
-import { getApiBase } from '@/utils/api'
+import { getApiBase, getAuthHeaders } from '@/utils/api'
 import type { Todo } from '@/types/calendar'
 
 function getParseScheduleUrl(): string {
@@ -88,6 +88,7 @@ export async function parseAndAddSchedule(command: string): Promise<{ success: t
     const response = await fetch(getParseScheduleUrl(), {
       method: 'POST',
       headers: {
+        ...getAuthHeaders(),
         'Content-Type': 'application/json',
         'X-Gemini-API-Key': apiKey,
       },
@@ -296,6 +297,7 @@ export async function requestJjajoPlanner(
     const response = await fetch(getPlannerScheduleUrl(), {
       method: 'POST',
       headers: {
+        ...getAuthHeaders(),
         'Content-Type': 'application/json',
         'X-Gemini-API-Key': apiKey,
       },
@@ -445,6 +447,7 @@ export async function editScheduleByNaturalLanguage(
     const response = await fetch(getEditScheduleUrl(), {
       method: 'POST',
       headers: {
+        ...getAuthHeaders(),
         'Content-Type': 'application/json',
         'X-Gemini-API-Key': apiKey,
       },

@@ -26,6 +26,8 @@ services:
         sync: false
       - key: FRONTEND_ORIGIN
         sync: false
+      - key: JWT_SECRET
+        sync: false
 
     healthCheckPath: /actuator/health
     autoDeployTrigger: commit
