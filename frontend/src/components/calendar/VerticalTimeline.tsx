@@ -48,6 +48,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showPastTime, setShowPastTime] = useState(false)
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null)
+  const [isCardDragging, setCardDragging] = useState(false)
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
   const [renameInputValue, setRenameInputValue] = useState('')
   const [lastCreatedTodoId, setLastCreatedTodoId] = useState<string | null>(null)
@@ -62,6 +63,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
   const createdAnimationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastTapTimeRef = useRef(0)
   const lastTapYRef = useRef(0)
+  const dragMoveLoggedRef = useRef(false)
   const DOUBLE_TAP_MS = 400
   const DOUBLE_TAP_Y_SLOP = 60
   useEffect(() => {
@@ -361,6 +363,20 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     [addTodoAtPosition]
   )
 
+  // #region agent log
+  useEffect(() => {
+    const el = timelineRef.current
+    if (!el) return
+    const onTouchStart = (e: TouchEvent) => {
+      const t = e.target as HTMLElement
+      const onCard = !!t?.closest?.('.task-card')
+      fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cf01a6'},body:JSON.stringify({sessionId:'cf01a6',location:'VerticalTimeline.tsx:timeline-touchstart',message:'Timeline touchstart',data:{onCard,targetTag:t?.tagName},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{})
+    }
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    return () => el.removeEventListener('touchstart', onTouchStart)
+  }, [])
+  // #endregion
+
   useEffect(() => {
     if (skipNextScrollToTimeRef?.current) {
       skipNextScrollToTimeRef.current = false
@@ -538,13 +554,29 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         dragElastic={0}
         dragMomentum={false}
         whileDrag={isEditingThisTask ? undefined : { scale: 1.05, zIndex: 100, cursor: 'grabbing' }}
+        onPointerDown={(e) => {
+          // #region agent log
+          fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cf01a6'},body:JSON.stringify({sessionId:'cf01a6',location:'VerticalTimeline.tsx:card-pointerdown',message:'Card pointer down',data:{pointerType:e.pointerType,taskId:task.id,isTouch:e.pointerType==='touch'},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+          // #endregion
+        }}
         onDragStart={() => {
           if (isEditingThisTask) return
+          // #region agent log
+          dragMoveLoggedRef.current = false
+          fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cf01a6'},body:JSON.stringify({sessionId:'cf01a6',location:'VerticalTimeline.tsx:onDragStart',message:'Drag started',data:{taskId:task.id},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
           isDraggingRef.current = true
           draggingTaskIdRef.current = task.id
+          setCardDragging(true)
         }}
         onDrag={(_, info) => {
           if (isEditingThisTask) return
+          // #region agent log
+          if (!dragMoveLoggedRef.current) {
+            dragMoveLoggedRef.current = true
+            fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cf01a6'},body:JSON.stringify({sessionId:'cf01a6',location:'VerticalTimeline.tsx:onDrag',message:'First drag move',data:{taskId:task.id,offsetY:info.offset.y},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+          }
+          // #endregion
           const newStartPixel = Math.max(0, Math.min(timelineHeight - (endPixel - startPixel), startPixel + info.offset.y))
           setDragPreview({
             taskId: task.id,
@@ -554,6 +586,10 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         }}
         onDragEnd={(_, info) => {
           if (isEditingThisTask) return
+          setCardDragging(false)
+          // #region agent log
+          fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cf01a6'},body:JSON.stringify({sessionId:'cf01a6',location:'VerticalTimeline.tsx:onDragEnd',message:'Drag ended',data:{taskId:task.id,offsetY:info.offset.y},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
+          // #endregion
           setDragPreview(null)
           let newStartPixel = Math.max(0, Math.min(timelineHeight - (endPixel - startPixel), startPixel + info.offset.y))
           const newEndPixel = newStartPixel + (endPixel - startPixel)
@@ -806,7 +842,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
 
   return (
     <>
-    <div ref={timelineRef} className="timeline-scroll flex-1 min-h-0 theme-transition bg-theme relative pl-5 pr-2 sm:px-4">
+    <div ref={timelineRef} className={`timeline-scroll flex-1 min-h-0 theme-transition bg-theme relative pl-5 pr-2 sm:px-4 ${isCardDragging ? 'timeline-scroll-dragging' : ''}`}>
       <AnimatePresence mode="wait">
         {showPastTime && (
           <motion.div

@@ -241,6 +241,11 @@ body {
     overflow-anchor: auto;
   }
 
+  /* iOS: 카드 드래그 중에는 스크롤이 터치를 가로채지 않도록 (드래그가 끊기는 현상 방지) */
+  .timeline-scroll-dragging {
+    touch-action: none;
+  }
+
   /* 설정 모달: iOS에서 터치 스크롤이 확실히 동작하도록 */
   .settings-modal-scroll {
     -webkit-overflow-scrolling: touch;
