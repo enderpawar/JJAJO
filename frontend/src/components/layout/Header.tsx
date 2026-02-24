@@ -276,8 +276,8 @@ export default function Header({
   return (
     <header className="relative z-30 theme-transition bg-[var(--card-bg)]" style={{ isolation: 'isolate' }}>
       <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 sm:pb-3 min-h-[3.25rem] sm:min-h-[5rem] flex flex-col justify-center">
-        {/* 단일 행: 왼쪽 로고 / 중앙 연월 / 오른쪽 아이콘. 연월은 화면 정중앙 배치 */}
-        <div className="relative flex flex-row items-center gap-2 md:h-14 md:gap-0">
+        {/* 단일 행: 왼쪽 로고 / 중앙 연월 / 오른쪽 아이콘. 모바일에서는 3열 그리드, PC에서는 플렉스 레이아웃 */}
+        <div className="relative grid grid-cols-[auto,1fr,auto] items-center gap-2 md:h-14 md:gap-0 md:flex md:flex-row">
           {/* 왼쪽: 로고 + 짜조 (PC에서만 주간 날짜 토글 표시) */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0">
             <div className="relative flex items-center gap-0.5 shrink-0" aria-hidden>
@@ -302,8 +302,8 @@ export default function Header({
               </button>
             )}
           </div>
-          {/* 모바일: 연월 절대 중앙 정렬 */}
-          <div className="flex-1 flex justify-center min-w-0 max-md:absolute max-md:left-1/2 max-md:-translate-x-1/2 max-md:flex-none md:invisible md:absolute md:pointer-events-none md:left-0 md:right-0 md:flex-initial">
+          {/* 모바일: 연월은 중앙 컬럼에서 자연스럽게 가운데 정렬, PC에서는 별도 중앙 배치 블록 사용 */}
+          <div className="flex-1 flex justify-center min-w-0 md:invisible md:absolute md:pointer-events-none md:left-0 md:right-0 md:flex-initial">
             <div className="md:hidden">{datePickerBlock}</div>
           </div>
           {/* 오른쪽: 뷰 전환(md만) + 메뉴 + 테마 + 설정(md만) — PC에서 우측 정렬 */}
@@ -349,7 +349,7 @@ export default function Header({
             <button
               type="button"
               onClick={toggleTheme}
-              className="btn-icon-tap theme-toggle-switch theme-transition flex md:hidden w-11 h-11 min-w-[44px] min-h-[44px] items-center justify-center max-md:absolute max-md:right-3 max-md:top-1/2 max-md:-translate-y-1/2"
+              className="btn-icon-tap theme-toggle-switch theme-transition flex md:hidden w-11 h-11 min-w-[44px] min-h-[44px] items-center justify-center"
               aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
               title={theme === 'dark' ? '라이트 모드' : '다크 모드'}
             >

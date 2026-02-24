@@ -29,7 +29,6 @@ export function hapticLight(): void {
   if (!canVibrate()) return
   try {
     navigator.vibrate(8)
-    if (HAPTIC_DEBUG) console.log('[haptic] hapticLight() called')
   } catch (e) {
     if (HAPTIC_DEBUG) console.warn('[haptic] hapticLight error', e)
   }
@@ -40,7 +39,6 @@ export function hapticSuccess(): void {
   if (!canVibrate()) return
   try {
     navigator.vibrate([10, 40, 15])
-    if (HAPTIC_DEBUG) console.log('[haptic] hapticSuccess() called')
   } catch (e) {
     if (HAPTIC_DEBUG) console.warn('[haptic] hapticSuccess error', e)
   }
@@ -51,7 +49,6 @@ export function hapticWarn(): void {
   if (!canVibrate()) return
   try {
     navigator.vibrate([5, 30, 5])
-    if (HAPTIC_DEBUG) console.log('[haptic] hapticWarn() called')
   } catch (e) {
     if (HAPTIC_DEBUG) console.warn('[haptic] hapticWarn error', e)
   }

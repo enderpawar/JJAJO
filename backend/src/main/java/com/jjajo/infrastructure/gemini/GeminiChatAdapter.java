@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Gemini API 채팅 어댑터
@@ -652,6 +654,8 @@ public class GeminiChatAdapter {
                 for (JsonNode node : plansNode) {
                     String title = node.has("title") ? node.get("title").asText().trim() : null;
                     int dur = node.has("durationMinutes") ? node.get("durationMinutes").asInt(60) : 60;
+                    // 최소 10분, 최대 240분 범위로 보정
+                    dur = Math.max(10, Math.min(dur, 240));
                     Integer breakAfter = node.has("breakMinutesAfter") ? Math.min(Math.max(node.get("breakMinutesAfter").asInt(0), 0), 30) : null;
                     String note = null;
                     if (node.has("note") && !node.get("note").isNull()) {
@@ -664,9 +668,38 @@ public class GeminiChatAdapter {
                         if (PLANNER_CATEGORIES.contains(c) && !"mixed".equals(c)) planCategory = c;
                         if ("coding".equals(c)) planCategory = "work";
                     }
-                    if (title != null && !title.isEmpty() && dur > 0) {
-                        plans.add(new CategoryAndPlans.PlanWithDuration(title, Math.min(dur, 240), breakAfter, note, planCategory));
+                    if (title != null && !title.isEmpty()) {
+                        plans.add(new CategoryAndPlans.PlanWithDuration(title, dur, breakAfter, note, planCategory));
                     }
+                }
+            }
+            // 후처리 1: plans가 비었을 경우 안전한 기본 플랜 생성 (60분짜리 집중 블록 하나)
+            if (plans.isEmpty()) {
+                String fallbackTitle = userText != null && !userText.isBlank()
+                        ? userText.strip().substring(0, Math.min(userText.strip().length(), 20))
+                        : "집중 작업";
+                plans.add(new CategoryAndPlans.PlanWithDuration(fallbackTitle, 60, null, null, category));
+            }
+
+            // 후처리 2: 자연어 안의 시간 표현 개수와 plans 개수 비교하여 부족하면 보완
+            int timeMentionCount = 0;
+            if (userText != null) {
+                Pattern p = Pattern.compile("\\d+\\s*(시간|분)");
+                Matcher m = p.matcher(userText);
+                while (m.find()) {
+                    timeMentionCount++;
+                }
+            }
+            if (timeMentionCount > plans.size() && !plans.isEmpty()) {
+                CategoryAndPlans.PlanWithDuration base = plans.get(plans.size() - 1);
+                while (plans.size() < timeMentionCount) {
+                    plans.add(new CategoryAndPlans.PlanWithDuration(
+                            base.title(),
+                            base.durationMinutes(),
+                            base.breakMinutesAfter(),
+                            base.note(),
+                            base.category()
+                    ));
                 }
             }
             log.debug("짜조 카테고리={}, plans={}건, summary={}", category, plans.size(), summary != null);

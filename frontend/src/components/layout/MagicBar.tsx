@@ -33,7 +33,7 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [editMode, setEditMode] = useState(false)
   /** 짜조 모드에서 사용. 시간대/블록/휴식 기본값 */
-  const [jjajoParams, setJjajoParams] = useState<TemplateParams>({ start: 13, end: 23, blockMax: 90, breakMin: 15 })
+  const [jjajoParams, setJjajoParams] = useState<TemplateParams>({ start: 13, end: 23, blockMax: 60, breakMin: 15 })
   const [lastPlannerCommand, setLastPlannerCommand] = useState<string | null>(null)
   const [lastPlannerSummary, setLastPlannerSummary] = useState<string | null>(null)
   /** 재생성 시 동일한 timeRange 및 블록/휴식 설정 유지 */
@@ -150,7 +150,7 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
           createdBy: 'ai',
         })
         deleteTodo(todo.id)
-        addTodo(saved)
+        addTodo({ ...saved, clientKey: todo.id })
       } catch {
         // 서버 저장 실패 시, 로컬 opt- 일정은 그대로 유지
       }

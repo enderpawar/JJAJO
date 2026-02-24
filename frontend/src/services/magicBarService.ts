@@ -249,10 +249,30 @@ export async function requestJjajoPlanner(
     return { success: false, message: '설정에서 Gemini API 키를 먼저 입력해주세요.' }
   }
 
-  const { selectedDate, todos, setGhostPlans } = useCalendarStore.getState()
+  const { selectedDate, todos, setGhostPlans, setSelectedDate, setCurrentMonth } = useCalendarStore.getState()
   const { settings } = useSettingsStore.getState()
-  const dateStr = format(selectedDate, 'yyyy-MM-dd')
   const now = new Date()
+  // 기준 날짜: 항상 "오늘"을 기준으로 내일/모레/N일 뒤를 해석.
+  // 사용자가 날짜 관련 표현을 쓰지 않은 경우에만 선택된 날짜(selectedDate)를 사용.
+  const text = command.trim()
+  let offsetDays: number | null = null
+  if (text.includes('모레')) {
+    offsetDays = 2
+  } else if (text.includes('내일')) {
+    offsetDays = 1
+  } else if (text.includes('오늘')) {
+    offsetDays = 0
+  } else {
+    const match = text.match(/(\d+)\s*일\s*(뒤|후)/)
+    if (match) {
+      const n = Number(match[1])
+      if (!Number.isNaN(n)) offsetDays = n
+    }
+  }
+
+  const baseDate = now
+  const targetDate = offsetDays != null ? addDays(baseDate, offsetDays) : selectedDate
+  const dateStr = format(targetDate, 'yyyy-MM-dd')
   const isToday = format(now, 'yyyy-MM-dd') === dateStr
   const currentTimeMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : 0
   const rawSlots = getAvailableSlotsForDay(
@@ -327,6 +347,13 @@ export async function requestJjajoPlanner(
       updatedAt: new Date().toISOString(),
       isGhost: true,
     }))
+
+    // 상대 날짜(오늘/내일/모레/N일 뒤)로 요청한 경우, 제안된 날짜로 캘린더 이동
+    if (offsetDays != null) {
+      setSelectedDate(targetDate)
+      setCurrentMonth(new Date(targetDate.getFullYear(), targetDate.getMonth(), 1))
+    }
+
     setGhostPlans(ghostTodos)
     return { success: true, plansCount: ghostTodos.length, summary: data.summary ?? undefined }
   } catch (e) {
