@@ -8,8 +8,8 @@
  * → 드래그 햅틱은 touchmove 핸들러 안에서 동기로 호출해야 한다.
  */
 
-/** 임시: 햅틱 호출 여부 진단용. true로 두면 콘솔에 로그 출력. 배포 전 false로 되돌리기 */
-const HAPTIC_DEBUG = true
+/** 개발 환경에서만 햅틱 호출 여부를 콘솔에 로그로 출력 */
+const HAPTIC_DEBUG = import.meta.env.DEV
 
 const canVibrate = (): boolean => {
   if (typeof navigator === 'undefined' || !('vibrate' in navigator)) {
