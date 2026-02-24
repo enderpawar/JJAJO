@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -39,7 +41,19 @@ public class AiChatService implements ParseScheduleUseCase, EditScheduleUseCase,
         log.info("짜조 플래너 요청: {}", request.getUserText());
         var slots = request.getAvailableSlots() != null ? request.getAvailableSlots() : List.<PlannerScheduleRequest.TimeSlotDto>of();
         var categoryAndPlans = geminiChatAdapter.detectCategoryAndPlans(request.getUserText(), apiKey);
-        int currentTimeMinutes = parseTimeToMinutes(request.getCurrentTime());
+        int currentTimeMinutes = 0;
+        try {
+            String dateStr = request.getDate();
+            if (dateStr != null && !dateStr.isBlank()) {
+                LocalDate targetDate = LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
+                if (targetDate.isEqual(LocalDate.now())) {
+                    currentTimeMinutes = parseTimeToMinutes(request.getCurrentTime());
+                }
+            }
+        } catch (Exception e) {
+            // 날짜 파싱 실패 시에는 보수적으로 0분부터 전체 슬롯을 사용한다.
+            currentTimeMinutes = 0;
+        }
         Integer blockMaxMinutes = request.getBlockMaxMinutes();
         Integer breakMinutesDefault = request.getBreakMinutesDefault();
         var plansWithDuration = categoryAndPlans.plans().stream()
