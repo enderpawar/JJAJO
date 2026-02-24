@@ -30,7 +30,7 @@ public class ApiKeyController {
     @PostMapping("/validate")
     public ResponseEntity<ApiKeyValidationResponse> validateApiKey(
             @Valid @RequestBody ApiKeyValidationRequest request) {
-        
+
         log.info("API 키 유효성 검증 요청 수신");
         
         ApiKeyValidation validation = validateApiKeyUseCase.validate(request.getApiKey());
