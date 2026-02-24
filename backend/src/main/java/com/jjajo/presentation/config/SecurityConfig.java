@@ -80,6 +80,9 @@ public class SecurityConfig {
                     "/h2-console/**",
                     "/debug/**"
                 ).permitAll()
+                .requestMatchers(
+                    "/api/v1/apikey/**"
+                ).permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
             )
