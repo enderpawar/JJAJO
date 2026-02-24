@@ -547,7 +547,7 @@ public class GeminiChatAdapter {
 
     private static final ObjectMapper PLANNER_JSON = new ObjectMapper();
 
-    private static final List<String> PLANNER_CATEGORIES = List.of("study", "workout", "work", "rest", "default", "mixed");
+    private static final List<String> PLANNER_CATEGORIES = List.of("study", "workout", "work", "rest", "default");
 
     /**
      * 짜조 플래너: 사용자 입력에서 카테고리·일정·요약 추출.
