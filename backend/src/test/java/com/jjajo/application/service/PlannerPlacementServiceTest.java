@@ -32,9 +32,11 @@ class PlannerPlacementServiceTest {
             timeSlot("19:00", "23:00")
         );
         int currentTimeMinutes = 9 * 60; // 09:00
+        Integer blockMaxMinutes = 90;
+        Integer breakMinutesDefault = 10;
 
         assertThatCode(() -> {
-            var result = service.placePlans("study", plans, slots, currentTimeMinutes, true);
+            var result = service.placePlans("study", plans, slots, currentTimeMinutes, true, blockMaxMinutes, breakMinutesDefault);
             assert result != null;
         }).doesNotThrowAnyException();
     }

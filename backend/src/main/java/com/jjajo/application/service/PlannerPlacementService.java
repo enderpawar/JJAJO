@@ -28,7 +28,9 @@ public class PlannerPlacementService {
             List<PlanWithDuration> plans,
             List<PlannerScheduleRequest.TimeSlotDto> availableSlots,
             int currentTimeMinutes,
-            boolean insertRestCards) {
+            boolean insertRestCards,
+            Integer blockMaxMinutes,
+            Integer breakMinutesDefault) {
         if (plans == null || plans.isEmpty() || availableSlots == null || availableSlots.isEmpty()) {
             return List.of();
         }
@@ -41,26 +43,46 @@ public class PlannerPlacementService {
             String effectiveCategory = (plan.category() != null && !plan.category().isBlank()) ? plan.category() : category;
             var routine = RoutineTemplates.get(effectiveCategory);
             var preferredRanges = parsePreferredRanges(routine.preferredSlots());
-            int dur = Math.min(Math.max(plan.durationMinutes(), 10), routine.sessionMaxMinutes());
+            // 전체 계획 소요 시간(분) – 최소 10분, 상한은 과도하게 길어지지 않도록 방어적으로 제한.
+            int totalDuration = Math.max(plan.durationMinutes(), 10);
+            totalDuration = Math.min(totalDuration, 480);
+
+            // 한 블록 최대 길이(분): 요청 파라미터가 있으면 우선 사용, 없으면 루틴의 sessionMaxMinutes.
+            int maxBlock = routine.sessionMaxMinutes();
+            if (blockMaxMinutes != null && blockMaxMinutes > 0) {
+                maxBlock = Math.min(maxBlock, blockMaxMinutes);
+            }
+            // 최소 블록 길이 보장
+            maxBlock = Math.max(maxBlock, 10);
+
             Integer breakAfter = plan.breakMinutesAfter();
-            int breakMin = Math.max(0, breakAfter == null ? routine.breakMinutesDefault() : breakAfter);
-            var placed = placeOne(slots, preferredRanges, plan.title(), dur);
-            if (placed != null) {
-                result.add(new PlannerScheduleResponse.PlanItem(plan.title(), placed.getStart(), placed.getEnd(), plan.note()));
-                if (insertRestCards && breakMin >= 5) {
-                    consumeSlot(slots, placed, 0);
-                    var restPlaced = placeOne(slots, preferredRanges, "휴식", breakMin);
-                    if (restPlaced != null) {
-                        result.add(new PlannerScheduleResponse.PlanItem("휴식", restPlaced.getStart(), restPlaced.getEnd(), null));
-                        consumeSlot(slots, restPlaced, 0);
-                    } else {
-                        int endMin = timeToMinutes(placed.getEnd());
-                        var breakRange = new PlannerScheduleResponse.PlanItem("", minutesToTime(endMin), minutesToTime(endMin + breakMin), null);
-                        consumeSlot(slots, breakRange, 0);
-                    }
-                } else {
-                    consumeSlot(slots, placed, breakMin);
+            int defaultBreak = breakMinutesDefault != null && breakMinutesDefault >= 0
+                    ? breakMinutesDefault
+                    : routine.breakMinutesDefault();
+            int breakMin = Math.max(0, breakAfter == null ? defaultBreak : breakAfter);
+
+            int remaining = totalDuration;
+            int segmentIndex = 1;
+            int segmentCount = (int) Math.ceil((double) totalDuration / maxBlock);
+
+            while (remaining > 0 && !slots.isEmpty()) {
+                int chunk = Math.min(remaining, maxBlock);
+                var placed = placeOne(slots, preferredRanges, plan.title(), chunk);
+                if (placed == null) {
+                    break;
                 }
+
+                String title = plan.title();
+                if (segmentCount > 1) {
+                    title = plan.title() + " (" + segmentIndex + "/" + segmentCount + ")";
+                }
+
+                result.add(new PlannerScheduleResponse.PlanItem(title, placed.getStart(), placed.getEnd(), plan.note()));
+                // 휴식 블록은 별도 일정 카드로 생성하지 않고, 다음 일정까지의 최소 휴식 시간만 슬롯에서 비워둔다.
+                consumeSlot(slots, placed, breakMin);
+
+                remaining -= chunk;
+                segmentIndex++;
             }
         }
         return result;

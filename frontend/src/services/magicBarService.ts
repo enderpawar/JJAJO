@@ -205,6 +205,10 @@ export type SubmitMagicBarResult =
 export interface SubmitMagicBarOptions {
   editMode?: boolean
   timeRange?: { start: number; end: number }
+  /** 짜조 플래너: 한 블록 최대 길이(분). 예: 60 → 60분 단위로 쪼개 배치. */
+  blockMaxMinutes?: number
+  /** 짜조 플래너: 기본 휴식 길이(분). plan의 breakMinutesAfter가 없을 때 사용. */
+  breakMinutesDefault?: number
 }
 
 /**
@@ -238,7 +242,7 @@ function filterSlotsByTimeRange(
  */
 export async function requestJjajoPlanner(
   command: string,
-  options?: { timeRange?: { start: number; end: number } }
+  options?: { timeRange?: { start: number; end: number }; blockMaxMinutes?: number; breakMinutesDefault?: number }
 ): Promise<JjajoPlannerResult | { success: false; message: string }> {
   const { apiKey } = useApiKeyStore.getState()
   if (!apiKey?.trim()) {
@@ -280,6 +284,8 @@ export async function requestJjajoPlanner(
         currentTime,
         date: dateStr,
         availableSlots: availableSlots.map((s) => ({ start: s.start, end: s.end })),
+        blockMaxMinutes: options?.blockMaxMinutes,
+        breakMinutesDefault: options?.breakMinutesDefault,
       }),
       credentials: 'include',
     })
@@ -345,6 +351,8 @@ export async function submitMagicBarCommand(
     const plannerText = wrapCommaListForPlanner(trimmed)
     const result = await requestJjajoPlanner(plannerText, {
       timeRange: options.timeRange,
+      blockMaxMinutes: options.blockMaxMinutes,
+      breakMinutesDefault: options.breakMinutesDefault,
     })
     if (result.success) {
       return {

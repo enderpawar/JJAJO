@@ -567,13 +567,30 @@ public class GeminiChatAdapter {
                 - plans: 해야 할 일정만. 쉬는시간·식사시간은 넣지 마. durationMinutes는 분 단위.
                 - breakMinutesAfter: 생략 시 0. 고집중 블록 뒤에는 10~15분 권장.
                 - note: 해당 블록의 구체적 목표(예: "알고리즘 3문제", "PR 1개")를 짧게.
+                - 사용자가 "공부 90, 장보기 20"처럼 "제목 숫자" 형태로 입력하면, 숫자를 그대로 durationMinutes(분)로 사용해.
+                  예: "공부 90, 장보기 20" → plans = [{ "title": "공부", "durationMinutes": 90 }, { "title": "장보기", "durationMinutes": 20 }]
+                - 사용자가 쉼표 없이 한 문장 안에 여러 일을 말할 수도 있어.
+                  예: "알고리즘 1시간 하고 그다음에 백엔드 1시간 할 거야"
+                  → 최소 2개의 plan을 만들어야 해:
+                    [
+                      { "title": "알고리즘", "durationMinutes": 60 },
+                      { "title": "백엔드", "durationMinutes": 60 }
+                    ]
+                  예: "알고리즘 문제 3시간 정도 하고 그다음에 백엔드 작업 3시간 할 거야"
+                  → [
+                      { "title": "알고리즘 문제", "durationMinutes": 180 },
+                      { "title": "백엔드 작업", "durationMinutes": 180 }
+                    ]
+                - 문장 안에서 각 일(공부/과제/알고리즘/백엔드 작업 등)에 붙은 "N시간", "N시간 정도", "N시간 반", "N분" 표현을 찾아서,
+                  해당 일의 durationMinutes를 분 단위 숫자로 계산해. 시간 표현이 여러 개면 그 개수만큼 plan을 만드는 것을 우선적으로 시도해.
+                - 숫자 뒤에 "분", "시간" 등이 붙으면 적절히 분 단위로 변환해.
                 """;
 
             Map<String, Object> requestBody = Map.of(
                 "contents", List.of(
                     Map.of(
                         "parts", List.of(
-                            Map.of("text", systemPrompt + "\n\n" + userPrompt)
+                            Map.of("text", systemPrompt + "\n\n" + userText)
                         )
                     )
                 ),

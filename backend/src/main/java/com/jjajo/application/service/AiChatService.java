@@ -40,6 +40,8 @@ public class AiChatService implements ParseScheduleUseCase, EditScheduleUseCase,
         var slots = request.getAvailableSlots() != null ? request.getAvailableSlots() : List.<PlannerScheduleRequest.TimeSlotDto>of();
         var categoryAndPlans = geminiChatAdapter.detectCategoryAndPlans(request.getUserText(), apiKey);
         int currentTimeMinutes = parseTimeToMinutes(request.getCurrentTime());
+        Integer blockMaxMinutes = request.getBlockMaxMinutes();
+        Integer breakMinutesDefault = request.getBreakMinutesDefault();
         var plansWithDuration = categoryAndPlans.plans().stream()
                 .map(p -> new PlannerPlacementService.PlanWithDuration(
                         p.title(), p.durationMinutes(), p.breakMinutesAfter(), p.note(), p.category()))
@@ -49,7 +51,9 @@ public class AiChatService implements ParseScheduleUseCase, EditScheduleUseCase,
                 plansWithDuration,
                 slots,
                 currentTimeMinutes,
-                true); // 휴식 계획카드 삽입
+                true,
+                blockMaxMinutes,
+                breakMinutesDefault);
         return PlannerScheduleResponse.builder()
                 .plans(placed)
                 .summary(categoryAndPlans.summary())

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { motion } from 'framer-motion'
 import { Plus, Edit2, Trash2, Check, MoreHorizontal, Clock } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useToastStore } from '@/stores/toastStore'
@@ -383,11 +382,8 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
               const barColor = eventColorMap.get(todo.id) ?? getPriorityBarColor(todo.priority ?? 'medium')
               const isLast = index === sortedTodos.length - 1
               return (
-                <motion.div
+                <div
                   key={todo.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25, delay: Math.min(index * 0.04, 0.2), ease: [0.32, 0.72, 0, 1] }}
                   ref={isEditing ? editingCardRef : undefined}
                   className="flex items-stretch gap-3 py-2 first:pt-0"
                 >
@@ -531,7 +527,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
                       </button>
                     </div>
                   )}
-                </motion.div>
+                </div>
               )
             })}
           </div>

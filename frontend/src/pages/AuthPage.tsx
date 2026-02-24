@@ -2,21 +2,12 @@ import { LogIn } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getApiBase } from '@/utils/api'
-import { debugLog } from '@/utils/debugLog'
 import { useUserStore } from '@/stores/userStore'
 
 export default function AuthPage() {
   const navigate = useNavigate()
   const [checking, setChecking] = useState(true)
   const setCurrentUser = useUserStore((s) => s.setCurrentUser)
-
-  // 앱 진입 시 로그인 상태 확인 (백엔드 오리진으로 요청해 쿠키 전송)
-  useEffect(() => {
-    // #region agent log
-    const base = getApiBase()
-    debugLog('AuthPage.tsx:mount', 'AuthPage mounted, getApiBase()', { base, baseLength: base?.length ?? 0 }, 'H1')
-    // #endregion
-  }, [])
 
   useEffect(() => {
     const checkLogin = async () => {
@@ -114,9 +105,6 @@ export default function AuthPage() {
           <a
             href={googleLoginUrl}
             className="btn-primary w-full flex items-center justify-center gap-2 no-underline text-inherit min-h-[48px]"
-            onClick={() => {
-              debugLog('AuthPage.tsx:googleLoginLink', 'Google login link tapped', { url: googleLoginUrl }, 'H2')
-            }}
           >
             <LogIn className="w-5 h-5 shrink-0" />
             <span>Google 계정으로 시작하기</span>

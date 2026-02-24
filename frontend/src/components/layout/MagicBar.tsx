@@ -13,7 +13,8 @@ export interface TemplateParams {
 }
 
 const PLACEHOLDER = '추가할 일정을 문장으로 입력해보세요. 예: 내일 오후 3시 회의, 다음 주 월요일 2시간 스터디'
-const JJAJO_PLACEHOLDER = "할 일을 쉼표로 구분해서 넣어주세요. 예: 과제, 오답노트, 이론 복습 → 짜조가 시간 배치해줄게요"
+const JJAJO_PLACEHOLDER =
+  '오늘 할 일과 시간을 자연스럽게 적어보세요. 예: 알고리즘 문제 3시간 하고 그다음에 백엔드 작업 3시간 할 거야'
 
 export interface MagicBarProps {
   /** 모바일 슬라이드업 시트 등에서 열릴 때 입력창 포커스 */
@@ -35,8 +36,12 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
   const [jjajoParams, setJjajoParams] = useState<TemplateParams>({ start: 13, end: 23, blockMax: 90, breakMin: 15 })
   const [lastPlannerCommand, setLastPlannerCommand] = useState<string | null>(null)
   const [lastPlannerSummary, setLastPlannerSummary] = useState<string | null>(null)
-  /** 재생성 시 동일한 timeRange 유지 */
-  const [lastPlannerOptions, setLastPlannerOptions] = useState<{ timeRange?: { start: number; end: number } } | null>(null)
+  /** 재생성 시 동일한 timeRange 및 블록/휴식 설정 유지 */
+  const [lastPlannerOptions, setLastPlannerOptions] = useState<{
+    timeRange?: { start: number; end: number }
+    blockMaxMinutes?: number
+    breakMinutesDefault?: number
+  } | null>(null)
   const [showCelebration, setShowCelebration] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -63,12 +68,14 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
     setLoading(true)
     setMessage(null)
 
-    const options: SubmitMagicBarOptions = {
-      editMode,
-    }
-    if (editMode) {
-      options.timeRange = { start: jjajoParams.start, end: jjajoParams.end }
-    }
+    const options: SubmitMagicBarOptions = editMode
+      ? {
+          editMode: true,
+          timeRange: { start: jjajoParams.start, end: jjajoParams.end },
+          blockMaxMinutes: jjajoParams.blockMax,
+          breakMinutesDefault: jjajoParams.breakMin,
+        }
+      : { editMode }
     const result = await submitMagicBarCommand(trimmed, options)
 
     setLoading(false)
@@ -81,7 +88,13 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
       if ('isGhost' in result && result.isGhost && 'plansCount' in result) {
         setLastPlannerCommand(trimmed)
         setLastPlannerOptions(
-          editMode && options.timeRange ? { timeRange: options.timeRange } : null
+          editMode && options.timeRange
+            ? {
+                timeRange: options.timeRange,
+                blockMaxMinutes: options.blockMaxMinutes,
+                breakMinutesDefault: options.breakMinutesDefault,
+              }
+            : null
         )
         setLastPlannerSummary(
           result && 'summary' in result && typeof result.summary === 'string' ? result.summary : null

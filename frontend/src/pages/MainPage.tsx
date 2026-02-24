@@ -81,9 +81,6 @@ export default function MainPage() {
   const calendarHorizontalSwipeRef = useRef(false)
   /** transitionend 미발생 시 슬라이드 완료 처리용 폴백 타이머 */
   const calendarSlideFallbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // #region agent log
-  const calendarSlideLogRef = useRef({ lastOffset: -999, lastMonthTs: 0 })
-  // #endregion
 
   /** 확인 모달(하루 초기화/전체 비우기/월간 비우기)이 열려 있을 때 캘린더 선택 하이라이트 제거 */
   useEffect(() => {
@@ -326,17 +323,9 @@ export default function MainPage() {
       calendarSlideFallbackTimeoutRef.current = null
     }
     if (target === 'prev') {
-      // #region agent log
-      const nextMonth = getPrevMonth(fromMonth)
-      fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d43fed'},body:JSON.stringify({sessionId:'d43fed',location:'MainPage.tsx:transitionEnd(prev)',message:'slideTransitionEnd prev',data:{target,fromY:fromMonth.getFullYear(),fromM:fromMonth.getMonth(),willSetY:nextMonth.getFullYear(),willSetM:nextMonth.getMonth()},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       setCurrentMonth(getPrevMonth(fromMonth))
       hapticLight()
     } else if (target === 'next') {
-      // #region agent log
-      const nextMonth = getNextMonth(fromMonth)
-      fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d43fed'},body:JSON.stringify({sessionId:'d43fed',location:'MainPage.tsx:transitionEnd(next)',message:'slideTransitionEnd next',data:{target,fromY:fromMonth.getFullYear(),fromM:fromMonth.getMonth(),willSetY:nextMonth.getFullYear(),willSetM:nextMonth.getMonth()},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       setCurrentMonth(getNextMonth(fromMonth))
       hapticLight()
     }
@@ -391,10 +380,6 @@ export default function MainPage() {
           calendarSlideFallbackTimeoutRef.current = null
           if (calendarSlideTargetRef.current !== 'prev') return
           const from = calendarSlideFromMonthRef.current
-          // #region agent log
-          const nextMonth = getPrevMonth(from)
-          fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d43fed'},body:JSON.stringify({sessionId:'d43fed',location:'MainPage.tsx:fallback(prev)',message:'fallbackComplete prev',data:{fromY:from.getFullYear(),fromM:from.getMonth(),willSetY:nextMonth.getFullYear(),willSetM:nextMonth.getMonth()},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
-          // #endregion
           setCurrentMonth(getPrevMonth(from))
           hapticLight()
           calendarSlideTargetRef.current = null
@@ -410,10 +395,6 @@ export default function MainPage() {
           calendarSlideFallbackTimeoutRef.current = null
           if (calendarSlideTargetRef.current !== 'next') return
           const from = calendarSlideFromMonthRef.current
-          // #region agent log
-          const nextMonth = getNextMonth(from)
-          fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d43fed'},body:JSON.stringify({sessionId:'d43fed',location:'MainPage.tsx:fallback(next)',message:'fallbackComplete next',data:{fromY:from.getFullYear(),fromM:from.getMonth(),willSetY:nextMonth.getFullYear(),willSetM:nextMonth.getMonth()},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
-          // #endregion
           setCurrentMonth(getNextMonth(from))
           hapticLight()
           calendarSlideTargetRef.current = null
@@ -509,12 +490,6 @@ export default function MainPage() {
                       {(() => {
                         const base = toDate(currentMonth)
                         const panels = [getPrevMonth(base), base, getNextMonth(base)]
-                        // #region agent log
-                        if (isMobile && (calendarSlideLogRef.current.lastOffset !== calendarDragOffsetPx || calendarSlideLogRef.current.lastMonthTs !== base.getTime())) {
-                          calendarSlideLogRef.current = { lastOffset: calendarDragOffsetPx, lastMonthTs: base.getTime() }
-                          fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d43fed'},body:JSON.stringify({sessionId:'d43fed',location:'MainPage.tsx:renderPanels',message:'renderPanels',data:{offset:calendarDragOffsetPx,currY:base.getFullYear(),currM:base.getMonth(),panels:panels.map(p=>p.getFullYear()+'-'+(p.getMonth()+1))},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
-                        }
-                        // #endregion
                         return panels.map((month, idx) => (
                         <div
                           key={month.getTime()}
