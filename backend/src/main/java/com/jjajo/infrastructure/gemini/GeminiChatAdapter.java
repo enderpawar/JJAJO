@@ -545,24 +545,17 @@ public class GeminiChatAdapter {
 
     private static final ObjectMapper PLANNER_JSON = new ObjectMapper();
 
-    private static final List<String> PLANNER_CATEGORIES = List.of("study", "workout", "work", "rest", "default");
+    private static final List<String> PLANNER_CATEGORIES = List.of("study", "workout", "work", "rest", "default", "mixed");
 
     /**
-     * 짜조 플래너: 사용자 입력(+ 템플릿 카테고리 힌트)에서 카테고리·일정·요약 추출.
-     * 카테고리별 제약(블록 길이, 휴식)을 반영한 균형 잡힌 계획 생성.
+     * 짜조 플래너: 사용자 입력에서 카테고리·일정·요약 추출.
      */
     public CategoryAndPlans detectCategoryAndPlans(String userText, String apiKey) {
-        return detectCategoryAndPlans(userText, apiKey, null);
-    }
-
-    public CategoryAndPlans detectCategoryAndPlans(String userText, String apiKey, String templateCategoryHint) {
         try {
-            log.debug("짜조 카테고리·일정 추출: userText={}, hint={}", userText, templateCategoryHint);
+            log.debug("짜조 카테고리·일정 추출: userText={}", userText);
 
-            String categoryGuidance = buildCategoryGuidance(templateCategoryHint);
             String systemPrompt = """
                 너는 플래너 비서 '짜조'야. 사용자 입력을 분석해서 아래 JSON만 출력해. 다른 설명 없이 JSON 객체 하나만 출력해.
-                """ + categoryGuidance + """
                 {
                   "category": "study|workout|work|rest|default",
                   "summary": "오늘 반드시 할 핵심 2~3가지를 한 줄로 요약한 문장 (선택)",
@@ -575,8 +568,6 @@ public class GeminiChatAdapter {
                 - breakMinutesAfter: 생략 시 0. 고집중 블록 뒤에는 10~15분 권장.
                 - note: 해당 블록의 구체적 목표(예: "알고리즘 3문제", "PR 1개")를 짧게.
                 """;
-
-            String userPrompt = "사용자 요청: " + (userText != null ? userText : "");
 
             Map<String, Object> requestBody = Map.of(
                 "contents", List.of(
@@ -650,8 +641,14 @@ public class GeminiChatAdapter {
                         String n = node.get("note").asText().trim();
                         if (!n.isEmpty()) note = n;
                     }
+                    String planCategory = null;
+                    if (node.has("category") && !node.get("category").isNull()) {
+                        String c = node.get("category").asText().trim().toLowerCase();
+                        if (PLANNER_CATEGORIES.contains(c) && !"mixed".equals(c)) planCategory = c;
+                        if ("coding".equals(c)) planCategory = "work";
+                    }
                     if (title != null && !title.isEmpty() && dur > 0) {
-                        plans.add(new CategoryAndPlans.PlanWithDuration(title, Math.min(dur, 240), breakAfter, note));
+                        plans.add(new CategoryAndPlans.PlanWithDuration(title, Math.min(dur, 240), breakAfter, note, planCategory));
                     }
                 }
             }
@@ -663,32 +660,16 @@ public class GeminiChatAdapter {
         }
     }
 
-    private static String buildCategoryGuidance(String hint) {
-        if (hint == null || hint.isBlank()) return "";
-        return switch (hint.toLowerCase()) {
-            case "study" -> """
-                [공부 모드] 고집중 블록은 90분 이내로 나누고, 블록 뒤 휴식 10~15분을 breakMinutesAfter로 넣어줘. 밤 시간대에는 난이도 낮은 작업을 배치해줘.
-                """;
-            case "workout" -> """
-                [운동 모드] 고강도 세트는 40분 이내, 세트 사이 휴식 2~3분 반영. 워밍업·스트레칭 포함해 블록을 나누고 breakMinutesAfter로 휴식 분을 넣어줘.
-                """;
-            case "work", "coding" -> """
-                [업무/코딩 모드] 딥워크 블록은 90분 이내, 블록 사이 10~15분 휴식(breakMinutesAfter). note에 PR 단위·구체 목표를 짧게 적어줘.
-                """;
-            case "rest" -> """
-                [휴식 모드] 30분 단위로 가벼운 활동을 나누고, 수면 전 자극 줄이기. breakMinutesAfter는 0으로 두고 note에 목적(휴식/정리 등)을 적어줘.
-                """;
-            default -> "";
-        };
-    }
-
     public record CategoryAndPlans(String category, List<PlanWithDuration> plans, String summary) {
         public CategoryAndPlans(String category, List<PlanWithDuration> plans) {
             this(category, plans, null);
         }
-        public record PlanWithDuration(String title, int durationMinutes, Integer breakMinutesAfter, String note) {
+        public record PlanWithDuration(String title, int durationMinutes, Integer breakMinutesAfter, String note, String category) {
             public PlanWithDuration(String title, int durationMinutes) {
-                this(title, durationMinutes, null, null);
+                this(title, durationMinutes, null, null, null);
+            }
+            public PlanWithDuration(String title, int durationMinutes, Integer breakMinutesAfter, String note) {
+                this(title, durationMinutes, breakMinutesAfter, note, null);
             }
         }
     }

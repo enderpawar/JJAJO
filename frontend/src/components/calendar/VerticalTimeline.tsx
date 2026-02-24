@@ -525,11 +525,11 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
       : 0
     const isEditingThisTask = editingTodo?.id === task.id
 
-    /** 터치/호버 시 "움직일 수 있음" 피드백: 10% 확대 + 회색톤 테두리 글로우 (편집 중이 아닐 때만) */
+    /** 클릭/탭 시 "움직일 수 있음" 피드백: 살짝 확대(강조) + 회색톤 테두리 글로우 (편집 중이 아닐 때만) */
     const dragReadyGlow = '0 0 28px rgba(140, 140, 150, 0.5), 0 0 14px rgba(180, 180, 190, 0.45)'
     const dragReadyProps = isEditingThisTask
       ? undefined
-      : { scale: 1.1, boxShadow: dragReadyGlow }
+      : { scale: 1.02, boxShadow: dragReadyGlow }
 
     const isJustCreated = task.id === lastCreatedTodoId
     const isCompleted = task.status === 'completed'
@@ -556,7 +556,6 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
           opacity: styleOpacity,
           transition: 'none',
         }}
-        whileHover={dragReadyProps}
         whileTap={dragReadyProps}
         drag={isEditingThisTask ? false : 'y'}
         dragElastic={0}
@@ -564,7 +563,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         whileDrag={
           isEditingThisTask
             ? undefined
-            : { scale: 1.1, zIndex: 100, cursor: 'grabbing', boxShadow: dragReadyGlow, transition: { duration: 0.15 } }
+            : { scale: 1.03, zIndex: 100, cursor: 'grabbing', boxShadow: dragReadyGlow, transition: { duration: 0.15 } }
         }
         onPointerDown={(e) => {
           // #region agent log

@@ -20,9 +20,6 @@ public class PlannerScheduleRequest {
     @NotBlank(message = "목표 또는 요청을 입력해주세요")
     private String userText;
 
-    /** 고도화: 템플릿 선택 시 카테고리 힌트(study|workout|work|rest). 미설정 시 입력에서 추론 */
-    private String templateCategory;
-
     /** 현재 시각 HH:mm (가용 슬롯은 이 시간 이후만 사용) */
     private String currentTime;
 

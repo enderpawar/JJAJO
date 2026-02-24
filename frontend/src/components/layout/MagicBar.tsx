@@ -1,11 +1,9 @@
 import { useState, useCallback, useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
-import { Wand2, Loader2, Check, Sparkles, CheckCircle2, RefreshCw, X, BookOpen, Code, Dumbbell, Coffee } from 'lucide-react'
+import { Wand2, Loader2, Check, Sparkles, CheckCircle2, RefreshCw, X } from 'lucide-react'
 import { submitMagicBarCommand, requestJjajoPlanner, type SubmitMagicBarOptions } from '@/services/magicBarService'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { createSchedule, deleteSchedule } from '@/services/scheduleService'
 import { hapticLight, hapticSuccess, hapticWarn } from '@/utils/haptic'
-
-type JjajoTemplateCategory = 'study' | 'workout' | 'coding' | 'rest'
 
 export interface TemplateParams {
   start: number
@@ -14,64 +12,8 @@ export interface TemplateParams {
   breakMin: number
 }
 
-const DEFAULT_TEMPLATE_PARAMS: Record<JjajoTemplateCategory, TemplateParams> = {
-  study: { start: 13, end: 23, blockMax: 90, breakMin: 15 },
-  workout: { start: 18, end: 22, blockMax: 60, breakMin: 10 },
-  coding: { start: 14, end: 22, blockMax: 90, breakMin: 10 },
-  rest: { start: 19, end: 23, blockMax: 60, breakMin: 0 },
-}
-
-const JJAJO_TEMPLATE_STRINGS: Record<JjajoTemplateCategory, string> = {
-  study: [
-    '오늘 {{start}}~{{end}}시 공부 플랜 짜줘. ',
-    '상황: 시험/과제가 있고, 오후에 집중이 잘 되고 밤에는 집중이 떨어져. ',
-    '해야 할 일: (사용자가 적은 목표 또는) ① 고난이도 과제 ② 이론 복습 ③ 기출/연습. ',
-    '제약: 고집중 블록은 최대 {{blockMax}}분, 각 블록 뒤 {{breakMin}}분 휴식. 밤 21시 이후에는 난이도 낮은 작업만 배치. ',
-    '출력: 30분 단위로 시간대-활동-세부 목표-예상 피로도(1~5) 형식으로 정리하고, summary에 오늘 최우선 할 일 2~3가지를 한 줄로 요약해줘.'
-  ].join(''),
-  workout: [
-    '오늘 {{start}}~{{end}}시 운동 플랜 짜줘. ',
-    '상황: 주 3회 웨이트 초보자, 하체/유산소 위주로 하고 싶어. ',
-    '목표: 부상 없이 체력 기르기, 과훈련 방지. ',
-    '구성 희망: 워밍업 → 메인 운동(스쿼트·런지 등) → 코어 → 가벼운 유산소 → 스트레칭. ',
-    '제약: 고강도 세트는 {{blockMax}}분 이내, 세트 사이 휴식 {{breakMin}}분, 전체 90분 이내. ',
-    '출력: 10~20분 단위 블록으로 시간대-운동 내용-세트/횟수-난이도(1~5) 형식으로 짜주고, summary에 오늘 운동 목표 한 줄 요약해줘.'
-  ].join(''),
-  coding: [
-    '오늘 {{start}}~{{end}}시 사이드 프로젝트/업무 코딩 플랜 짜줘. ',
-    '상황: 리팩토링·버그 수정·신규 개발이 섞여 있고, 깊이 몰입하는 시간은 오후가 좋아. ',
-    '해야 할 일: (사용자가 적은 목표 또는) ① 핵심 리팩토링 ② 버그 수정 ③ 테스트/문서. ',
-    '제약: 딥워크 블록은 {{blockMax}}분 이내, 블록 사이 {{breakMin}}분 휴식. 가벼운 작업은 저녁에 배치. ',
-    '출력: 60분 이하 블록으로 시간대-작업-구체 목표(PR 단위)-난이도/피로도(1~5) 적고, summary에 오늘 반드시 끝낼 것 2~3가지 한 줄로 요약해줘.'
-  ].join(''),
-  rest: [
-    '오늘 {{start}}~{{end}}시 회복/휴식 플랜 짜줘. ',
-    '상황: 낮에 과하게 일해서 피곤하고, 내일 아침 중요한 일이 있어. ',
-    '목표: 과로를 더 키우지 않고, 수면의 질을 올리기. ',
-    '희망 활동: 가벼운 산책, 스트레칭, 독서, 일기/리뷰, 내일 준비. ',
-    '제약: 카페인·자극 콘텐츠 21시 이후 금지, 디지털 기기는 취침 1시간 전까지만. ',
-    '출력: 30분 단위로 시간대-활동-목적(휴식/정리/준비)-수면 영향(+) 적고, summary에 오늘 회복 목표 한 줄 요약해줘.'
-  ].join(''),
-}
-
-function fillTemplate(category: JjajoTemplateCategory, params: TemplateParams): string {
-  const raw = JJAJO_TEMPLATE_STRINGS[category]
-  return raw
-    .replace(/\{\{start\}\}/g, String(params.start))
-    .replace(/\{\{end\}\}/g, String(params.end))
-    .replace(/\{\{blockMax\}\}/g, String(params.blockMax))
-    .replace(/\{\{breakMin\}\}/g, String(params.breakMin))
-}
-
 const PLACEHOLDER = '추가할 일정을 문장으로 입력해보세요. 예: 내일 오후 3시 회의, 다음 주 월요일 2시간 스터디'
 const JJAJO_PLACEHOLDER = "할 일을 쉼표로 구분해서 넣어주세요. 예: 과제, 오답노트, 이론 복습 → 짜조가 시간 배치해줄게요"
-
-const TEMPLATE_OPTIONS: { key: JjajoTemplateCategory; label: string; icon: typeof BookOpen; color: string }[] = [
-  { key: 'study', label: '공부 템플릿', icon: BookOpen, color: 'blue' },
-  { key: 'coding', label: '코딩/업무 템플릿', icon: Code, color: 'indigo' },
-  { key: 'workout', label: '운동 템플릿', icon: Dumbbell, color: 'emerald' },
-  { key: 'rest', label: '휴식 템플릿', icon: Coffee, color: 'teal' },
-]
 
 export interface MagicBarProps {
   /** 모바일 슬라이드업 시트 등에서 열릴 때 입력창 포커스 */
@@ -89,12 +31,12 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [editMode, setEditMode] = useState(false)
-  /** 짜조 모드에서 템플릿 없이 쓸 때 사용. 스크린샷과 동일한 시간대/블록/휴식 기본값 */
+  /** 짜조 모드에서 사용. 시간대/블록/휴식 기본값 */
   const [jjajoParams, setJjajoParams] = useState<TemplateParams>({ start: 13, end: 23, blockMax: 90, breakMin: 15 })
-  const [selectedTemplateCategory, setSelectedTemplateCategory] = useState<JjajoTemplateCategory | null>(null)
-  const [templateParams, setTemplateParams] = useState<TemplateParams | null>(null)
   const [lastPlannerCommand, setLastPlannerCommand] = useState<string | null>(null)
   const [lastPlannerSummary, setLastPlannerSummary] = useState<string | null>(null)
+  /** 재생성 시 동일한 timeRange 유지 */
+  const [lastPlannerOptions, setLastPlannerOptions] = useState<{ timeRange?: { start: number; end: number } } | null>(null)
   const [showCelebration, setShowCelebration] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -123,11 +65,9 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
 
     const options: SubmitMagicBarOptions = {
       editMode,
-      templateCategory: selectedTemplateCategory ?? undefined,
     }
     if (editMode) {
-      const params = selectedTemplateCategory && templateParams ? templateParams : jjajoParams
-      options.timeRange = { start: params.start, end: params.end }
+      options.timeRange = { start: jjajoParams.start, end: jjajoParams.end }
     }
     const result = await submitMagicBarCommand(trimmed, options)
 
@@ -140,6 +80,9 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
       setTimeout(() => onSuccess?.(), 400)
       if ('isGhost' in result && result.isGhost && 'plansCount' in result) {
         setLastPlannerCommand(trimmed)
+        setLastPlannerOptions(
+          editMode && options.timeRange ? { timeRange: options.timeRange } : null
+        )
         setLastPlannerSummary(
           result && 'summary' in result && typeof result.summary === 'string' ? result.summary : null
         )
@@ -151,7 +94,7 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
     } else {
       setMessage({ type: 'error', text: result.message })
     }
-  }, [input, loading, editMode, selectedTemplateCategory, templateParams, jjajoParams])
+  }, [input, loading, editMode, jjajoParams])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
@@ -166,22 +109,6 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
     setEditMode((prev) => !prev)
     requestAnimationFrame(() => inputRef.current?.focus())
   }, [])
-
-  const handleApplyTemplate = useCallback((category: JjajoTemplateCategory) => {
-    setEditMode(true)
-    setSelectedTemplateCategory(category)
-    const params = DEFAULT_TEMPLATE_PARAMS[category]
-    setTemplateParams(params)
-    setInput(fillTemplate(category, params))
-    requestAnimationFrame(() => inputRef.current?.focus())
-  }, [])
-
-  const applyTemplateParams = useCallback(
-    (category: JjajoTemplateCategory, params: TemplateParams) => {
-      setInput(fillTemplate(category, params))
-    },
-    []
-  )
 
   const handleConfirmGhost = useCallback(async () => {
     const { applied, removed } = applyGhostPlansReplaceDate()
@@ -216,6 +143,7 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
       }
     }
     setLastPlannerCommand(null)
+    setLastPlannerOptions(null)
     setShowCelebration(true)
     hapticSuccess()
     setTimeout(() => setShowCelebration(false), 600)
@@ -228,6 +156,7 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
     clearGhostPlans()
     setLastPlannerCommand(null)
     setLastPlannerSummary(null)
+    setLastPlannerOptions(null)
   }, [clearGhostPlans])
 
   const handleRegenerateGhost = useCallback(async () => {
@@ -236,7 +165,7 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
     setLoading(true)
     setMessage(null)
     clearGhostPlans()
-    const result = await requestJjajoPlanner(lastPlannerCommand)
+    const result = await requestJjajoPlanner(lastPlannerCommand, lastPlannerOptions ?? undefined)
     setLoading(false)
     if (result.success) {
       hapticSuccess()
@@ -245,7 +174,7 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
     } else {
       setMessage({ type: 'error', text: result.message })
     }
-  }, [lastPlannerCommand, clearGhostPlans])
+  }, [lastPlannerCommand, lastPlannerOptions, clearGhostPlans])
 
   return (
     <div ref={containerRef} className="w-full max-w-2xl mx-auto px-4 py-3 relative">
@@ -326,104 +255,70 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
 
       {editMode && (
         <div className="mt-2 space-y-1.5">
-          {/* 스크린샷과 동일: 시간대 ~ 시, 블록 분, 휴식 분 — 템플릿 없이도 항상 표시 */}
-          {(() => {
-            const params = selectedTemplateCategory && templateParams ? templateParams : jjajoParams
-            const setParams = selectedTemplateCategory
-              ? (next: TemplateParams) => {
-                  setTemplateParams(next)
-                  if (selectedTemplateCategory) applyTemplateParams(selectedTemplateCategory, next)
-                }
-              : setJjajoParams
-            return (
-              <div className="flex flex-wrap items-center gap-2 text-[11px] text-theme-muted">
-                <span>시간대</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={23}
-                  value={params.start}
-                  onChange={(e) => {
-                    const v = Math.max(0, Math.min(23, Number(e.target.value) || 0))
-                    setParams({ ...params, start: v })
-                  }}
-                  className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
-                  aria-label="시작 시"
-                />
-                <span>~</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={24}
-                  value={params.end}
-                  onChange={(e) => {
-                    const v = Math.max(0, Math.min(24, Number(e.target.value) || 0))
-                    setParams({ ...params, end: v })
-                  }}
-                  className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
-                  aria-label="끝 시"
-                />
-                <span>시</span>
-                <span className="ml-1">블록</span>
-                <input
-                  type="number"
-                  min={15}
-                  max={180}
-                  step={15}
-                  value={params.blockMax}
-                  onChange={(e) => {
-                    const v = Math.max(15, Math.min(180, Number(e.target.value) || 60))
-                    setParams({ ...params, blockMax: v })
-                  }}
-                  className="w-12 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
-                  aria-label="블록 분"
-                />
-                <span>분</span>
-                <span className="ml-1">휴식</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={30}
-                  step={5}
-                  value={params.breakMin}
-                  onChange={(e) => {
-                    const v = Math.max(0, Math.min(30, Number(e.target.value) || 0))
-                    setParams({ ...params, breakMin: v })
-                  }}
-                  className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
-                  aria-label="휴식 분"
-                />
-                <span>분</span>
-              </div>
-            )
-          })()}
-          <div className="flex flex-wrap items-center gap-2 text-[11px]">
-            <span className="text-theme-muted">짜조 템플릿:</span>
-            {TEMPLATE_OPTIONS.map((opt) => {
-              const Icon = opt.icon
-              const isSelected = selectedTemplateCategory === opt.key
-              const colorMap = {
-                blue: { bg: 'bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', ring: 'ring-blue-500/40' },
-                indigo: { bg: 'bg-indigo-500/10', text: 'text-indigo-600 dark:text-indigo-400', ring: 'ring-indigo-500/40' },
-                emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', ring: 'ring-emerald-500/40' },
-                teal: { bg: 'bg-teal-500/10', text: 'text-teal-600 dark:text-teal-400', ring: 'ring-teal-500/40' },
-              } as const
-              const c = colorMap[opt.color as keyof typeof colorMap] ?? colorMap.blue
-              return (
-                <button
-                  key={opt.key}
-                  type="button"
-                  onClick={() => handleApplyTemplate(opt.key)}
-                  className={`group inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-tool neu-float-sm transition-all duration-200
-                    hover:scale-[1.02] active:scale-[0.98]
-                    ${isSelected ? `${c.bg} ${c.text} ring-1 ${c.ring}` : 'text-theme-muted hover:shadow-neu-inset-hover hover:text-theme'}
-                  `}
-                >
-                  <Icon className={`w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 group-hover:rotate-6 ${isSelected ? c.text : ''}`} />
-                  {opt.label}
-                </button>
-              )
-            })}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-theme-muted">
+            <span className="inline-flex items-center gap-1 shrink-0">
+              <span>시간대</span>
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={jjajoParams.start}
+                onChange={(e) => {
+                  const v = Math.max(0, Math.min(23, Number(e.target.value) || 0))
+                  setJjajoParams({ ...jjajoParams, start: v })
+                }}
+                className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
+                aria-label="시작 시"
+              />
+              <span>~</span>
+              <input
+                type="number"
+                min={0}
+                max={24}
+                value={jjajoParams.end}
+                onChange={(e) => {
+                  const v = Math.max(0, Math.min(24, Number(e.target.value) || 0))
+                  setJjajoParams({ ...jjajoParams, end: v })
+                }}
+                className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
+                aria-label="끝 시"
+              />
+              <span>시</span>
+            </span>
+            <span className="inline-flex items-center gap-1 shrink-0">
+              <span>블록</span>
+              <input
+                type="number"
+                min={15}
+                max={180}
+                step={15}
+                value={jjajoParams.blockMax}
+                onChange={(e) => {
+                  const v = Math.max(15, Math.min(180, Number(e.target.value) || 60))
+                  setJjajoParams({ ...jjajoParams, blockMax: v })
+                }}
+                className="w-12 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
+                aria-label="블록 분"
+              />
+              <span>분</span>
+            </span>
+            <span className="inline-flex items-center gap-1 shrink-0">
+              <span>휴식</span>
+              <input
+                type="number"
+                min={0}
+                max={30}
+                step={5}
+                value={jjajoParams.breakMin}
+                onChange={(e) => {
+                  const v = Math.max(0, Math.min(30, Number(e.target.value) || 0))
+                  setJjajoParams({ ...jjajoParams, breakMin: v })
+                }}
+                className="w-10 rounded px-1 py-0.5 text-center bg-theme-bg border border-theme-border text-theme"
+                aria-label="휴식 분"
+              />
+              <span>분</span>
+            </span>
           </div>
         </div>
       )}

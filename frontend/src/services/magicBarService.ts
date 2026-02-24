@@ -204,7 +204,6 @@ export type SubmitMagicBarResult =
 
 export interface SubmitMagicBarOptions {
   editMode?: boolean
-  templateCategory?: string
   timeRange?: { start: number; end: number }
 }
 
@@ -235,12 +234,11 @@ function filterSlotsByTimeRange(
 
 /**
  * 짜조 플래너 API 호출: 가용 시간대 내에서 일정 제안 → ghostPlans로 설정.
- * templateCategory 전달 시 백엔드에서 카테고리별 제약(블록/휴식) 반영.
  * timeRange 전달 시 해당 시~시 구간 안의 슬롯만 사용.
  */
 export async function requestJjajoPlanner(
   command: string,
-  options?: { templateCategory?: string; timeRange?: { start: number; end: number } }
+  options?: { timeRange?: { start: number; end: number } }
 ): Promise<JjajoPlannerResult | { success: false; message: string }> {
   const { apiKey } = useApiKeyStore.getState()
   if (!apiKey?.trim()) {
@@ -279,7 +277,6 @@ export async function requestJjajoPlanner(
       },
       body: JSON.stringify({
         userText: command.trim(),
-        ...(options?.templateCategory && { templateCategory: options.templateCategory }),
         currentTime,
         date: dateStr,
         availableSlots: availableSlots.map((s) => ({ start: s.start, end: s.end })),
@@ -347,7 +344,6 @@ export async function submitMagicBarCommand(
   if (options?.editMode) {
     const plannerText = wrapCommaListForPlanner(trimmed)
     const result = await requestJjajoPlanner(plannerText, {
-      templateCategory: options.templateCategory,
       timeRange: options.timeRange,
     })
     if (result.success) {

@@ -102,7 +102,7 @@ export default function AuthPage() {
           </p>
         </div>
 
-        <div className="card space-y-4 w-full shadow-[var(--shadow-float)]">
+        <div className="card card-flat space-y-4 w-full">
           {/* 로그인 상태 확인 중 표시 */}
           {checking && (
             <p className="text-xs text-theme-muted mb-2">
@@ -123,7 +123,7 @@ export default function AuthPage() {
           </a>
 
           {/* 안내 문구 */}
-          <div className="mt-2 p-4 neu-inset rounded-neu text-sm text-theme-muted">
+          <div className="mt-2 p-4 rounded-neu text-sm text-theme-muted bg-theme-card/60 border border-theme">
             <p className="mb-1 text-theme">
               로그인 후 오른쪽 상단 <strong className="text-theme">설정</strong> 버튼에서 Gemini API 키를 설정하면
               AI 플래너 기능이 활성화됩니다.

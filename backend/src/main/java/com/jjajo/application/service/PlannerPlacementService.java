@@ -21,7 +21,7 @@ public class PlannerPlacementService {
     /**
      * Gemini가 반환한 plans(제목+소요분+휴식+메모)를 availableSlots에 배치.
      * preferredSlots 우선 배치. insertRestCards가 true일 때만 breakMinutesAfter에 따라 휴식 일정 자동 삽입.
-     * 템플릿으로 일정 생성 시에는 휴식 계획카드를 넣지 않음(insertRestCards=false).
+     * plan에 category가 있으면 해당 카테고리의 루틴 사용(균형 모드); 없으면 전체 category 사용.
      */
     public List<PlannerScheduleResponse.PlanItem> placePlans(
             String category,
@@ -33,13 +33,14 @@ public class PlannerPlacementService {
             return List.of();
         }
 
-        var routine = RoutineTemplates.get(category);
-        var preferredRanges = parsePreferredRanges(routine.preferredSlots());
         var slots = toSlotList(availableSlots, currentTimeMinutes);
         if (slots.isEmpty()) return List.of();
 
         List<PlannerScheduleResponse.PlanItem> result = new ArrayList<>();
         for (PlanWithDuration plan : plans) {
+            String effectiveCategory = (plan.category() != null && !plan.category().isBlank()) ? plan.category() : category;
+            var routine = RoutineTemplates.get(effectiveCategory);
+            var preferredRanges = parsePreferredRanges(routine.preferredSlots());
             int dur = Math.min(Math.max(plan.durationMinutes(), 10), routine.sessionMaxMinutes());
             Integer breakAfter = plan.breakMinutesAfter();
             int breakMin = Math.max(0, breakAfter == null ? routine.breakMinutesDefault() : breakAfter);
@@ -175,10 +176,13 @@ public class PlannerPlacementService {
         }
     }
 
-    /** 고도화: 블록 뒤 휴식(분). null이면 템플릿 기본값 사용. 세부 메모(선택) */
-    public record PlanWithDuration(String title, int durationMinutes, Integer breakMinutesAfter, String note) {
+    /** 고도화: 블록 뒤 휴식(분). null이면 템플릿 기본값 사용. category가 있으면 균형 모드에서 해당 카테고리 루틴 사용. */
+    public record PlanWithDuration(String title, int durationMinutes, Integer breakMinutesAfter, String note, String category) {
         public PlanWithDuration(String title, int durationMinutes) {
-            this(title, durationMinutes, null, null);
+            this(title, durationMinutes, null, null, null);
+        }
+        public PlanWithDuration(String title, int durationMinutes, Integer breakMinutesAfter, String note) {
+            this(title, durationMinutes, breakMinutesAfter, note, null);
         }
     }
 }
