@@ -5,6 +5,7 @@ import { useToastStore } from '@/stores/toastStore'
 import { createSchedule } from '@/services/scheduleService'
 import { formatDate, formatDateWithDay } from '@/utils/dateUtils'
 import { cn } from '@/utils/cn'
+import { hapticSuccess } from '@/utils/haptic'
 import type { Todo, TodoPriority, TodoStatus } from '@/types/calendar'
 
 interface AddTodoModalProps {
@@ -81,6 +82,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
       priority: 'medium',
       status: 'pending',
     })
+    hapticSuccess()
     onClose()
 
     try {

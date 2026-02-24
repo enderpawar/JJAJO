@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AlertTriangle } from 'lucide-react'
+import { hapticLight, hapticSuccess, hapticWarn } from '@/utils/haptic'
 
 interface ConfirmModalProps {
   isOpen: boolean
@@ -39,7 +40,14 @@ export function ConfirmModal({
   }, [isOpen])
 
   const handleConfirm = () => {
+    if (danger) hapticWarn()
+    else hapticSuccess()
     onConfirm()
+    onClose()
+  }
+
+  const handleClose = () => {
+    hapticLight()
     onClose()
   }
 
@@ -54,7 +62,7 @@ export function ConfirmModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
+            onClick={handleClose}
             aria-hidden
           />
           {/* 모달 패널 */}
@@ -95,7 +103,7 @@ export function ConfirmModal({
             <div className="flex gap-3 px-6 py-4 border-t border-theme">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="btn-ghost-tap btn-secondary flex-1 rounded-neu py-2.5 text-sm font-medium"
               >
                 {cancelLabel}

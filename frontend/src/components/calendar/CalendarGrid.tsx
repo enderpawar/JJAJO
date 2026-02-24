@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { Sparkles } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { formatDate, getCalendarDays, isSameDay } from '@/utils/dateUtils'
@@ -146,47 +146,6 @@ function buildWeekEventRows(
   return grid
 }
 
-/** 주 단위 정렬·색 할당과 동일하게, 해당 날짜에 닿는 일정의 색상만 반환 (그리드와 완전 일치) */
-function getEventColorsForDayInWeek(
-  weekDates: Date[],
-  dateStr: string,
-  getTodosByDate: (dateStr: string) => Todo[],
-  multiSegments: { todo: Todo; startCol: number; endCol: number; colorClass: string }[]
-): string[] {
-  type Item = { kind: 'single'; dayIndex: number; todo: Todo; createdAt: string } | { kind: 'multi'; startCol: number; endCol: number; todo: Todo; createdAt: string }
-  const items: Item[] = []
-  weekDates.forEach((date, dayIndex) => {
-    const dStr = formatDate(date)
-    getTodosByDate(dStr)
-      .filter((t) => t.status !== 'cancelled' && (!t.endDate || t.endDate === t.date))
-      .forEach((todo) => {
-        items.push({ kind: 'single', dayIndex, todo, createdAt: todo.createdAt })
-      })
-  })
-  multiSegments.forEach((seg) => {
-    items.push({
-      kind: 'multi',
-      startCol: seg.startCol,
-      endCol: seg.endCol,
-      todo: seg.todo,
-      createdAt: seg.todo.createdAt,
-    })
-  })
-  items.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-
-  const colIndex = weekDates.findIndex((d) => formatDate(d) === dateStr)
-  if (colIndex === -1) return []
-
-  const colors: string[] = []
-  items.forEach((item, idx) => {
-    let touches = false
-    if (item.kind === 'single') touches = item.dayIndex === colIndex
-    else touches = item.startCol <= colIndex && colIndex < item.endCol
-    if (touches) colors.push(EVENT_BLOCK_COLORS[idx % EVENT_BLOCK_COLORS.length])
-  })
-  return colors.slice(0, 4)
-}
-
 /** 해당 날짜에 캘린더 그리드와 동일한 순서·색상으로 일정별 색상 맵 반환 (DayDetailPanel 등에서 사용) */
 export function getEventColorMapForDay(
   dateStr: string,
@@ -240,6 +199,7 @@ export function getEventColorMapForDay(
 export default function CalendarGrid({ onDateSelect, allowFullHeight, displayMonth }: CalendarGridProps) {
   const { currentMonth, selectedDate, setSelectedDate, getTodosByDate, todos, selectionDimmed } = useCalendarStore()
   const monthToShow = displayMonth ?? currentMonth
+  const selectedCellRef = useRef<HTMLButtonElement | null>(null)
 
   const year = monthToShow.getFullYear()
   const month = monthToShow.getMonth()
@@ -307,8 +267,6 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight, displayMon
                   const isSelected = !selectionDimmed && isSameDay(date, selectedDate)
                   const isToday = dateStr === formatDate(new Date())
                   const dayOfWeek = date.getDay()
-                  /** 그리드와 동일한 주 단위 정렬·색 할당으로 일치 (22–24일 보라 멀티데이 → 보라 바) */
-                  const eventColorsForDay = getEventColorsForDayInWeek(weekDates, dateStr, getTodosByDate, multiSegments)
 
                   if (!isCurrentMonthDay) {
                     return <div key={`empty-${date.getTime()}`} className="aspect-square min-h-[48px] calendar-date-cell-empty" aria-hidden />
@@ -316,6 +274,7 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight, displayMon
 
                   return (
                     <button
+                      ref={isSelected ? selectedCellRef : undefined}
                       key={dateStr}
                       type="button"
                       data-date={dateStr}
@@ -323,7 +282,7 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight, displayMon
                       title={allOnDay.map((t) => t.title).join(', ') || undefined}
                       style={undefined}
                       className={cn(
-                        'btn-ghost-tap relative overflow-hidden aspect-square min-h-[48px] flex flex-col items-stretch justify-between calendar-date-cell pt-1.5 pb-1 px-1.5',
+                        'btn-ghost-tap relative overflow-hidden aspect-square min-h-[48px] flex flex-col items-stretch justify-between calendar-date-cell pt-1 pb-0.5 sm:pt-1.5 sm:pb-1 px-1.5',
                         isSelected && 'calendar-date-selected calendar-date-selected-rounded',
                         isToday && 'calendar-date-today',
                         !isSelected && 'hover:bg-gray-50 dark:hover:bg-white/5'
@@ -344,17 +303,6 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight, displayMon
                           {date.getDate()}
                         </span>
                       </div>
-                      {/* 일정 인디케이터: 우측 하단 작은 점으로 숫자를 가리지 않음 */}
-                      {eventColorsForDay.length > 0 && (
-                        <div className="absolute bottom-1.5 right-1.5 flex gap-0.5 flex-row-reverse" aria-hidden>
-                          {eventColorsForDay.slice(0, 4).map((colorClass, i) => (
-                            <span
-                              key={i}
-                              className={cn('w-1.5 h-1.5 rounded-full shrink-0', colorClass)}
-                            />
-                          ))}
-                        </div>
-                      )}
                     </button>
                   )
                 })}

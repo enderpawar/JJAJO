@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { Calendar, ListTodo, Plus, Settings, Target, Copy, CalendarDays, RotateCcw, Trash2, X } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { cn } from '@/utils/cn'
-import { hapticLight } from '@/utils/haptic'
+import { hapticLight, hapticSuccess } from '@/utils/haptic'
 
 interface BottomNavProps {
   isFocusOpen?: boolean
@@ -47,6 +47,7 @@ export default function BottomNav({
   const startTouchRef = useRef<{ x: number; y: number } | null>(null)
   const touchStartTimeRef = useRef<number | null>(null)
   const hasDraggedOutRef = useRef(false)
+  const lastActiveActionRef = useRef<string | null>(null)
 
   useEffect(() => {
     return () => {
@@ -56,7 +57,12 @@ export default function BottomNav({
     }
   }, [])
 
-  // radial 열린 동안 touchmove는 passive: false로 document에 등록해 스크롤 막고 드래그 선택만 처리
+  // radial 닫힐 때만 ref 초기화 (드래그 햅틱은 touchmove 안에서 동기 호출)
+  useEffect(() => {
+    if (!radialOpen) lastActiveActionRef.current = null
+  }, [radialOpen])
+
+  // radial 열린 동안 touchmove: 스크롤 막고 드래그 선택. 햅틱은 제스처 스택 안에서 동기 호출.
   useEffect(() => {
     if (!radialOpen || !fabCenter) return
     const handleDocTouchMove = (e: TouchEvent) => {
@@ -73,6 +79,10 @@ export default function BottomNav({
         hasDraggedOutRef.current = true
       }
       const id = getNearestActionIdForHighlight(touch.clientX, touch.clientY)
+      if (id != null && id !== lastActiveActionRef.current) {
+        hapticLight()
+      }
+      lastActiveActionRef.current = id
       setActiveAction(id)
     }
     document.addEventListener('touchmove', handleDocTouchMove, { passive: false })
@@ -122,7 +132,7 @@ export default function BottomNav({
     setFabCenter(center)
     setRadialOpen(true)
     setActiveAction(null)
-    hapticLight()
+    hapticSuccess()
   }
 
   const closeRadial = () => {

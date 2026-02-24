@@ -39,7 +39,7 @@ function getDurationMinutes(startTime: string, endTime: string): number {
   return (eh * 60 + em) - (sh * 60 + sm)
 }
 import { ConfirmModal } from '@/components/ConfirmModal'
-import { hapticSuccess } from '@/utils/haptic'
+import { hapticLight, hapticSuccess, hapticWarn } from '@/utils/haptic'
 
 interface DayDetailPanelProps {
   /** 캘린더 하단 등 한 블록 안에 묶여 있을 때 true (카드 스타일 생략) */
@@ -120,6 +120,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
 
   /** 낙관적 삭제: 즉시 UI에서 제거한 뒤 백그라운드에서 API 호출. 실패 시 롤백. */
   const performDeleteTodo = (todo: Todo) => {
+    hapticWarn()
     const taskCopy = { ...todo }
     deleteTodo(todo.id)
     setDeleteConfirmTodo(null)
@@ -151,6 +152,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
     if (todo.status === 'cancelled') return
     const nextStatus = todo.status === 'completed' ? 'pending' : 'completed'
     updateTodo(todo.id, { status: nextStatus, updatedAt: new Date().toISOString() })
+    hapticSuccess()
     if (!todo.id.startsWith('opt-')) {
       updateSchedule(todo.id, { status: nextStatus }).catch((e) => {
         updateTodo(todo.id, { status: todo.status })
@@ -242,6 +244,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
 
   /** 인라인 편집 취소 (새 일정 드래프트면 리스트에서 제거) */
   const cancelInlineEdit = () => {
+    hapticLight()
     if (editingTodo?.id.startsWith('opt-')) {
       deleteTodo(editingTodo.id)
     }
@@ -309,7 +312,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
               <button
                 type="button"
                 role="menuitem"
-                onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); setDeleteConfirmTodo(openTodo) }}
+                onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); hapticWarn(); setDeleteConfirmTodo(openTodo) }}
                 className="btn-danger-press w-full flex items-center gap-2 px-3 py-2 text-left text-sm font-normal text-red-500 hover:bg-red-500/10"
               >
                 <Trash2 className="w-3.5 h-3.5" /> 삭제
@@ -534,13 +537,6 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
           </div>
         )}
       </div>
-
-      {/* 모바일 안내: 하단 + 버튼으로만 일정 추가 */}
-      {embedded && !showAddButton && (
-        <p className="text-xs font-normal text-theme-muted text-center py-2 md:hidden">
-          하단 <strong className="font-semibold text-theme">+ 버튼</strong>으로 일정 추가
-        </p>
-      )}
 
       {/* 하단 버튼 영역 — showAddButton일 때만 새 일정 추가 버튼 표시 */}
       {showAddButton && (
