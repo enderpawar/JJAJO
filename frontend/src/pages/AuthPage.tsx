@@ -2,21 +2,12 @@ import { LogIn } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getApiBase } from '@/utils/api'
-import { debugLog } from '@/utils/debugLog'
 import { useUserStore } from '@/stores/userStore'
 
 export default function AuthPage() {
   const navigate = useNavigate()
   const [checking, setChecking] = useState(true)
   const setCurrentUser = useUserStore((s) => s.setCurrentUser)
-
-  // 앱 진입 시 로그인 상태 확인 (백엔드 오리진으로 요청해 쿠키 전송)
-  useEffect(() => {
-    // #region agent log
-    const base = getApiBase()
-    debugLog('AuthPage.tsx:mount', 'AuthPage mounted, getApiBase()', { base, baseLength: base?.length ?? 0 }, 'H1')
-    // #endregion
-  }, [])
 
   useEffect(() => {
     const checkLogin = async () => {
@@ -102,7 +93,7 @@ export default function AuthPage() {
           </p>
         </div>
 
-        <div className="card space-y-4 w-full shadow-[var(--shadow-float)]">
+        <div className="card card-flat space-y-4 w-full">
           {/* 로그인 상태 확인 중 표시 */}
           {checking && (
             <p className="text-xs text-theme-muted mb-2">
@@ -114,16 +105,13 @@ export default function AuthPage() {
           <a
             href={googleLoginUrl}
             className="btn-primary w-full flex items-center justify-center gap-2 no-underline text-inherit min-h-[48px]"
-            onClick={() => {
-              debugLog('AuthPage.tsx:googleLoginLink', 'Google login link tapped', { url: googleLoginUrl }, 'H2')
-            }}
           >
             <LogIn className="w-5 h-5 shrink-0" />
             <span>Google 계정으로 시작하기</span>
           </a>
 
           {/* 안내 문구 */}
-          <div className="mt-2 p-4 neu-inset rounded-neu text-sm text-theme-muted">
+          <div className="mt-2 p-4 rounded-neu text-sm text-theme-muted bg-theme-card/60 border border-theme">
             <p className="mb-1 text-theme">
               로그인 후 오른쪽 상단 <strong className="text-theme">설정</strong> 버튼에서 Gemini API 키를 설정하면
               AI 플래너 기능이 활성화됩니다.

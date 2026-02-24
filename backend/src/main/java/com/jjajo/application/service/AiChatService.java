@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -38,20 +40,34 @@ public class AiChatService implements ParseScheduleUseCase, EditScheduleUseCase,
     public PlannerScheduleResponse planSchedule(PlannerScheduleRequest request, String apiKey) {
         log.info("짜조 플래너 요청: {}", request.getUserText());
         var slots = request.getAvailableSlots() != null ? request.getAvailableSlots() : List.<PlannerScheduleRequest.TimeSlotDto>of();
-        var categoryAndPlans = geminiChatAdapter.detectCategoryAndPlans(
-                request.getUserText(), apiKey, request.getTemplateCategory());
-        int currentTimeMinutes = parseTimeToMinutes(request.getCurrentTime());
+        var categoryAndPlans = geminiChatAdapter.detectCategoryAndPlans(request.getUserText(), apiKey);
+        int currentTimeMinutes = 0;
+        try {
+            String dateStr = request.getDate();
+            if (dateStr != null && !dateStr.isBlank()) {
+                LocalDate targetDate = LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
+                if (targetDate.isEqual(LocalDate.now())) {
+                    currentTimeMinutes = parseTimeToMinutes(request.getCurrentTime());
+                }
+            }
+        } catch (Exception e) {
+            // 날짜 파싱 실패 시에는 보수적으로 0분부터 전체 슬롯을 사용한다.
+            currentTimeMinutes = 0;
+        }
+        Integer blockMaxMinutes = request.getBlockMaxMinutes();
+        Integer breakMinutesDefault = request.getBreakMinutesDefault();
         var plansWithDuration = categoryAndPlans.plans().stream()
                 .map(p -> new PlannerPlacementService.PlanWithDuration(
-                        p.title(), p.durationMinutes(), p.breakMinutesAfter(), p.note()))
+                        p.title(), p.durationMinutes(), p.breakMinutesAfter(), p.note(), p.category()))
                 .toList();
-        boolean fromTemplate = request.getTemplateCategory() != null && !request.getTemplateCategory().isBlank();
         var placed = plannerPlacementService.placePlans(
                 categoryAndPlans.category(),
                 plansWithDuration,
                 slots,
                 currentTimeMinutes,
-                !fromTemplate); // 템플릿으로 생성 시 휴식 계획카드 미삽입
+                true,
+                blockMaxMinutes,
+                breakMinutesDefault);
         return PlannerScheduleResponse.builder()
                 .plans(placed)
                 .summary(categoryAndPlans.summary())

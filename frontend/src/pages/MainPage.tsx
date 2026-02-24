@@ -489,7 +489,8 @@ export default function MainPage() {
                     >
                       {(() => {
                         const base = toDate(currentMonth)
-                        return [getPrevMonth(base), base, getNextMonth(base)].map((month, idx) => (
+                        const panels = [getPrevMonth(base), base, getNextMonth(base)]
+                        return panels.map((month, idx) => (
                         <div
                           key={month.getTime()}
                           className="w-1/3 h-full flex-shrink-0 flex flex-col overflow-hidden"

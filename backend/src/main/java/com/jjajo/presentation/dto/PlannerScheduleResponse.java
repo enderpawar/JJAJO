@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * 짜조 플래너 API 응답: 일정 목록 + 요약(선택).
- * 고도화 템플릿: 휴식 블록 자동 삽입, note로 세부 목표 표시.
+ * 휴식 블록 자동 삽입, note로 세부 목표 표시.
  */
 @Getter
 @Setter
@@ -21,7 +21,7 @@ public class PlannerScheduleResponse {
 
     private List<PlanItem> plans;
 
-    /** 오늘의 핵심 3가지 등 템플릿 요약 문구 (선택) */
+    /** 오늘의 핵심 3가지 등 요약 문구 (선택) */
     private String summary;
 
     @Getter

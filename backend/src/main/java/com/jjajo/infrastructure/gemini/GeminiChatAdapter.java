@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Gemini API 채팅 어댑터
@@ -548,21 +550,14 @@ public class GeminiChatAdapter {
     private static final List<String> PLANNER_CATEGORIES = List.of("study", "workout", "work", "rest", "default");
 
     /**
-     * 짜조 플래너: 사용자 입력(+ 템플릿 카테고리 힌트)에서 카테고리·일정·요약 추출.
-     * 카테고리별 제약(블록 길이, 휴식)을 반영한 균형 잡힌 계획 생성.
+     * 짜조 플래너: 사용자 입력에서 카테고리·일정·요약 추출.
      */
     public CategoryAndPlans detectCategoryAndPlans(String userText, String apiKey) {
-        return detectCategoryAndPlans(userText, apiKey, null);
-    }
-
-    public CategoryAndPlans detectCategoryAndPlans(String userText, String apiKey, String templateCategoryHint) {
         try {
-            log.debug("짜조 카테고리·일정 추출: userText={}, hint={}", userText, templateCategoryHint);
+            log.debug("짜조 카테고리·일정 추출: userText={}", userText);
 
-            String categoryGuidance = buildCategoryGuidance(templateCategoryHint);
             String systemPrompt = """
                 너는 플래너 비서 '짜조'야. 사용자 입력을 분석해서 아래 JSON만 출력해. 다른 설명 없이 JSON 객체 하나만 출력해.
-                """ + categoryGuidance + """
                 {
                   "category": "study|workout|work|rest|default",
                   "summary": "오늘 반드시 할 핵심 2~3가지를 한 줄로 요약한 문장 (선택)",
@@ -574,15 +569,30 @@ public class GeminiChatAdapter {
                 - plans: 해야 할 일정만. 쉬는시간·식사시간은 넣지 마. durationMinutes는 분 단위.
                 - breakMinutesAfter: 생략 시 0. 고집중 블록 뒤에는 10~15분 권장.
                 - note: 해당 블록의 구체적 목표(예: "알고리즘 3문제", "PR 1개")를 짧게.
+                - 사용자가 "공부 90, 장보기 20"처럼 "제목 숫자" 형태로 입력하면, 숫자를 그대로 durationMinutes(분)로 사용해.
+                  예: "공부 90, 장보기 20" → plans = [{ "title": "공부", "durationMinutes": 90 }, { "title": "장보기", "durationMinutes": 20 }]
+                - 사용자가 쉼표 없이 한 문장 안에 여러 일을 말할 수도 있어.
+                  예: "알고리즘 1시간 하고 그다음에 백엔드 1시간 할 거야"
+                  → 최소 2개의 plan을 만들어야 해:
+                    [
+                      { "title": "알고리즘", "durationMinutes": 60 },
+                      { "title": "백엔드", "durationMinutes": 60 }
+                    ]
+                  예: "알고리즘 문제 3시간 정도 하고 그다음에 백엔드 작업 3시간 할 거야"
+                  → [
+                      { "title": "알고리즘 문제", "durationMinutes": 180 },
+                      { "title": "백엔드 작업", "durationMinutes": 180 }
+                    ]
+                - 문장 안에서 각 일(공부/과제/알고리즘/백엔드 작업 등)에 붙은 "N시간", "N시간 정도", "N시간 반", "N분" 표현을 찾아서,
+                  해당 일의 durationMinutes를 분 단위 숫자로 계산해. 시간 표현이 여러 개면 그 개수만큼 plan을 만드는 것을 우선적으로 시도해.
+                - 숫자 뒤에 "분", "시간" 등이 붙으면 적절히 분 단위로 변환해.
                 """;
-
-            String userPrompt = "사용자 요청: " + (userText != null ? userText : "");
 
             Map<String, Object> requestBody = Map.of(
                 "contents", List.of(
                     Map.of(
                         "parts", List.of(
-                            Map.of("text", systemPrompt + "\n\n" + userPrompt)
+                            Map.of("text", systemPrompt + "\n\n" + userText)
                         )
                     )
                 ),
@@ -644,15 +654,52 @@ public class GeminiChatAdapter {
                 for (JsonNode node : plansNode) {
                     String title = node.has("title") ? node.get("title").asText().trim() : null;
                     int dur = node.has("durationMinutes") ? node.get("durationMinutes").asInt(60) : 60;
+                    // 최소 10분, 최대 240분 범위로 보정
+                    dur = Math.max(10, Math.min(dur, 240));
                     Integer breakAfter = node.has("breakMinutesAfter") ? Math.min(Math.max(node.get("breakMinutesAfter").asInt(0), 0), 30) : null;
                     String note = null;
                     if (node.has("note") && !node.get("note").isNull()) {
                         String n = node.get("note").asText().trim();
                         if (!n.isEmpty()) note = n;
                     }
-                    if (title != null && !title.isEmpty() && dur > 0) {
-                        plans.add(new CategoryAndPlans.PlanWithDuration(title, Math.min(dur, 240), breakAfter, note));
+                    String planCategory = null;
+                    if (node.has("category") && !node.get("category").isNull()) {
+                        String c = node.get("category").asText().trim().toLowerCase();
+                        if (PLANNER_CATEGORIES.contains(c) && !"mixed".equals(c)) planCategory = c;
+                        if ("coding".equals(c)) planCategory = "work";
                     }
+                    if (title != null && !title.isEmpty()) {
+                        plans.add(new CategoryAndPlans.PlanWithDuration(title, dur, breakAfter, note, planCategory));
+                    }
+                }
+            }
+            // 후처리 1: plans가 비었을 경우 안전한 기본 플랜 생성 (60분짜리 집중 블록 하나)
+            if (plans.isEmpty()) {
+                String fallbackTitle = userText != null && !userText.isBlank()
+                        ? userText.strip().substring(0, Math.min(userText.strip().length(), 20))
+                        : "집중 작업";
+                plans.add(new CategoryAndPlans.PlanWithDuration(fallbackTitle, 60, null, null, category));
+            }
+
+            // 후처리 2: 자연어 안의 시간 표현 개수와 plans 개수 비교하여 부족하면 보완
+            int timeMentionCount = 0;
+            if (userText != null) {
+                Pattern p = Pattern.compile("\\d+\\s*(시간|분)");
+                Matcher m = p.matcher(userText);
+                while (m.find()) {
+                    timeMentionCount++;
+                }
+            }
+            if (timeMentionCount > plans.size() && !plans.isEmpty()) {
+                CategoryAndPlans.PlanWithDuration base = plans.get(plans.size() - 1);
+                while (plans.size() < timeMentionCount) {
+                    plans.add(new CategoryAndPlans.PlanWithDuration(
+                            base.title(),
+                            base.durationMinutes(),
+                            base.breakMinutesAfter(),
+                            base.note(),
+                            base.category()
+                    ));
                 }
             }
             log.debug("짜조 카테고리={}, plans={}건, summary={}", category, plans.size(), summary != null);
@@ -663,32 +710,16 @@ public class GeminiChatAdapter {
         }
     }
 
-    private static String buildCategoryGuidance(String hint) {
-        if (hint == null || hint.isBlank()) return "";
-        return switch (hint.toLowerCase()) {
-            case "study" -> """
-                [공부 모드] 고집중 블록은 90분 이내로 나누고, 블록 뒤 휴식 10~15분을 breakMinutesAfter로 넣어줘. 밤 시간대에는 난이도 낮은 작업을 배치해줘.
-                """;
-            case "workout" -> """
-                [운동 모드] 고강도 세트는 40분 이내, 세트 사이 휴식 2~3분 반영. 워밍업·스트레칭 포함해 블록을 나누고 breakMinutesAfter로 휴식 분을 넣어줘.
-                """;
-            case "work", "coding" -> """
-                [업무/코딩 모드] 딥워크 블록은 90분 이내, 블록 사이 10~15분 휴식(breakMinutesAfter). note에 PR 단위·구체 목표를 짧게 적어줘.
-                """;
-            case "rest" -> """
-                [휴식 모드] 30분 단위로 가벼운 활동을 나누고, 수면 전 자극 줄이기. breakMinutesAfter는 0으로 두고 note에 목적(휴식/정리 등)을 적어줘.
-                """;
-            default -> "";
-        };
-    }
-
     public record CategoryAndPlans(String category, List<PlanWithDuration> plans, String summary) {
         public CategoryAndPlans(String category, List<PlanWithDuration> plans) {
             this(category, plans, null);
         }
-        public record PlanWithDuration(String title, int durationMinutes, Integer breakMinutesAfter, String note) {
+        public record PlanWithDuration(String title, int durationMinutes, Integer breakMinutesAfter, String note, String category) {
             public PlanWithDuration(String title, int durationMinutes) {
-                this(title, durationMinutes, null, null);
+                this(title, durationMinutes, null, null, null);
+            }
+            public PlanWithDuration(String title, int durationMinutes, Integer breakMinutesAfter, String note) {
+                this(title, durationMinutes, breakMinutesAfter, note, null);
             }
         }
     }
