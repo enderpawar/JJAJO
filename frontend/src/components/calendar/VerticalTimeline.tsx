@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useRef, useCallback, type MutableRefObjec
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useToastStore } from '@/stores/toastStore'
 import { updateSchedule, deleteSchedule, createSchedule } from '@/services/scheduleService'
-import { hapticSuccess } from '@/utils/haptic'
+import { hapticSuccess, hapticWarn } from '@/utils/haptic'
 import { Clock, Edit2, Trash2, ChevronDown, History, CheckSquare, Square } from 'lucide-react'
 import { format } from 'date-fns'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -103,6 +103,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
   const handleToggleComplete = useCallback((task: Todo) => {
     const nextStatus = task.status === 'completed' ? 'pending' : 'completed'
     updateTodo(task.id, { status: nextStatus, updatedAt: new Date().toISOString() })
+    hapticSuccess()
     if (!task.id.startsWith('opt-')) {
       updateSchedule(task.id, { status: nextStatus }).catch((e) => {
         updateTodo(task.id, { status: task.status })
@@ -113,6 +114,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
 
   /** 낙관적 삭제: 즉시 UI에서 제거한 뒤 백그라운드에서 API 호출. 실패 시 롤백. */
   const performDelete = useCallback((task: Todo) => {
+    hapticWarn()
     const taskCopy = { ...task }
     deleteTodo(task.id)
     setEditingTodo(null)

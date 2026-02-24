@@ -3,7 +3,7 @@ import { Wand2, Loader2, Check, Sparkles, CheckCircle2, RefreshCw, X, BookOpen, 
 import { submitMagicBarCommand, requestJjajoPlanner, type SubmitMagicBarOptions } from '@/services/magicBarService'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { createSchedule, deleteSchedule } from '@/services/scheduleService'
-import { hapticSuccess } from '@/utils/haptic'
+import { hapticLight, hapticSuccess, hapticWarn } from '@/utils/haptic'
 
 type JjajoTemplateCategory = 'study' | 'workout' | 'coding' | 'rest'
 
@@ -224,6 +224,7 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
   }, [applyGhostPlansReplaceDate, deleteTodo, addTodo])
 
   const handleCancelGhost = useCallback(() => {
+    hapticWarn()
     clearGhostPlans()
     setLastPlannerCommand(null)
     setLastPlannerSummary(null)
@@ -231,12 +232,14 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
 
   const handleRegenerateGhost = useCallback(async () => {
     if (!lastPlannerCommand?.trim()) return
+    hapticLight()
     setLoading(true)
     setMessage(null)
     clearGhostPlans()
     const result = await requestJjajoPlanner(lastPlannerCommand)
     setLoading(false)
     if (result.success) {
+      hapticSuccess()
       setMessage({ type: 'success', text: `다시 ${result.plansCount}개 일정 제안했어요.` })
       setTimeout(() => setMessage(null), 3000)
     } else {
