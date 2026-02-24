@@ -540,7 +540,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         {...(isEditingThisTask && { 'data-editing-card': 'true' })}
         key={`${task.clientKey ?? task.id}-${task.startTime}-${task.endTime}`}
         initial={isJustCreated ? { scale: 0.92, opacity: 0 } : false}
-        animate={isJustCreated ? { scale: 1, opacity: 1 } : { scale: 1, opacity: 1 }}
+        animate={{ scale: 1, opacity: 1 }}
         transition={isJustCreated ? { type: 'spring', stiffness: 380, damping: 26 } : { type: 'tween', duration: 0.2 }}
         className={`
           task-card group absolute left-[calc(5rem+0.5rem)] right-[0.5rem] sm:left-[calc(5.5rem+2.5%)] sm:right-[calc(3.5rem+2.5%)] cursor-pointer active:cursor-grabbing overflow-hidden touch-none
