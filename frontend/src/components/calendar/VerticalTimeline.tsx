@@ -106,6 +106,22 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
       window.removeEventListener('pointercancel', handleUp, { capture: true })
     }
   }, [])
+
+  // 빈 공간 탭 시 선택/포커스 해제 (iOS PWA 강조 유지 이슈 폴백)
+  useEffect(() => {
+    const el = timelineRef.current
+    if (!el) return
+    const handleEmptyTap = (e: MouseEvent) => {
+      const target = e.target as Element
+      if (target.closest?.('button, input, textarea, [role="button"], a, .task-card')) return
+      window.getSelection?.()?.removeAllRanges?.()
+      if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
+        document.activeElement.blur()
+      }
+    }
+    el.addEventListener('click', handleEmptyTap, { capture: true })
+    return () => el.removeEventListener('click', handleEmptyTap, { capture: true })
+  }, [])
   useEffect(() => {
     if (editingTodo) {
       setRenameInputValue(editingTodo.title ?? '')

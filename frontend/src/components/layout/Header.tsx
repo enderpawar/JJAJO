@@ -9,7 +9,7 @@ import { ScheduleDataSettings } from '@/components/settings/ScheduleDataSettings
 import { getApiBase } from '@/utils/api'
 import { createSchedule, deleteSchedule, deleteAllSchedules } from '@/services/scheduleService'
 import { useToastStore } from '@/stores/toastStore'
-import { format } from 'date-fns'
+import { format, addDays, subDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { formatDate, isToday } from '@/utils/dateUtils'
 import { ConfirmModal } from '@/components/ConfirmModal'
@@ -47,7 +47,7 @@ export default function Header({
   isClearingAll: isClearingAllProp,
   todosOnSelectedDayCount = 0,
 }: HeaderProps) {
-  const { selectedDate, isBulkSavingTimetable, getTodosByDate, viewMode, setViewMode, currentMonth, setCurrentMonth, todos, copyTodosFromPreviousDay, addTodos, deleteTodo, addTodo, clearAllTodos } = useCalendarStore()
+  const { selectedDate, setSelectedDate, isBulkSavingTimetable, getTodosByDate, viewMode, setViewMode, currentMonth, setCurrentMonth, todos, copyTodosFromPreviousDay, addTodos, deleteTodo, addTodo, clearAllTodos } = useCalendarStore()
   const { addToast } = useToastStore()
   const { theme, toggleTheme, initTheme } = useSettingsStore()
   const [internalSettingsOpen, setInternalSettingsOpen] = useState(false)
@@ -220,6 +220,17 @@ export default function Header({
     setCurrentMonth(d)
   }
 
+  const handlePrevDay = () => {
+    setSelectedDate(subDays(selectedDate, 1))
+  }
+  const handleNextDay = () => {
+    setSelectedDate(addDays(selectedDate, 1))
+  }
+
+  const isWeekView = viewMode === 'week'
+  const handlePrev = isWeekView ? handlePrevDay : handlePrevMonth
+  const handleNext = isWeekView ? handleNextDay : handleNextMonth
+
   const touchStartXRef = useRef<number>(0)
   const handleDateBarTouchStart = (e: React.TouchEvent) => {
     touchStartXRef.current = e.touches[0].clientX
@@ -227,8 +238,8 @@ export default function Header({
   const handleDateBarTouchEnd = (e: React.TouchEvent) => {
     const endX = e.changedTouches[0].clientX
     const delta = endX - touchStartXRef.current
-    if (delta > 50) handlePrevMonth()
-    else if (delta < -50) handleNextMonth()
+    if (delta > 50) handlePrev()
+    else if (delta < -50) handleNext()
   }
 
   /** 연월 피커 블록 — 단일 행 헤더용 컴팩트(모바일) + 스와이프 지원 */
@@ -240,9 +251,9 @@ export default function Header({
     >
       <button
         type="button"
-        onClick={handlePrevMonth}
+        onClick={handlePrev}
         className="btn-nav-tap touch-target w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-main)] transition-colors shrink-0"
-        aria-label="이전 달"
+        aria-label={isWeekView ? '이전 날' : '이전 달'}
       >
         <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
       </button>
@@ -255,18 +266,20 @@ export default function Header({
           aria-label={weekStripExpanded ? '주간 날짜 접기' : '주간 날짜 펼치기'}
           title={weekStripExpanded ? '클릭하면 주간 날짜 접기' : '클릭하면 주간 날짜 펼치기'}
         >
-          {format(currentMonth, 'M월 yyyy', { locale: ko })}
+          {format(selectedDate, 'M월 d일', { locale: ko })}
         </button>
       ) : (
         <span className="min-w-[4.5rem] sm:min-w-[6.5rem] text-center text-lg font-bold sm:text-2xl md:text-3xl sm:font-semibold tabular-nums text-[var(--text-main)] tracking-tight whitespace-nowrap px-0.5">
-          {format(currentMonth, 'M월 yyyy', { locale: ko })}
+          {viewMode === 'week'
+            ? format(selectedDate, 'M월 d일', { locale: ko })
+            : format(currentMonth, 'M월 yyyy', { locale: ko })}
         </span>
       )}
       <button
         type="button"
-        onClick={handleNextMonth}
+        onClick={handleNext}
         className="btn-nav-tap touch-target w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-main)] transition-colors shrink-0"
-        aria-label="다음 달"
+        aria-label={isWeekView ? '다음 날' : '다음 달'}
       >
         <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
       </button>
@@ -276,8 +289,8 @@ export default function Header({
   return (
     <header className="relative z-30 theme-transition bg-[var(--card-bg)]" style={{ isolation: 'isolate' }}>
       <div className="max-w-screen-2xl mx-auto px-3 sm:px-4 md:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 sm:pb-3 min-h-[3.25rem] sm:min-h-[5rem] flex flex-col justify-center">
-        {/* 단일 행: 왼쪽 로고 / 중앙 연월 / 오른쪽 아이콘. 모바일에서는 3열 그리드, PC에서는 플렉스 레이아웃 */}
-        <div className="relative grid grid-cols-[auto,1fr,auto] items-center gap-2 md:h-14 md:gap-0 md:flex md:flex-row">
+        {/* 단일 행: 왼쪽 로고 / 중앙 연월 / 오른쪽 아이콘. 모바일에서는 중앙 컬럼 고정폭 + 양옆 1fr로 완전 중앙 정렬, PC에서는 플렉스 레이아웃 */}
+        <div className="relative grid grid-cols-[1fr,auto,1fr] items-center gap-2 md:h-14 md:gap-0 md:flex md:flex-row">
           {/* 왼쪽: 로고 + 짜조 (PC에서만 주간 날짜 토글 표시) */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0">
             <div className="relative flex items-center gap-0.5 shrink-0" aria-hidden>

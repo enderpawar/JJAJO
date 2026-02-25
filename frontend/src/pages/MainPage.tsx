@@ -488,7 +488,11 @@ export default function MainPage() {
                       onTransitionEnd={handleCalendarSlideTransitionEnd}
                     >
                       {(() => {
-                        const base = toDate(currentMonth)
+                        const visualMonth =
+                          calendarSlideJustResetRef.current && calendarDragOffsetPx !== 0
+                            ? calendarSlideFromMonthRef.current
+                            : currentMonth
+                        const base = toDate(visualMonth)
                         const panels = [getPrevMonth(base), base, getNextMonth(base)]
                         return panels.map((month, idx) => (
                         <div
