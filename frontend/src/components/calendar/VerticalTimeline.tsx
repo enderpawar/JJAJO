@@ -65,6 +65,28 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
   const lastTapYRef = useRef(0)
   const DOUBLE_TAP_MS = 400
   const DOUBLE_TAP_Y_SLOP = 60
+  const pointerIdOnCardRef = useRef<number | null>(null)
+
+  // 모바일: 카드 터치 시점에 즉시 스크롤 방지 (빠른 드래그 시 스크롤이 터치를 가로채는 현상 방지)
+  const handlePointerDownOnCard = useCallback((e: React.PointerEvent) => {
+    pointerIdOnCardRef.current = e.pointerId
+    timelineRef.current?.classList.add('timeline-scroll-dragging')
+  }, [])
+
+  useEffect(() => {
+    const handleUp = (e: PointerEvent) => {
+      if (pointerIdOnCardRef.current !== null && e.pointerId === pointerIdOnCardRef.current) {
+        pointerIdOnCardRef.current = null
+        timelineRef.current?.classList.remove('timeline-scroll-dragging')
+      }
+    }
+    window.addEventListener('pointerup', handleUp, { capture: true })
+    window.addEventListener('pointercancel', handleUp, { capture: true })
+    return () => {
+      window.removeEventListener('pointerup', handleUp, { capture: true })
+      window.removeEventListener('pointercancel', handleUp, { capture: true })
+    }
+  }, [])
   useEffect(() => {
     if (editingTodo) {
       setRenameInputValue(editingTodo.title ?? '')
@@ -326,6 +348,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     (e: React.MouseEvent<HTMLDivElement>) => {
       const target = e.target as HTMLElement
       if (target.closest('.task-card') || target.closest('.ghost-block')) return
+      hapticSuccess()
       addTodoAtPosition(e.clientY, e.currentTarget.getBoundingClientRect())
     },
     [addTodoAtPosition]
@@ -509,6 +532,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
       ? ((currentTimePosition - startPixel) / (endPixel - startPixel)) * 100
       : 0
     const isEditingThisTask = editingTodo?.id === task.id
+    const isJustCreated = lastCreatedTodoId === task.id
 
     /** 클릭/탭 시 "움직일 수 있음" 피드백: 살짝 확대(강조) + 회색톤 테두리 글로우 (편집 중이 아닐 때만) */
     const dragReadyGlow = '0 0 28px rgba(140, 140, 150, 0.5), 0 0 14px rgba(180, 180, 190, 0.45)'
@@ -529,11 +553,17 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
           ${isCurrent ? 'task-card-active' : ''}
           ${isCompleted && !isCurrent ? 'task-card-completed' : ''}
         `}
+        initial={isJustCreated ? { opacity: 0, scale: 0.92, y: -6 } : false}
+        animate={{ opacity: styleOpacity, scale: 1, y: 0 }}
+        transition={
+          isJustCreated
+            ? { type: 'spring', stiffness: 400, damping: 28, mass: 0.8 }
+            : { duration: 0 }
+        }
         style={{
           top: `${visualTop}px`,
           height: `${visualHeight}px`,
           zIndex: isCurrent ? 10 : isPast ? 1 : 5,
-          opacity: styleOpacity,
           transition: 'none',
         }}
         whileHover={dragReadyProps}
@@ -545,6 +575,10 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
             ? undefined
             : { scale: 1.03, zIndex: 100, cursor: 'grabbing', boxShadow: dragReadyGlow, transition: { duration: 0.15 } }
         }
+        onPointerDown={(e) => {
+          if (isEditingThisTask) return
+          handlePointerDownOnCard(e)
+        }}
         onDragStart={() => {
           if (isEditingThisTask) return
           isDraggingRef.current = true
@@ -563,6 +597,8 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         onDragEnd={(_, info) => {
           if (isEditingThisTask) return
           setCardDragging(false)
+          pointerIdOnCardRef.current = null
+          timelineRef.current?.classList.remove('timeline-scroll-dragging')
           setDragPreview(null)
           let newStartPixel = Math.max(0, Math.min(timelineHeight - (endPixel - startPixel), startPixel + info.offset.y))
           const newEndPixel = newStartPixel + (endPixel - startPixel)
@@ -781,7 +817,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         </div>
       </motion.div>
     )
-  }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renameInputValue, handleSaveRename, performDelete, handleToggleComplete, lastCreatedTodoId])
+  }, [timeToPixels, pixelToTime, isSelectedDateToday, currentTimePosition, timelineHeight, updateTodo, dragPreview, editingTodo, renameInputValue, handleSaveRename, performDelete, handleToggleComplete, lastCreatedTodoId, handlePointerDownOnCard])
 
   /** 고스트 일정 블록: 반투명 점선 테두리, 위→아래 0.1초 간격 등장 */
   const renderGhostBlock = useCallback((task: Todo, index: number) => {
