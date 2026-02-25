@@ -73,6 +73,21 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
     timelineRef.current?.classList.add('timeline-scroll-dragging')
   }, [])
 
+  // 모바일: touchstart 캡처 단계에서 preventDefault로 스크롤 선점 방지 (pointercancel로 드래그 끊김 해결)
+  useEffect(() => {
+    const el = timelineRef.current
+    if (!el) return
+    const handleTouchStart = (e: TouchEvent) => {
+      const target = e.target as Element
+      if (target.closest?.('.task-card') && !target.closest?.('[data-editing-card]')) {
+        e.preventDefault()
+      }
+    }
+    const opts: AddEventListenerOptions = { capture: true, passive: false }
+    el.addEventListener('touchstart', handleTouchStart as EventListener, opts)
+    return () => el.removeEventListener('touchstart', handleTouchStart as EventListener, opts)
+  }, [])
+
   useEffect(() => {
     const handleUp = (e: PointerEvent) => {
       if (pointerIdOnCardRef.current !== null && e.pointerId === pointerIdOnCardRef.current) {
