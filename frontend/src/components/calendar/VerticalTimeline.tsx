@@ -74,12 +74,16 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
   }, [])
 
   // 모바일: touchstart 캡처 단계에서 preventDefault로 스크롤 선점 방지 (pointercancel로 드래그 끊김 해결)
+  // 단, 버튼(편집·완료·삭제 등) 터치 시에는 preventDefault 하지 않음 → 클릭 이벤트 정상 발생
   useEffect(() => {
     const el = timelineRef.current
     if (!el) return
     const handleTouchStart = (e: TouchEvent) => {
       const target = e.target as Element
-      if (target.closest?.('.task-card') && !target.closest?.('[data-editing-card]')) {
+      const onCard = target.closest?.('.task-card')
+      const isEditing = target.closest?.('[data-editing-card]')
+      const isButton = target.closest?.('button, [role="button"], input')
+      if (onCard && !isEditing && !isButton) {
         e.preventDefault()
       }
     }
@@ -90,9 +94,6 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
 
   useEffect(() => {
     const handleUp = (e: PointerEvent) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3a7c0a'},body:JSON.stringify({sessionId:'3a7c0a',location:'VerticalTimeline.tsx:handleUp',message:'pointerup/cancel',data:{type:e.type,pointerId:e.pointerId,pointerIdOnCard:pointerIdOnCardRef.current,matches:pointerIdOnCardRef.current===e.pointerId},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
-      // #endregion
       if (pointerIdOnCardRef.current !== null && e.pointerId === pointerIdOnCardRef.current) {
         pointerIdOnCardRef.current = null
         timelineRef.current?.classList.remove('timeline-scroll-dragging')
@@ -599,9 +600,6 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         }}
         onDragStart={() => {
           if (isEditingThisTask) return
-          // #region agent log
-          fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3a7c0a'},body:JSON.stringify({sessionId:'3a7c0a',location:'VerticalTimeline.tsx:onDragStart',message:'drag started',data:{taskId:task.id},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-          // #endregion
           isDraggingRef.current = true
           draggingTaskIdRef.current = task.id
           setCardDragging(true)
@@ -621,19 +619,6 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
           if (typeof window !== 'undefined') {
             window.getSelection?.()?.removeAllRanges?.()
           }
-          // #region agent log
-          const sel = typeof window !== 'undefined' ? window.getSelection?.() : null
-          const selData = sel ? { rangeCount: sel.rangeCount, toString: sel.toString?.()?.slice(0, 50) } : null
-          const activeEl = typeof document !== 'undefined' ? document.activeElement?.tagName : null
-          const payload = { sessionId:'3a7c0a', location:'VerticalTimeline.tsx:onDragEnd', message:'drag ended', data:{ taskId:task.id, selection:selData, activeElement:activeEl, standalone:typeof navigator!=='undefined'&&(navigator as any).standalone }, timestamp:Date.now(), hypothesisId:'H2,H3', runId:'post-fix' }
-          fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3a7c0a'},body:JSON.stringify(payload)}).catch(()=>{ console.log('[debug] onDragEnd', payload) })
-          setTimeout(()=>{
-            const sel2 = typeof window !== 'undefined' ? window.getSelection?.() : null
-            const sel2Data = sel2 ? { rangeCount: sel2.rangeCount, toString: sel2.toString?.()?.slice(0, 50) } : null
-            const p2 = { sessionId:'3a7c0a', location:'VerticalTimeline.tsx:onDragEnd+100ms', message:'selection after 100ms', data:{ selection:sel2Data }, timestamp:Date.now(), hypothesisId:'H2', runId:'post-fix' }
-            fetch('http://127.0.0.1:7243/ingest/81e1fb98-9efa-4cc2-bacf-8eaa56d0962b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3a7c0a'},body:JSON.stringify(p2)}).catch(()=>{ console.log('[debug] onDragEnd+100ms', p2) })
-          }, 100);
-          // #endregion
           setCardDragging(false)
           pointerIdOnCardRef.current = null
           timelineRef.current?.classList.remove('timeline-scroll-dragging')
