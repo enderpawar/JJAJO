@@ -397,6 +397,16 @@ button:disabled:active,
 /* 🎯 플랜 카드 — 단순·세련·라이트 시인성 */
 
 /* 기본 카드: 선 하나 + 가벼운 그림자 */
+/* iOS PWA: 드래그 시 텍스트 선택 방지 (강조 유지 버그 예방) */
+.task-card {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.task-card[data-editing-card] input,
+.task-card[data-editing-card] textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
 .task-card:not(.task-card-active):not(.task-card-completed) {
   border-radius: var(--radius-lg);
   border: 1px solid var(--card-border);
