@@ -562,6 +562,8 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
         }}
         onDragEnd={(_, info) => {
           if (isEditingThisTask) return
+          window.getSelection()?.removeAllRanges()
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
           setCardDragging(false)
           setDragPreview(null)
           let newStartPixel = Math.max(0, Math.min(timelineHeight - (endPixel - startPixel), startPixel + info.offset.y))

@@ -396,6 +396,12 @@ button:disabled:active,
 
 /* 🎯 플랜 카드 — 단순·세련·라이트 시인성 */
 
+/* 드래그 중 텍스트 선택 방지 */
+.task-card {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* 기본 카드: 선 하나 + 가벼운 그림자 */
 .task-card:not(.task-card-active):not(.task-card-completed) {
   border-radius: var(--radius-lg);
