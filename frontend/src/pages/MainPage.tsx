@@ -445,7 +445,7 @@ export default function MainPage() {
   }
 
   return (
-    <div className="h-screen min-h-0 flex flex-col overflow-hidden theme-transition bg-theme text-theme">
+    <div className="main-app-root h-screen min-h-0 flex flex-col overflow-hidden theme-transition bg-theme text-theme">
       <Header
         onOpenImportTimetable={() => setShowImportTimetable(true)}
         onSwitchToWeekView={() => { skipNextScrollToTimeRef.current = true }}
