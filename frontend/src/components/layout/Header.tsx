@@ -292,8 +292,8 @@ export default function Header({
         {/* 단일 행: 왼쪽 로고 / 중앙 연월 / 오른쪽 아이콘. 모바일에서는 중앙 컬럼 고정폭 + 양옆 1fr로 완전 중앙 정렬, PC에서는 플렉스 레이아웃 */}
         <div className="relative grid grid-cols-[1fr,auto,1fr] items-center gap-2 md:h-14 md:gap-0 md:flex md:flex-row">
           {/* 왼쪽: 로고 + 짜조 (PC에서만 주간 날짜 토글 표시) */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0">
-            <div className="relative flex items-center gap-0.5 shrink-0" aria-hidden>
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0" data-tour="header-logo">
+            <div className="relative flex items-center gap-0.5 shrink-0" aria-hidden="true">
               <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-tool shadow-sm bg-[var(--primary-point)]" />
               <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-tool -ml-1.5 sm:-ml-2 mt-0.5 sm:mt-1 shadow-sm opacity-90" style={{ background: 'var(--primary-gradient)' }} />
             </div>
