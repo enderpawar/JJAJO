@@ -505,6 +505,7 @@ className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-neu flex items-center just
         >
         <div
           ref={settingsScrollRef}
+          data-allow-scroll
           className="settings-modal-scroll rounded-neu-lg max-w-2xl w-full max-h-[min(90vh,calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-56px-2rem))] overflow-x-hidden overscroll-contain theme-transition bg-theme-card border border-[var(--border-color)]"
           onClick={(e) => e.stopPropagation()}
         >

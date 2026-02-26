@@ -56,6 +56,7 @@ export default function MobileSettingsPage({ onClose }: MobileSettingsPageProps)
       <div
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
         style={{ scrollbarGutter: 'stable' }}
+        data-allow-scroll
       >
         <div className="p-3 pb-4 space-y-4 max-w-2xl mx-auto min-w-0 w-full box-border settings-modal-flat">
           {/* 계정 — 카드 스타일로 상단 섹션과 시각적 일관성 */}

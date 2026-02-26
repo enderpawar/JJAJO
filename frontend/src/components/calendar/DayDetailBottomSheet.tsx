@@ -79,7 +79,7 @@ export default function DayDetailBottomSheet({
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch px-4 pb-4">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch px-4 pb-4" data-allow-scroll>
             <DayDetailPanel
               embedded
               openAddModal={openAddModal}

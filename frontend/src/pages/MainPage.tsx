@@ -120,6 +120,18 @@ export default function MainPage() {
     return () => document.documentElement.classList.remove('main-app-layout')
   }, [])
 
+  /** iOS PWA: 문서 터치 스크롤 차단. [data-allow-scroll] 내부만 터치 스크롤 허용 */
+  useEffect(() => {
+    const onDocTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return
+      const target = e.target as Node
+      if (target && target instanceof Element && target.closest('[data-allow-scroll]')) return
+      if (e.cancelable) e.preventDefault()
+    }
+    document.addEventListener('touchmove', onDocTouchMove, { passive: false, capture: true })
+    return () => document.removeEventListener('touchmove', onDocTouchMove, { capture: true })
+  }, [])
+
   /** 슬라이드 월 전환 후 오프셋 리셋 시 트랜지션 없이 바로 보이도록, 리셋 플래그를 한 프레임 후 해제 */
   useEffect(() => {
     if (calendarDragOffsetPx === 0) {
@@ -529,6 +541,7 @@ export default function MainPage() {
                         >
                           <div
                             ref={idx === 1 ? calendarScrollRef : undefined}
+                            {...(idx === 1 && openDaySheet ? { 'data-allow-scroll': '' } : {})}
                             className={cn(
                               'h-full scrollbar-none calendar-scroll-area overscroll-contain flex flex-col theme-transition bg-theme',
                               idx === 1 && !openDaySheet

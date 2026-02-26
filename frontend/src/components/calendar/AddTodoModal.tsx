@@ -214,6 +214,7 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
 
   const formContent = variant === 'card' ? compactCardContent : (
     <div
+      data-allow-scroll
       className={cn(
         'w-full overflow-y-auto bg-theme-card theme-transition',
         variant === 'sheet' && 'rounded-t-[20px] max-h-[85vh]',

@@ -109,6 +109,7 @@ html.main-app-layout {
   height: 100%;
   position: fixed;
   width: 100%;
+  touch-action: none; /* iOS PWA: 문서 터치 스크롤 차단 */
 }
 html.main-app-layout body {
   position: fixed !important;
@@ -126,6 +127,7 @@ html.main-app-layout body {
   overflow-y: hidden !important;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: auto;
+  touch-action: none; /* iOS PWA: 문서 터치 스크롤 차단. 스크롤은 [data-allow-scroll] 내부만 */
 }
 /* fixed body → #root → Router 래퍼까지 높이 고정, 중간에 스크롤 생기지 않도록 */
 html.main-app-layout #root {
@@ -288,10 +290,11 @@ html.main-app-layout .main-app-root {
     display: none;
   }
 
-  /* 메인 화면 캘린더 스크롤: 전역 스크롤바 스타일보다 우선해 스크롤바 완전 숨김 */
+  /* 메인 화면 캘린더 스크롤: 전역 스크롤바 스타일보다 우선해 스크롤바 완전 숨김. iOS PWA에서 이 영역만 세로 스크롤 허용 */
   .calendar-scroll-area {
     -ms-overflow-style: none !important;
     scrollbar-width: none !important;
+    touch-action: pan-y;
   }
   .calendar-scroll-area::-webkit-scrollbar {
     display: none !important;
@@ -311,6 +314,7 @@ html.main-app-layout .main-app-root {
     transform: translateZ(0);
     contain: paint;
     overflow-anchor: auto;
+    touch-action: pan-y; /* iOS PWA: 이 영역만 세로 스크롤 허용 */
   }
 
   /* iOS: 카드 드래그 중에는 스크롤이 터치를 가로채지 않도록 (드래그가 끊기는 현상 방지) */
