@@ -296,7 +296,7 @@ export default function Header({
           {/* 왼쪽: 로고 + 짜조 (PC에서만 주간 날짜 토글 표시) */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0" data-tour="header-logo">
             <div className="relative flex items-center shrink-0" aria-hidden>
-              <img src="/logo.png" alt="짜조 로고" className="w-8 h-8 sm:w-9 sm:h-9 object-contain" />
+              <img src="/logo-header.png" alt="짜조 로고" className="w-8 h-8 sm:w-9 sm:h-9 object-contain" />
             </div>
             <div className="flex flex-col leading-tight min-w-0">
               <span className="text-sm sm:text-lg font-bold text-[var(--text-main)] tracking-tight truncate">짜조</span>
