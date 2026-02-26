@@ -296,7 +296,7 @@ export default function Header({
           {/* 왼쪽: 로고 + 짜조 (PC에서만 주간 날짜 토글 표시) */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0" data-tour="header-logo">
             <div className="relative flex items-center shrink-0" aria-hidden>
-              <img src="/logo.png" alt="짜조 로고" className="w-8 h-8 sm:w-9 sm:h-9 object-contain" />
+              <img src="/logo-header.png" alt="짜조 로고" className="w-8 h-8 sm:w-9 sm:h-9 object-contain" />
             </div>
             <div className="flex flex-col leading-tight min-w-0">
               <span className="text-sm sm:text-lg font-bold text-[var(--text-main)] tracking-tight truncate">짜조</span>
@@ -359,11 +359,11 @@ export default function Header({
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            {/* 모바일: theme-toggle-switch 스타일 */}
+            {/* 모바일: theme-toggle-switch 스타일 (도움말 버튼과 동일 사이즈) */}
             <button
               type="button"
               onClick={toggleTheme}
-              className="btn-icon-tap theme-toggle-switch theme-transition flex md:hidden w-11 h-11 min-w-[44px] min-h-[44px] items-center justify-center"
+              className="btn-icon-tap theme-toggle-switch theme-transition flex md:hidden w-11 h-11 min-w-[44px] min-h-[44px] rounded-neu items-center justify-center"
               aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
               title={theme === 'dark' ? '라이트 모드' : '다크 모드'}
             >
@@ -469,11 +469,11 @@ className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-neu flex items-center just
               </Menu.Items>
             </Menu>
             {/* 도움말 버튼: 클릭 시 플래너 투어 재시작 */}
-            {/* 모바일: 테마 토글과 동일한 theme-toggle-switch 스타일 */}
+            {/* 모바일: 테마 토글과 동일한 theme-toggle-switch 스타일 및 사이즈 */}
             <button
               type="button"
               onClick={startTour}
-              className="btn-icon-tap theme-toggle-switch theme-transition flex md:hidden items-center justify-center"
+              className="btn-icon-tap theme-toggle-switch theme-transition flex md:hidden w-11 h-11 min-w-[44px] min-h-[44px] rounded-neu items-center justify-center"
               aria-label="사용법 투어 시작"
               title="플래너 사용법 보기"
               data-tour="help-btn"
