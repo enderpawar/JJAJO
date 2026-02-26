@@ -103,26 +103,54 @@ body {
 
 /* 메인 앱(/app) 전용: 문서 스크롤 완전 차단 (iOS Safari 포함). 스크롤은 캘린더/타임라인 내부만 */
 html.main-app-layout {
-  overflow: hidden;
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
   height: 100%;
-  -webkit-overflow-scrolling: auto;
+  position: fixed;
+  width: 100%;
 }
 html.main-app-layout body {
-  position: fixed;
+  position: fixed !important;
   inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
   height: 100%;
-  height: 100dvh; /* iOS 등 동적 뷰포트; 미지원 브라우저는 위 100% 사용 */
-  overflow: hidden;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
   overscroll-behavior: none;
   -webkit-overflow-scrolling: auto;
 }
-/* fixed body 안에서 앱 루트가 화면을 채우도록 */
+/* fixed body → #root → Router 래퍼까지 높이 고정, 중간에 스크롤 생기지 않도록 */
 html.main-app-layout #root {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  min-height: 0;
   height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden !important;
+}
+html.main-app-layout #root > * {
+  min-height: 0;
+  height: 100%;
+  overflow: hidden !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+/* Router 내부 Routes 영역이 남는 높이를 채우도록 (메인/인증 페이지가 flex:1 받을 수 있게) */
+html.main-app-layout #root > * > *:first-child {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 /* iOS 등: 뷰포트 높이를 100dvh로 맞춰 스크롤 여백 제거 */
@@ -130,6 +158,8 @@ html.main-app-layout .main-app-root {
   height: 100dvh;
   height: 100%;
   min-height: 0;
+  flex: 1;
+  overflow: hidden;
 }
 .theme-transition,
 .theme-transition * {
