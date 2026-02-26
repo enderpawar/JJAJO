@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-const MOBILE_BREAKPOINT = 768
+/** 768: 기존. 1025로 올려 iPad/태블릿(~1024px)에서 캘린더 중앙 정렬(모바일 레이아웃) 사용 */
+const MOBILE_BREAKPOINT = 1025
 /** 날짜별 일정 시트 대략 높이(px) — 선택한 주가 시트 위에 보이도록 스크롤할 때 사용 */
 const DAY_SHEET_HEIGHT_PX = 420
 
@@ -79,6 +80,8 @@ export default function MainPage() {
   const calendarSlideFromMonthRef = useRef<Date>(new Date())
   /** 가로 스와이프 중일 때 세로 스크롤 방지용 (preventDefault 호출) */
   const calendarHorizontalSwipeRef = useRef(false)
+  /** 터치 시작 시 캘린더 세로 스크롤 위치 (가로 스와이프 시 복원용) */
+  const calendarScrollTopOnTouchStartRef = useRef(0)
   /** transitionend 미발생 시 슬라이드 완료 처리용 폴백 타이머 */
   const calendarSlideFallbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -118,14 +121,22 @@ export default function MainPage() {
     }
   }, [calendarDragOffsetPx])
 
-  /** 모바일 캘린더: 가로 스와이프 중에는 세로 스크롤 방지 (preventDefault는 passive: false에서만 동작) */
+  /** 모바일 캘린더: 가로 스와이프로 판단되면 같은 touchmove에서 즉시 preventDefault (세로 스크롤 고정) */
   useEffect(() => {
     if (!isMobile) return
     const el = calendarSlideContainerRef.current
     if (!el) return
     const onTouchMove = (e: TouchEvent) => {
-      if (!calendarHorizontalSwipeRef.current) return
-      if (e.cancelable) e.preventDefault()
+      if (e.touches.length !== 1) return
+      const deltaX = e.touches[0].clientX - calendarTouchStartX.current
+      const deltaY = e.touches[0].clientY - calendarTouchStartY.current
+      const absX = Math.abs(deltaX)
+      const absY = Math.abs(deltaY)
+      const isHorizontal = absX > absY && absX > 8
+      if (isHorizontal) {
+        calendarHorizontalSwipeRef.current = true
+        if (e.cancelable) e.preventDefault()
+      }
     }
     el.addEventListener('touchmove', onTouchMove, { passive: false, capture: true })
     return () => el.removeEventListener('touchmove', onTouchMove, { capture: true })
@@ -338,6 +349,7 @@ export default function MainPage() {
     calendarTouchStartX.current = e.touches[0].clientX
     calendarTouchStartY.current = e.touches[0].clientY
     calendarHorizontalSwipeRef.current = false
+    calendarScrollTopOnTouchStartRef.current = calendarScrollRef.current?.scrollTop ?? 0
     setCalendarIsDragging(true)
   }
   const handleCalendarTouchMove = (e: React.TouchEvent) => {
@@ -366,9 +378,14 @@ export default function MainPage() {
     const width = container?.offsetWidth ?? 300
     const threshold = width * 0.22
 
+    const didHorizontalSwipe = calendarHorizontalSwipeRef.current
     calendarHorizontalSwipeRef.current = false
     setCalendarIsDragging(false)
     if (calendarSlideTargetRef.current !== null) return
+
+    if (didHorizontalSwipe && calendarScrollRef.current) {
+      calendarScrollRef.current.scrollTop = calendarScrollTopOnTouchStartRef.current
+    }
 
     if (absX > absY && absX > 50) {
       if (deltaX > threshold) {
