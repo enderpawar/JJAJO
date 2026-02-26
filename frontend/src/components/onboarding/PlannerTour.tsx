@@ -156,6 +156,15 @@ export function PlannerTour() {
 
   // 타임라인 단계로 전환 중에 중복 호출을 막는 플래그
   const isTransitioningRef = useRef(false)
+  const switchViewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (switchViewTimerRef.current !== null) {
+        clearTimeout(switchViewTimerRef.current)
+      }
+    }
+  }, [])
 
   // 첫 방문 시 1초 후 자동 시작 (캘린더 뷰부터 시작)
   useEffect(() => {
@@ -182,7 +191,11 @@ export function PlannerTour() {
       pauseTour()
       setViewMode(mode)
       // 슬라이드 애니메이션(350ms) + 여유 시간
-      setTimeout(() => {
+      if (switchViewTimerRef.current !== null) {
+        clearTimeout(switchViewTimerRef.current)
+      }
+      switchViewTimerRef.current = setTimeout(() => {
+        switchViewTimerRef.current = null
         setStepIndex(nextStepIndex)
         resumeTour()
         isTransitioningRef.current = false

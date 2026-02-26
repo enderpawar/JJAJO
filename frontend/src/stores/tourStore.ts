@@ -18,10 +18,18 @@ interface TourState {
   markSeen: () => void
 }
 
+function readTourSeen(): boolean {
+  try {
+    return typeof window !== 'undefined' && window.localStorage.getItem(TOUR_SEEN_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
 export const useTourStore = create<TourState>((set) => ({
   run: false,
   stepIndex: 0,
-  hasSeenTour: localStorage.getItem(TOUR_SEEN_KEY) === 'true',
+  hasSeenTour: readTourSeen(),
 
   startTour: () => set({ run: true, stepIndex: 0 }),
 
@@ -34,7 +42,13 @@ export const useTourStore = create<TourState>((set) => ({
   setStepIndex: (i) => set({ stepIndex: i }),
 
   markSeen: () => {
-    localStorage.setItem(TOUR_SEEN_KEY, 'true')
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(TOUR_SEEN_KEY, 'true')
+      }
+    } catch {
+      // 프라이빗 모드 등 스토리지 접근 불가 시 무시
+    }
     set({ hasSeenTour: true })
   },
 }))
