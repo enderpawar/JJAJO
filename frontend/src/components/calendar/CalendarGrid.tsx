@@ -240,6 +240,7 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight, displayMon
         'flex flex-col',
         allowFullHeight ? 'min-h-0 flex-1' : ''
       )}
+      {...(displayMonth === undefined ? { 'data-tour': 'calendar-grid' } : {})}
     >
       {/* 요일 헤더 — 캘린더 본체에 가깝게, 폰트 축소해 숫자가 주인공이 되도록 */}
       <div className="grid grid-cols-7 gap-1 mb-1.5 calendar-weekday-row">
@@ -309,11 +310,13 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight, displayMon
               </div>
               {/* 이벤트 영역: 최대 2행 높이, 그 이상은 스크롤로 표시 */}
               <div
-                className="grid grid-cols-7 gap-1 gap-y-1.5 sm:gap-y-1 overflow-y-auto overflow-x-hidden overscroll-contain"
+                className="grid grid-cols-7 gap-1 gap-y-1.5 sm:gap-y-1 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-none calendar-scroll-area"
                 style={{
                   gridTemplateRows: rowCount > 0 ? `repeat(${rowCount}, ${ROW_HEIGHT_PX}px)` : undefined,
                   minHeight: ROW_HEIGHT_PX,
                   maxHeight: EVENT_AREA_MAX_HEIGHT_PX,
+                  WebkitOverflowScrolling: 'touch',
+                  touchAction: 'pan-y',
                 }}
               >
                 {allEventRows.map((row, rowIndex) =>

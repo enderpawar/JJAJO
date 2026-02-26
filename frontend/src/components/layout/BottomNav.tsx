@@ -364,6 +364,7 @@ export default function BottomNav({
               : 'bg-[var(--primary-point)] text-white hover:opacity-95 active:scale-95'
           )}
           aria-label={radialOpen ? '메뉴 닫기' : '일정 추가'}
+          data-tour="bottom-nav-fab"
         >
           <span className="relative flex items-center justify-center w-7 h-7">
             <Plus

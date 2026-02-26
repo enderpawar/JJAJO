@@ -890,7 +890,7 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
 
   return (
     <>
-    <div ref={timelineRef} className={`timeline-scroll flex-1 min-h-0 theme-transition bg-theme relative pl-5 pr-2 sm:px-4 ${isCardDragging ? 'timeline-scroll-dragging' : ''}`}>
+    <div ref={timelineRef} className={`timeline-scroll flex-1 min-h-0 theme-transition bg-theme relative pl-5 pr-2 sm:px-4 ${isCardDragging ? 'timeline-scroll-dragging' : ''}`} data-tour="timeline">
       <AnimatePresence mode="wait">
         {showPastTime && (
           <motion.div

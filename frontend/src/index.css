@@ -100,6 +100,17 @@ body {
   transition: background-color var(--theme-transition-duration) var(--theme-transition-easing);
   transition-delay: 0s;
 }
+
+/* 메인 앱(/app) 전용: 문서 스크롤 방지 — 스크롤은 캘린더/타임라인 내부만 */
+html.main-app-layout {
+  overflow: hidden;
+  height: 100%;
+}
+html.main-app-layout body {
+  overflow: hidden;
+  height: 100%;
+  overscroll-behavior: none;
+}
 .theme-transition,
 .theme-transition * {
   transition: background-color var(--theme-transition-duration) var(--theme-transition-easing),
@@ -225,6 +236,20 @@ body {
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none;
+  }
+
+  /* 메인 화면 캘린더 스크롤: 전역 스크롤바 스타일보다 우선해 스크롤바 완전 숨김 */
+  .calendar-scroll-area {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain !important;
+  }
+  .calendar-scroll-area::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
   }
 
   /* 모바일 하단 메뉴바 높이만큼 콘텐츠 하단 여백 */
