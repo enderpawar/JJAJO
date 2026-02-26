@@ -114,6 +114,12 @@ export default function MainPage() {
     init()
   }, [navigate, setTodos, loadApiKeyForCurrentUser])
 
+  /** 메인 앱 레이아웃: 문서(body) 스크롤 방지 — 스크롤은 캘린더/타임라인 내부만 */
+  useEffect(() => {
+    document.documentElement.classList.add('main-app-layout')
+    return () => document.documentElement.classList.remove('main-app-layout')
+  }, [])
+
   /** 슬라이드 월 전환 후 오프셋 리셋 시 트랜지션 없이 바로 보이도록, 리셋 플래그를 한 프레임 후 해제 */
   useEffect(() => {
     if (calendarDragOffsetPx === 0) {
@@ -530,7 +536,7 @@ export default function MainPage() {
                         >
                           <div
                             ref={idx === 1 ? calendarScrollRef : undefined}
-                            className="h-full overflow-auto scrollbar-none overscroll-contain flex flex-col theme-transition bg-theme"
+                            className="h-full overflow-auto scrollbar-none calendar-scroll-area overscroll-contain flex flex-col theme-transition bg-theme"
                           >
                             <div
                               className="max-w-2xl mx-auto px-4 py-6 sm:py-8 w-full theme-transition bg-theme flex-1"
@@ -580,7 +586,7 @@ export default function MainPage() {
                         )}
                       >
                         <div className="min-w-0 min-h-0" aria-hidden />
-                        <div ref={calendarScrollRef} className="overflow-auto scrollbar-none min-h-0 min-w-0 theme-transition bg-theme">
+                        <div ref={calendarScrollRef} className="overflow-auto scrollbar-none calendar-scroll-area min-h-0 min-w-0 theme-transition bg-theme">
                           <div className="w-full px-4 py-6 sm:py-8 theme-transition bg-theme">
                             <CalendarGrid
                               allowFullHeight
