@@ -321,7 +321,7 @@ export default function DayDetailPanel({ embedded = false, openAddModal = false,
           document.body
         )}
 
-    <div className={cn('flex flex-col min-h-0 flex-1 overflow-hidden', embedded && 'p-0 max-h-none')}>
+    <div className={cn('flex flex-col min-h-0 flex-1 overflow-hidden', embedded && 'p-0 max-h-none')} data-tour="day-panel">
       {/* 헤더: 날짜 + 오늘 뱃지 + 개수 (모바일 시트 embedded일 때는 상단 시트에서 이미 표시하므로 생략) */}
       {!embedded && (
       <div className="flex items-center justify-between gap-3 mb-5">

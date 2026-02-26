@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Menu } from '@headlessui/react'
-import { Settings, X, Copy, CalendarDays, LogIn, RotateCcw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MoreVertical, Moon, Sun, Trash2 } from 'lucide-react'
+import { Settings, X, Copy, CalendarDays, LogIn, RotateCcw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MoreVertical, Moon, Sun, Trash2, HelpCircle } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { useTourStore } from '@/stores/tourStore'
 import { TimeSlotSettings } from '@/components/settings/TimeSlotSettings'
 import { ApiKeySettings } from '@/components/settings/ApiKeySettings'
 import { ScheduleDataSettings } from '@/components/settings/ScheduleDataSettings'
@@ -50,6 +51,7 @@ export default function Header({
   const { selectedDate, setSelectedDate, isBulkSavingTimetable, getTodosByDate, viewMode, setViewMode, currentMonth, setCurrentMonth, todos, copyTodosFromPreviousDay, addTodos, deleteTodo, addTodo, clearAllTodos } = useCalendarStore()
   const { addToast } = useToastStore()
   const { theme, toggleTheme, initTheme } = useSettingsStore()
+  const startTour = useTourStore((s) => s.startTour)
   const [internalSettingsOpen, setInternalSettingsOpen] = useState(false)
   const isControlled = onSettingsOpenChange != null
   const isSettingsOpen = isControlled ? (isSettingsOpenProp ?? false) : internalSettingsOpen
@@ -292,7 +294,7 @@ export default function Header({
         {/* 단일 행: 왼쪽 로고 / 중앙 연월 / 오른쪽 아이콘. 모바일에서는 중앙 컬럼 고정폭 + 양옆 1fr로 완전 중앙 정렬, PC에서는 플렉스 레이아웃 */}
         <div className="relative grid grid-cols-[1fr,auto,1fr] items-center gap-2 md:h-14 md:gap-0 md:flex md:flex-row">
           {/* 왼쪽: 로고 + 짜조 (PC에서만 주간 날짜 토글 표시) */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0" data-tour="header-logo">
             <div className="relative flex items-center gap-0.5 shrink-0" aria-hidden>
               <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-tool shadow-sm bg-[var(--primary-point)]" />
               <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-tool -ml-1.5 sm:-ml-2 mt-0.5 sm:mt-1 shadow-sm opacity-90" style={{ background: 'var(--primary-gradient)' }} />
@@ -317,12 +319,12 @@ export default function Header({
           </div>
           {/* 모바일: 연월은 중앙 컬럼에서 자연스럽게 가운데 정렬, PC에서는 별도 중앙 배치 블록 사용 */}
           <div className="flex-1 flex justify-center min-w-0 md:invisible md:absolute md:pointer-events-none md:left-0 md:right-0 md:flex-initial">
-            <div className="md:hidden">{datePickerBlock}</div>
+            <div className="md:hidden" data-tour="date-picker-mobile">{datePickerBlock}</div>
           </div>
           {/* 오른쪽: 뷰 전환(md만) + 메뉴 + 테마 + 설정(md만) — PC에서 우측 정렬 */}
           <div className="flex items-center justify-end gap-1.5 sm:gap-3 md:gap-4 shrink-0 md:ml-auto">
               <div className="hidden md:flex items-center gap-3 md:gap-4">
-                <div className="view-mode-segmented" role="group" aria-label="캘린더 / 할일 보기 전환">
+                <div className="view-mode-segmented" role="group" aria-label="캘린더 / 할일 보기 전환" data-tour="view-toggle">
                   <div className="view-mode-segmented-track">
                     <span className="view-mode-segmented-pill" data-active={viewMode === 'week'} aria-hidden />
                     <button
@@ -467,12 +469,35 @@ className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-neu flex items-center just
                 </div>
               </Menu.Items>
             </Menu>
+            {/* 도움말 버튼: 클릭 시 플래너 투어 재시작 */}
+            {/* 모바일: 테마 토글과 동일한 theme-toggle-switch 스타일 */}
+            <button
+              type="button"
+              onClick={startTour}
+              className="btn-icon-tap theme-toggle-switch theme-transition flex md:hidden items-center justify-center"
+              aria-label="사용법 투어 시작"
+              title="플래너 사용법 보기"
+              data-tour="help-btn"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </button>
+            {/* PC: 기존 아이콘 버튼 스타일 */}
+            <button
+              type="button"
+              onClick={startTour}
+              className="btn-icon-tap hidden md:flex w-9 h-9 rounded-neu items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-color)]"
+              aria-label="사용법 투어 시작"
+              title="플래너 사용법 보기"
+            >
+              <HelpCircle className="w-4 h-4" />
+            </button>
             {/* 모바일에서는 하단 탭에서 설정 가능하므로 헤더 설정 버튼 숨김 */}
             <button
               type="button"
               onClick={() => setIsSettingsOpen(true)}
               className="hidden md:flex btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-neu items-center justify-center bg-[var(--hover-bg)] hover:bg-[var(--card-bg)] text-[var(--text-main)] border border-[var(--border-color)]"
               aria-label="설정"
+              data-tour="settings-btn"
             >
               <Settings className="w-4 h-4" />
             </button>
@@ -480,7 +505,7 @@ className="btn-icon-tap w-8 h-8 sm:w-9 sm:h-9 rounded-neu flex items-center just
         </div>
       </div>
       {/* PC(md+): 연월을 화면 정중앙에 배치 (viewport 기준) */}
-      <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full justify-center pointer-events-none">
+      <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full justify-center pointer-events-none" data-tour="date-picker-pc">
         <div className="pointer-events-auto">{datePickerBlock}</div>
       </div>
       {/* 시간표 대량 저장 백그라운드 인디케이터 */}

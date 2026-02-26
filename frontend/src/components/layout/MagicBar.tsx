@@ -190,7 +190,7 @@ const MagicBar = forwardRef<MagicBarHandle, MagicBarProps>(function MagicBar({ a
   }, [lastPlannerCommand, lastPlannerOptions, clearGhostPlans])
 
   return (
-    <div ref={containerRef} className="w-full max-w-2xl mx-auto px-4 py-3 relative">
+    <div ref={containerRef} className="w-full max-w-2xl mx-auto px-4 py-3 relative" data-tour="magic-bar">
       {showCelebration && (
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10" aria-hidden>
           <div className="celebration-check flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-500/50">
