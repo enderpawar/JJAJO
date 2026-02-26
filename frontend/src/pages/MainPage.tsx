@@ -134,6 +134,11 @@ export default function MainPage() {
     if (!el) return
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length !== 1) return
+      // 이미 수평 스와이프로 판정된 제스처면 이후에도 계속 preventDefault (세로 기울어져도 스크롤 고정 유지)
+      if (calendarHorizontalSwipeRef.current) {
+        if (e.cancelable) e.preventDefault()
+        return
+      }
       const deltaX = e.touches[0].clientX - calendarTouchStartX.current
       const deltaY = e.touches[0].clientY - calendarTouchStartY.current
       const absX = Math.abs(deltaX)
