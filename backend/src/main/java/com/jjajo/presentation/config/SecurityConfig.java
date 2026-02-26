@@ -48,6 +48,8 @@ public class SecurityConfig {
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     private final UserRepository userRepository;
+    private final JwtService jwtService;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
     /** prod에서는 빈이 없음(@Profile("!prod")). 없을 때도 기동되도록 Optional로 주입 */
     private final Optional<DebugLogFilter> debugLogFilter;
 
@@ -56,8 +58,12 @@ public class SecurityConfig {
 
     public SecurityConfig(
             UserRepository userRepository,
+            JwtService jwtService,
+            JwtAuthenticationFilter jwtAuthenticationFilter,
             @Autowired(required = false) DebugLogFilter debugLogFilter) {
         this.userRepository = userRepository;
+        this.jwtService = jwtService;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.debugLogFilter = Optional.ofNullable(debugLogFilter);
     }
 
@@ -79,6 +85,9 @@ public class SecurityConfig {
                     "/v3/api-docs/**",
                     "/h2-console/**",
                     "/debug/**"
+                ).permitAll()
+                .requestMatchers(
+                    "/api/v1/apikey/**"
                 ).permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
@@ -104,12 +113,14 @@ public class SecurityConfig {
             )
             .formLogin(form -> form.disable());
         debugLogFilter.ifPresent(f -> http.addFilterBefore(f, AuthorizationFilter.class));
+        http.addFilterBefore(jwtAuthenticationFilter, AuthorizationFilter.class);
 
         return http.build();
     }
 
     /**
-     * OAuth2 로그인 성공 시 프론트엔드로 리다이렉트
+     * OAuth2 로그인 성공 시 JWT 발급 후 프론트엔드로 리다이렉트.
+     * 토큰은 ?token=xxx 로 전달 (iOS Safari에서 302 리다이렉트 시 #hash가 유실되는 문제 회피).
      */
     @Bean
     public AuthenticationSuccessHandler redirectToFrontendSuccessHandler() {
@@ -118,7 +129,6 @@ public class SecurityConfig {
             if (!target.endsWith("/")) {
                 target = target + "/";
             }
-            // #region agent log
             try {
                 String backendHost = request.getServerName() != null ? request.getServerName().toLowerCase() : "";
                 log.info("[REDIRECT] OAuth success redirect target={} backendHost={} frontendOriginConfig={}", target, backendHost, frontendOrigin);
@@ -131,7 +141,19 @@ public class SecurityConfig {
             } catch (Exception e) {
                 log.warn("[REDIRECT] Could not check redirect target", e);
             }
-            // #endregion
+
+            // JWT 발급 (Safari 등 크로스 사이트 쿠키 차단 환경 대응)
+            if (authentication.getPrincipal() instanceof OAuth2User oAuth2User) {
+                String userId = (String) oAuth2User.getAttributes().get("userId");
+                String email = (String) oAuth2User.getAttributes().getOrDefault("email", null);
+                String name = (String) oAuth2User.getAttributes().getOrDefault("name", null);
+                String picture = (String) oAuth2User.getAttributes().getOrDefault("picture", null);
+                if (userId != null) {
+                    String token = jwtService.generateToken(userId, email, name, picture);
+                    target = target + "?token=" + java.net.URLEncoder.encode(token, java.nio.charset.StandardCharsets.UTF_8);
+                }
+            }
+
             response.sendRedirect(target);
         };
     }
@@ -257,15 +279,18 @@ public class SecurityConfig {
     }
 
     /**
-     * 현재 인증된 사용자의 내부 userId를 가져오는 헬퍼 메서드 예시
-     * (컨트롤러/서비스에서 SecurityContext를 직접 다루지 않도록 추후 별도 유틸/컴포넌트로 분리 가능)
+     * 현재 인증된 사용자의 내부 userId를 가져오는 헬퍼 메서드
+     * OAuth2User(세션) 또는 JwtPrincipal(토큰) 모두 지원
      */
     public static String extractUserId(Authentication authentication) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof OAuth2User oAuth2User)) {
+        if (authentication == null || authentication.getPrincipal() == null) {
             return null;
         }
-        Object userId = oAuth2User.getAttributes().get("userId");
-        return userId != null ? userId.toString() : null;
+        if (authentication.getPrincipal() instanceof OAuth2User oAuth2User) {
+            Object userId = oAuth2User.getAttributes().get("userId");
+            return userId != null ? userId.toString() : null;
+        }
+        return null;
     }
 
     /**

@@ -35,7 +35,7 @@ public class GeminiAdapter implements GeminiPort {
     public String testConnection(String apiKey) {
         try {
             log.debug("Gemini API 연결 테스트 시작");
-            
+
             // Gemini API의 models.list 엔드포인트 호출하여 유효성 검증
             Map<String, Object> response = webClient.get()
                     .uri(uriBuilder -> uriBuilder
@@ -56,7 +56,7 @@ public class GeminiAdapter implements GeminiPort {
         } catch (WebClientResponseException e) {
             log.error("Gemini API 호출 실패 - 상태 코드: {}, 메시지: {}", 
                     e.getStatusCode(), e.getMessage());
-            
+
             if (e.getStatusCode().value() == 400) {
                 throw new RuntimeException("잘못된 API 키 형식입니다");
             } else if (e.getStatusCode().value() == 403) {

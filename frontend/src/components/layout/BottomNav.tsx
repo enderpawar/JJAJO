@@ -48,6 +48,8 @@ export default function BottomNav({
   const touchStartTimeRef = useRef<number | null>(null)
   const hasDraggedOutRef = useRef(false)
   const lastActiveActionRef = useRef<string | null>(null)
+  /** 롱프레스로 radial 열린 뒤 뗀 경우, 합성 click에서 onAddSchedule 호출 방지 */
+  const radialWasOpenOnTouchRef = useRef(false)
 
   useEffect(() => {
     return () => {
@@ -205,6 +207,7 @@ export default function BottomNav({
   }
 
   const handleFabTouchStart: React.TouchEventHandler<HTMLButtonElement> = (e) => {
+    radialWasOpenOnTouchRef.current = false
     isTouchingRef.current = true
     const touch = e.touches[0]
     startTouchRef.current = { x: touch.clientX, y: touch.clientY }
@@ -213,7 +216,7 @@ export default function BottomNav({
     cancelHoldTimeout()
     holdTimeoutRef.current = window.setTimeout(() => {
       openRadial()
-    }, 420)
+    }, 200)
   }
 
   const handleFabTouchMove: React.TouchEventHandler<HTMLButtonElement> = (e) => {
@@ -235,6 +238,9 @@ export default function BottomNav({
     isTouchingRef.current = false
     cancelHoldTimeout()
     if (wasRadialOpen) {
+      // 롱프레스로 radial이 열린 뒤 뗄 때 합성 클릭을 막아, 아무 동작 없이 뗀 경우 onAddSchedule이 호출되지 않도록 함
+      radialWasOpenOnTouchRef.current = true
+      e.preventDefault()
       const touch = e.changedTouches[0]
       if (touch) {
         const id = getNearestActionId(touch.clientX, touch.clientY)
@@ -334,6 +340,13 @@ export default function BottomNav({
           ref={fabRef}
           onClick={(e) => {
             if (radialOpen) {
+              e.preventDefault()
+              e.stopPropagation()
+              return
+            }
+            // 롱프레스로 radial 열었다가 손가락만 뗀 경우, 합성 click이 와도 새 일정 추가 실행 안 함
+            if (radialWasOpenOnTouchRef.current) {
+              radialWasOpenOnTouchRef.current = false
               e.preventDefault()
               e.stopPropagation()
               return

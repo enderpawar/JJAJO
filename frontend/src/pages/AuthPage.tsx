@@ -2,6 +2,7 @@ import { LogIn } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getApiBase } from '@/utils/api'
+import { getToken, setToken, clearToken } from '@/utils/tokenStorage'
 import { useUserStore } from '@/stores/userStore'
 
 export default function AuthPage() {
@@ -11,14 +12,28 @@ export default function AuthPage() {
 
   useEffect(() => {
     const checkLogin = async () => {
+      // 1. OAuth 리다이렉트 후 URL에서 토큰 추출 (?token= 또는 #token=, iOS Safari 302 시 # 유실 대응)
+      const hash = window.location.hash
+      const params = new URLSearchParams(window.location.search)
+      const tokenFromHash = hash.startsWith('#token=') ? decodeURIComponent(hash.slice(7).trim()) : null
+      const tokenFromQuery = params.get('token')
+      const tokenFromUrl = tokenFromHash || tokenFromQuery
+      if (tokenFromUrl) {
+        setToken(tokenFromUrl)
+        // URL에서 토큰 제거 (보안·북마크 시 노출 방지)
+        const cleanPath = window.location.pathname || '/'
+        window.history.replaceState(null, '', cleanPath)
+      }
+
       try {
         const base = getApiBase()
         const url = base ? `${base}/api/me` : '/api/me'
+        const token = getToken()
         const res = await fetch(url, {
           credentials: 'include',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
         if (res.ok) {
-          // 현재 로그인한 사용자 정보 저장
           try {
             const me = await res.json()
             if (me && typeof me.userId === 'string') {
@@ -32,10 +47,12 @@ export default function AuthPage() {
           } catch {
             // JSON 파싱 실패 시에는 사용자 정보 저장 없이 진행
           }
-
-          // 이미 로그인된 상태이면 바로 플래너로 이동
           navigate('/app', { replace: true })
           return
+        }
+        // 401 시 토큰이 있으면 만료된 것일 수 있음
+        if (res.status === 401 && token) {
+          clearToken()
         }
       } catch (e) {
         // 네트워크 오류 등은 무시하고 로그인 화면 표시

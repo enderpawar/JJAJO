@@ -1,3 +1,5 @@
+import { getToken, clearToken } from './tokenStorage'
+
 /** 배포 시 env 없을 때 사용할 백엔드 오리진 (Cloudflare Pages + Render 기준) */
 const FALLBACK_BACKEND_ORIGIN = 'https://jjajo-backend.onrender.com'
 
@@ -31,18 +33,21 @@ export type ApiRequestOptions = {
 }
 
 /**
- * 쿠키 인증 + JSON 검증이 적용된 공통 fetch 래퍼
- * - credentials: 'include' 고정
+ * 인증 + JSON 검증이 적용된 공통 fetch 래퍼
+ * - JWT 토큰이 있으면 Authorization: Bearer 헤더 추가 (Safari 크로스 사이트 대응)
+ * - credentials: 'include' (세션 쿠키도 함께 전송)
  * - 실패 시 ApiError throw (statusCode로 401/403/404 구분 가능)
  * - HTML 응답(로그인 리다이렉트) 시 파싱 전 에러
  */
 export async function apiRequest<T>(url: string, options: ApiRequestOptions = {}): Promise<T> {
   const { method = 'GET', body, headers = {}, parseJson = true } = options
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
+  const token = getToken()
   const init: RequestInit = {
     method,
     credentials: 'include',
     headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(body != null && typeof body === 'object' && !isFormData
         ? { 'Content-Type': 'application/json' }
         : {}),
@@ -57,6 +62,9 @@ export async function apiRequest<T>(url: string, options: ApiRequestOptions = {}
 
   const response = await fetch(url, init)
   if (!response.ok) {
+    if (response.status === 401 && token) {
+      clearToken()
+    }
     const text = await response.text().catch(() => response.statusText)
     const message = response.status === 401 ? '로그인이 필요합니다' : (text || `${response.status} ${response.statusText}`)
     throw new ApiError(message, response.status, text)
@@ -66,6 +74,15 @@ export async function apiRequest<T>(url: string, options: ApiRequestOptions = {}
   const text = await response.text()
   ensureJsonResponse(response, text)
   return JSON.parse(text) as T
+}
+
+/**
+ * 인증 헤더 (JWT 토큰이 있으면 Authorization 추가).
+ * fetch 직접 호출 시 headers에 spread해서 사용.
+ */
+export function getAuthHeaders(): Record<string, string> {
+  const token = getToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 /**

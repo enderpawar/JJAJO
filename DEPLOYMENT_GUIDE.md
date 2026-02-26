@@ -90,6 +90,7 @@
    | `GOOGLE_CLIENT_ID` | Google OAuth 클라이언트 ID |
    | `GOOGLE_CLIENT_SECRET` | Google OAuth 클라이언트 시크릿 |
    | `FRONTEND_ORIGIN` | **프론트 URL** (예: `https://jjajo.pages.dev`. 미배포 시 예정 URL 사용 후 5단계에서 갱신) |
+   | `JWT_SECRET` | **배포 시 필수** 32자 이상 랜덤 문자열 (Safari 크로스 사이트 추적 방지 회피용 JWT 서명) |
 
 7. 배포 후 **Settings** → **Networking** → **Generate Domain** 으로 공개 URL 확인.  
    예: `https://jjajo-backend-production-xxxx.up.railway.app`  

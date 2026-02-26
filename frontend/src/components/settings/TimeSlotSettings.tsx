@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Clock, Eye, EyeOff, CalendarDays, ChevronDown, ChevronUp } from 'lucide-react'
+import { Clock, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useToastStore } from '@/stores/toastStore'
-import { TIME_SLOT_LABELS, WEEKDAY_LABELS, DEFAULT_DAYS_OFF, WeekdayCode } from '@/types/settings'
+import { TIME_SLOT_LABELS } from '@/types/settings'
 
 interface TimeSlotSettingsProps {
   /** 모바일에서 세부 항목을 기본 접힘으로 표시 (한 화면에 담기 위함) */
@@ -12,13 +12,10 @@ interface TimeSlotSettingsProps {
 }
 
 export function TimeSlotSettings({ defaultTimeSlotsExpanded = true, compact = false }: TimeSlotSettingsProps) {
-  const { settings, updateTimeSlotPreferences, updateDaysOff } = useSettingsStore()
+  const { settings, updateTimeSlotPreferences } = useSettingsStore()
   const { addToast } = useToastStore()
   const [preferences, setPreferences] = useState(settings.timeSlotPreferences)
-  const [daysOff, setDaysOff] = useState<WeekdayCode[]>(settings.daysOff ?? DEFAULT_DAYS_OFF)
   const [timeSlotsExpanded, setTimeSlotsExpanded] = useState(defaultTimeSlotsExpanded)
-
-  const DAY_ORDER: WeekdayCode[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
   // 우선순위 변경 (드래그 앤 드롭 대신 버튼으로)
   const handlePriorityChange = (index: number, direction: 'up' | 'down') => {
@@ -54,17 +51,10 @@ export function TimeSlotSettings({ defaultTimeSlotsExpanded = true, compact = fa
     setPreferences(newPreferences)
   }
 
-  const toggleDayOff = (day: WeekdayCode) => {
-    setDaysOff((prev) =>
-      prev.includes(day) ? prev.filter((item) => item !== day) : [...prev, day]
-    )
-  }
-
   // 저장
   const handleSave = () => {
     updateTimeSlotPreferences(preferences)
-    updateDaysOff(daysOff)
-    addToast('시간대/쉬는 날 설정이 저장되었습니다.')
+    addToast('시간대 설정이 저장되었습니다.')
   }
 
   // 초기화
@@ -72,44 +62,11 @@ export function TimeSlotSettings({ defaultTimeSlotsExpanded = true, compact = fa
     const { resetToDefaults } = useSettingsStore.getState()
     resetToDefaults()
     setPreferences(useSettingsStore.getState().settings.timeSlotPreferences)
-    setDaysOff(useSettingsStore.getState().settings.daysOff)
     addToast('기본 설정으로 초기화되었습니다.')
   }
 
   return (
     <div className={compact ? 'space-y-3' : 'space-y-6'}>
-      {/* 쉬는 날 선택 */}
-      <div className={`neu-float rounded-neu theme-transition bg-theme-card ${compact ? 'p-3' : 'p-4'}`}>
-        <h3 className={`font-semibold text-theme flex items-center gap-2 ${compact ? 'mb-1 text-sm' : 'mb-2'}`}>
-          <CalendarDays className={compact ? 'w-4 h-4 text-primary-500' : 'w-5 h-5 text-primary-500'} />
-          쉬는 날 설정
-        </h3>
-        <p className={`text-theme-muted ${compact ? 'text-xs mb-2' : 'text-sm mb-4'}`}>
-          선택된 요일에는 AI가 자동 일정을 배치하지 않아요.
-        </p>
-        <div className={`grid grid-cols-7 ${compact ? 'gap-1' : 'gap-2'}`}>
-          {DAY_ORDER.map((day) => {
-            const active = daysOff.includes(day)
-            return (
-              <button
-                key={day}
-                type="button"
-                onClick={() => toggleDayOff(day)}
-                className={`rounded-neu theme-transition border-0 outline-none ${
-                  compact ? 'py-1.5 text-xs font-medium' : 'py-2 text-sm font-medium'
-                } ${
-                  active
-                    ? 'neu-date-selected text-primary-500'
-                    : 'shadow-neu-float-date text-theme-muted hover:shadow-neu-inset-hover active:scale-[0.98] bg-theme-card'
-                }`}
-              >
-                {WEEKDAY_LABELS[day]}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
       {/* 시간대 우선순위 설정 (접기/펼치기 가능) */}
       <div className={`neu-float rounded-neu theme-transition bg-theme-card ${compact ? 'p-3' : 'p-4'}`}>
         <h3 className={`font-semibold text-theme flex items-center gap-2 ${compact ? 'mb-1 text-sm' : 'mb-2'}`}>
