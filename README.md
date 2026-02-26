@@ -1,6 +1,7 @@
 <div align="center">
 
 # 짜조 (JJAJO)
+<img width="2774" height="1805" alt="image" src="https://github.com/user-attachments/assets/336903c2-f14e-458f-8c32-bd40d173c6e6" />
 
 ### 말만 하면, AI가 일정을 짜줘요
 
