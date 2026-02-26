@@ -1,4 +1,4 @@
-import { LogIn } from 'lucide-react'
+import { LogIn, Sparkles, CalendarDays, Brain } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getApiBase } from '@/utils/api'
@@ -70,25 +70,23 @@ export default function AuthPage() {
     return base ? `${base}/oauth2/authorization/google` : '/oauth2/authorization/google'
   })()
 
-  const handleEnterPlanner = () => {
-    navigate('/app')
-  }
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 theme-transition bg-theme text-theme relative overflow-hidden">
-      {/* 배경: 로고 톤에 맞는 은은한 그라데이션 */}
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-6 theme-transition bg-[#FFF7F0] dark:bg-[#050507] text-theme relative overflow-hidden">
       <div
-        className="absolute inset-0 pointer-events-none opacity-[0.07]"
-        style={{ background: 'var(--primary-gradient)' }}
+        className="absolute top-1/5 -left-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl bg-[var(--primary-point)] pointer-events-none animate-float-soft"
+        style={{ animationDuration: '18s' }}
         aria-hidden
       />
-      <div className="absolute top-1/4 -left-1/4 w-96 h-96 rounded-full opacity-30 blur-3xl bg-[var(--primary-point)] pointer-events-none" aria-hidden />
-      <div className="absolute bottom-1/4 -right-1/4 w-80 h-80 rounded-full opacity-20 blur-3xl bg-[var(--primary-point)] pointer-events-none" aria-hidden />
+      <div
+        className="absolute bottom-1/4 -right-1/4 w-80 h-80 rounded-full opacity-18 blur-3xl bg-[var(--primary-point)] pointer-events-none animate-float-soft"
+        style={{ animationDuration: '20s', animationDelay: '0.4s' }}
+        aria-hidden
+      />
 
-      <div className="max-w-md w-full relative z-10 flex flex-col items-center">
-        {/* 짜조 로고 (Header와 동일한 비주얼) */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center gap-2 mb-3">
+      <div className="relative z-10 w-full max-w-3xl mx-auto flex flex-col items-center gap-8">
+        {/* 상단: 인트로 카피 (모바일/PC 공통, 중앙 정렬) */}
+        <div className="w-full flex flex-col items-center text-center gap-5 animate-intro-slide-up" style={{ animationDelay: '0.02s' }}>
+          <div className="flex items-center gap-2">
             <div className="relative flex items-center gap-0.5 shrink-0" aria-hidden>
               <span className="w-10 h-10 sm:w-12 sm:h-12 rounded-tool shadow-md bg-[var(--primary-point)]" />
               <span
@@ -97,52 +95,51 @@ export default function AuthPage() {
               />
             </div>
             <div className="flex flex-col leading-tight text-left">
-              <span className="font-display text-2xl sm:text-3xl font-bold text-[var(--text-main)] tracking-tight">
+              <span className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-main)]">
                 짜조
               </span>
-              <span className="font-display text-xs sm:text-sm font-medium text-[var(--text-muted)]">
+              <span className="text-xs sm:text-sm font-medium text-[var(--text-muted)]">
                 일정을 짜줘
               </span>
             </div>
           </div>
-          <p className="text-theme-muted text-sm text-center max-w-[280px]">
-            짜조에 오신 것을 환영해요!
-          </p>
-        </div>
 
-        <div className="card card-flat space-y-4 w-full">
-          {/* 로그인 상태 확인 중 표시 */}
-          {checking && (
-            <p className="text-xs text-theme-muted mb-2">
-              로그인 상태를 확인하고 있어요...
-            </p>
-          )}
-
-          {/* Google 로그인: iOS Safari 호환을 위해 <a href> 사용 */}
-          <a
-            href={googleLoginUrl}
-            className="btn-primary w-full flex items-center justify-center gap-2 no-underline text-inherit min-h-[48px]"
-          >
-            <LogIn className="w-5 h-5 shrink-0" />
-            <span>Google 계정으로 시작하기</span>
-          </a>
-
-          {/* 안내 문구 */}
-          <div className="mt-2 p-4 rounded-neu text-sm text-theme-muted bg-theme-card/60 border border-theme">
-            <p className="mb-1 text-theme">
-              로그인 후 오른쪽 상단 <strong className="text-theme">설정</strong> 버튼에서 Gemini API 키를 설정하면
-              AI 플래너 기능이 활성화됩니다.
+          <div className="space-y-3 sm:space-y-4">
+            <h1 className="mt-3 sm:mt-4 text-2xl sm:text-3xl md:text-[2.1rem] font-semibold tracking-tight text-[var(--text-main)]">
+              <span className="animate-intro-heading-jiggle">머릿속 할 일을,</span>{' '}
+              <span className="text-primary-500">AI가 대신 시간표로</span>
+            </h1>
+            <p className="max-w-xl text-sm sm:text-base text-[var(--text-muted)]">
+              공부, 업무, 사이드 프로젝트까지.
+              <br className="hidden sm:block" />
+              짜조에 &quot;오늘 해야 할 일&quot;만 알려주면, 남는 시간에 딱 맞게 일정을 배치해 드릴게요.
             </p>
           </div>
 
-          {/* 이미 로그인했을 때 바로 플래너로 이동 */}
-          <button
-            type="button"
-            onClick={handleEnterPlanner}
-            className="w-full text-xs text-theme-muted hover:text-theme underline-offset-2 hover:underline mt-2 transition-colors py-2"
-          >
-            이미 로그인하셨나요? 플래너로 이동하기
-          </button>
+          {/* 기능 모달(카드) 제거 */}
+        </div>
+
+        {/* 하단: 로그인 카드 (모바일/PC 공통 중앙 배치) */}
+        <div className="w-full max-w-md animate-intro-slide-up" style={{ animationDelay: '0.22s' }}>
+          <div className="space-y-4 w-full">
+            {/* 로그인 상태 확인 중 표시 */}
+            {checking && (
+              <p className="text-xs text-theme-muted mb-1">
+                로그인 상태를 확인하고 있어요...
+              </p>
+            )}
+
+            {/* Google 로그인: iOS Safari 호환을 위해 <a href> 사용 */}
+            <a
+              href={googleLoginUrl}
+              className="btn-primary w-full flex items-center justify-center gap-2 no-underline text-inherit min-h-[48px]"
+            >
+              <LogIn className="w-5 h-5 shrink-0" />
+              <span>Google 계정으로 시작하기</span>
+            </a>
+
+            {/* 안내 문구 제거 (Gemini API 키 설정 설명) */}
+          </div>
         </div>
       </div>
     </div>

@@ -28,6 +28,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/oauth2/authorization/google" element={<OAuthRedirect />} />
       <Route path="/" element={<AuthPage />} />
+      <Route path="/auth" element={<AuthPage />} />
       <Route path="/app" element={<MainPage />} />
     </Routes>
   )
