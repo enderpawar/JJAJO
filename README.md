@@ -1,6 +1,6 @@
 <div align="center">
 
-# 짜조 (JJAJO)
+# [짜조 (JJAJO)](https://jjajo.pages.dev/)
 ![README 소개페이지2](https://github.com/user-attachments/assets/82250a4e-6009-485e-a818-150c6d336040)
 
 ### 말만 하면, AI가 일정을 짜줘요
