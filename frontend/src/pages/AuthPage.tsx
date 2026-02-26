@@ -73,12 +73,12 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-6 theme-transition bg-[#FFF7F0] dark:bg-[#050507] text-theme relative overflow-hidden">
       <div
-        className="absolute top-1/5 -left-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl bg-[var(--primary-point)] pointer-events-none animate-float-soft"
+        className="hidden sm:block absolute top-1/5 -left-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl bg-[var(--primary-point)] pointer-events-none animate-float-soft"
         style={{ animationDuration: '18s' }}
         aria-hidden
       />
       <div
-        className="absolute bottom-1/4 -right-1/4 w-80 h-80 rounded-full opacity-18 blur-3xl bg-[var(--primary-point)] pointer-events-none animate-float-soft"
+        className="hidden sm:block absolute bottom-1/4 -right-1/4 w-80 h-80 rounded-full opacity-18 blur-3xl bg-[var(--primary-point)] pointer-events-none animate-float-soft"
         style={{ animationDuration: '20s', animationDelay: '0.4s' }}
         aria-hidden
       />
