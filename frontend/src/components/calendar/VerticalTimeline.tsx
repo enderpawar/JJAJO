@@ -97,6 +97,11 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
       if (pointerIdOnCardRef.current !== null && e.pointerId === pointerIdOnCardRef.current) {
         pointerIdOnCardRef.current = null
         timelineRef.current?.classList.remove('timeline-scroll-dragging')
+        // iOS PWA: pointercancel 등으로 onDragEnd가 호출되지 않는 경우 선택/포커스 강조 해제
+        window.getSelection?.()?.removeAllRanges?.()
+        if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
+          document.activeElement.blur()
+        }
       }
     }
     window.addEventListener('pointerup', handleUp, { capture: true })
@@ -634,6 +639,9 @@ export function VerticalTimeline({ skipNextScrollToTimeRef }: VerticalTimelinePr
           // iOS PWA: 드래그 후 텍스트 선택/강조가 유지되는 WebKit 이슈 해제
           if (typeof window !== 'undefined') {
             window.getSelection?.()?.removeAllRanges?.()
+            if (document.activeElement instanceof HTMLElement && document.activeElement !== document.body) {
+              document.activeElement.blur()
+            }
           }
           setCardDragging(false)
           pointerIdOnCardRef.current = null
