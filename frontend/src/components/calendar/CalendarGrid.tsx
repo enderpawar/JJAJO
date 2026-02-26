@@ -314,6 +314,8 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight, displayMon
                   gridTemplateRows: rowCount > 0 ? `repeat(${rowCount}, ${ROW_HEIGHT_PX}px)` : undefined,
                   minHeight: ROW_HEIGHT_PX,
                   maxHeight: EVENT_AREA_MAX_HEIGHT_PX,
+                  WebkitOverflowScrolling: 'touch',
+                  touchAction: 'pan-y',
                 }}
               >
                 {allEventRows.map((row, rowIndex) =>
