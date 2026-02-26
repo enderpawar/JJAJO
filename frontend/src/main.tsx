@@ -3,6 +3,14 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
 
+// iOS Safari: 문서 스크롤 조기 차단 (React 마운트 전부터 적용)
+const preventDocumentScroll = (e: TouchEvent) => {
+  const target = e.target as Node
+  if (target && target instanceof Element && target.closest('[data-allow-scroll]')) return
+  if (e.cancelable) e.preventDefault()
+}
+document.addEventListener('touchmove', preventDocumentScroll, { passive: false, capture: true })
+
 // 저장된 테마 적용 (라이트/다크 토글, 첫 페인트 플래시 방지)
 try {
   const raw = localStorage.getItem('jjajo-settings')

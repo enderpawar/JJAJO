@@ -116,21 +116,25 @@ export default function MainPage() {
 
   /** 메인 앱 레이아웃: 문서(body) 스크롤 방지 — 스크롤은 캘린더/타임라인 내부만 */
   useEffect(() => {
+    // iOS Safari: body를 fixed로 고정하면 scrollTop이 0으로 리셋되므로, 현재 위치 저장 후 복원
+    const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop
     document.documentElement.classList.add('main-app-layout')
-    return () => document.documentElement.classList.remove('main-app-layout')
+    // fixed 적용 후 원래 스크롤 위치를 body top으로 반영 (스크롤 점프 방지)
+    if (scrollY > 0) {
+      document.body.style.top = `-${scrollY}px`
+    }
+    return () => {
+      document.documentElement.classList.remove('main-app-layout')
+      // fixed 해제 시 원래 스크롤 위치로 복원
+      const top = parseInt(document.body.style.top || '0', 10)
+      document.body.style.top = ''
+      if (top < 0) {
+        window.scrollTo(0, -top)
+      }
+    }
   }, [])
 
-  /** iOS PWA: 문서 터치 스크롤 차단. [data-allow-scroll] 내부만 터치 스크롤 허용 */
-  useEffect(() => {
-    const onDocTouchMove = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return
-      const target = e.target as Node
-      if (target && target instanceof Element && target.closest('[data-allow-scroll]')) return
-      if (e.cancelable) e.preventDefault()
-    }
-    document.addEventListener('touchmove', onDocTouchMove, { passive: false, capture: true })
-    return () => document.removeEventListener('touchmove', onDocTouchMove, { capture: true })
-  }, [])
+  /** iOS PWA: 문서 터치 스크롤 차단은 main.tsx에서 조기 등록됨 (여기서는 중복 등록 제거) */
 
   /** 슬라이드 월 전환 후 오프셋 리셋 시 트랜지션 없이 바로 보이도록, 리셋 플래그를 한 프레임 후 해제 */
   useEffect(() => {
