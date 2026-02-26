@@ -18,6 +18,7 @@ function useIsMobile() {
 }
 
 import Header from '@/components/layout/Header'
+import { PlannerTour } from '@/components/onboarding/PlannerTour'
 import BottomNav from '@/components/layout/BottomNav'
 import MobileCalendarTodoSwitcher from '@/components/layout/MobileCalendarTodoSwitcher'
 import MagicBar from '@/components/layout/MagicBar'
@@ -358,16 +359,7 @@ export default function MainPage() {
     calendarScrollTopOnTouchStartRef.current = calendarScrollRef.current?.scrollTop ?? 0
     setCalendarIsDragging(true)
   }
-  /** 캡처 단계에서 호출: 좌우 슬라이드로 판단되면 preventDefault로 상하 스크롤 차단 */
-  const handleCalendarTouchMoveCapture = (e: React.TouchEvent) => {
-    const deltaX = e.touches[0].clientX - calendarTouchStartX.current
-    const deltaY = e.touches[0].clientY - calendarTouchStartY.current
-    const absX = Math.abs(deltaX)
-    const absY = Math.abs(deltaY)
-    if (absX > absY && absX > 8) {
-      e.preventDefault()
-    }
-  }
+  // handleCalendarTouchMoveCapture 제거됨: 네이티브 리스너(useEffect)가 이미 preventDefault 처리 중
 
   const handleCalendarTouchMove = (e: React.TouchEvent) => {
     const container = calendarSlideContainerRef.current
@@ -507,7 +499,6 @@ export default function MainPage() {
                     className="h-full overflow-hidden touch-pan-y"
                     onTouchStart={handleCalendarTouchStart}
                     onTouchMove={handleCalendarTouchMove}
-                    onTouchMoveCapture={handleCalendarTouchMoveCapture}
                     onTouchEnd={handleCalendarTouchEnd}
                     onTouchCancel={handleCalendarTouchEnd}
                   >
@@ -721,6 +712,9 @@ export default function MainPage() {
           onClose={() => setShowImportTimetable(false)}
         />
       )}
+
+      {/* 플래너 사용법 투어 */}
+      <PlannerTour />
 
       {/* 하루 일정 초기화 / 전체 일정 비우기 확인 모달 (모바일 FAB 롱프레스 메뉴 등에서 사용) */}
       <ConfirmModal

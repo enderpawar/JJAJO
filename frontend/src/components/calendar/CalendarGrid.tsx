@@ -240,6 +240,7 @@ export default function CalendarGrid({ onDateSelect, allowFullHeight, displayMon
         'flex flex-col',
         allowFullHeight ? 'min-h-0 flex-1' : ''
       )}
+      {...(displayMonth === undefined ? { 'data-tour': 'calendar-grid' } : {})}
     >
       {/* 요일 헤더 — 캘린더 본체에 가깝게, 폰트 축소해 숫자가 주인공이 되도록 */}
       <div className="grid grid-cols-7 gap-1 mb-1.5 calendar-weekday-row">
