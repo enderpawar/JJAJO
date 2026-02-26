@@ -1,7 +1,7 @@
 <div align="center">
 
 # 짜조 (JJAJO)
-![README 소개페이지](https://github.com/user-attachments/assets/1372cb40-2c98-4ee1-8515-73240bbe8a3a)
+![README 소개페이지2](https://github.com/user-attachments/assets/82250a4e-6009-485e-a818-150c6d336040)
 
 ### 말만 하면, AI가 일정을 짜줘요
 
