@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { X, Calendar, Clock } from 'lucide-react'
 import { useCalendarStore } from '@/stores/calendarStore'
 import { useToastStore } from '@/stores/toastStore'
@@ -114,7 +115,8 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
     return () => { document.body.style.overflow = prev }
   }, [isOpen, variant])
 
-  if (!isOpen) return null
+  // sheet / card / panel 변형은 부모가 조건부 렌더링으로 처리
+  if (!isOpen && variant !== 'modal') return null
 
   /** 모바일용: 위아래 좁은 플랜카드 (자동 포커스, 큰 터치 영역, 하단 고정 저장 버튼) */
   const compactCardContent = variant === 'card' && (
@@ -345,14 +347,33 @@ export default function AddTodoModal({ isOpen, onClose, defaultDate, variant = '
   if (variant === 'sheet' || variant === 'card' || variant === 'panel') return formContent
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/60 backdrop-blur-sm theme-transition cursor-default"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="add-todo-modal-title"
-    >
-      {formContent}
-    </div>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="modal-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/60 backdrop-blur-sm cursor-default"
+          onClick={onClose}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-todo-modal-title"
+        >
+          <motion.div
+            initial={{ scale: 0.96, opacity: 0, y: 10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.96, opacity: 0, y: 6 }}
+            transition={{ type: 'tween', duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+            className="w-full flex items-center justify-center"
+            style={{ maxWidth: '28rem' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {formContent}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
